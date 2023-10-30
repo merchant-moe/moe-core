@@ -18,15 +18,15 @@ library Bank {
         oldBalance = bank.balances[account];
         oldTotalSupply = bank.totalSupply;
 
-        if (deltaAmount > 0) {
+        if (deltaAmount == 0) {
+            newBalance = oldBalance;
+            newTotalSupply = oldTotalSupply;
+        } else {
             newBalance = oldBalance.addDelta(deltaAmount);
             newTotalSupply = oldTotalSupply.addDelta(deltaAmount);
 
             bank.balances[account] = newBalance;
             bank.totalSupply = newTotalSupply;
-        } else {
-            newBalance = oldBalance;
-            newTotalSupply = oldTotalSupply;
         }
     }
 }
