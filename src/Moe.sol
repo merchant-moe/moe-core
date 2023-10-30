@@ -14,6 +14,10 @@ contract Moe is ERC20, IMoe {
         _minter = minter;
     }
 
+    function getMinter() external view override returns (address) {
+        return _minter;
+    }
+
     function mint(address account, uint256 amount) external override {
         if (msg.sender != _minter) revert Moe__NotMinter(msg.sender);
         _mint(account, amount);
