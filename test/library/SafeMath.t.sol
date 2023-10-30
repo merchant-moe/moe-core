@@ -17,7 +17,7 @@ contract SafeMathTest is Test {
             else y = x - uint256(-delta);
         }
 
-        assertEq(SafeMath.addDelta(x, delta), y, "test_AddDelta::1");
+        assertEq(SafeMath.addDelta(x, delta), y, "test_fuzz_AddDelta::1");
     }
 
     function test_fuzz_revert_AddDelta(uint256 x, int256 delta) public {
