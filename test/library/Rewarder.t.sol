@@ -131,4 +131,24 @@ contract RewarderTest is Test {
         assertEq(bobRewards, aliceRewards, "test_Update::14");
         assertEq(rewarder.debt[alice], rewarder.debt[bob], "test_Update::15");
     }
+
+    function test_UpdateAfterEmergencyWithdrawal() public {
+        uint256 totalRewards = 10e18;
+
+        uint256 rewards =
+            Rewarder.update(rewarder, alice, bank.balances[alice], bank.balances[alice], bank.totalSupply, totalRewards);
+
+        assertGt(rewards, 0, "test_UpdateAfterEmergencyWithdrawal::1");
+
+        // emergency withdrawal
+        Bank.update(bank, bob, -int256(bank.balances[bob]));
+
+        uint256 expectedRewards = Rewarder.getPendingReward(rewarder, bank, bob, totalRewards);
+
+        (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply,) = Bank.update(bank, bob, 1e18);
+        uint256 bobRewards = Rewarder.update(rewarder, bob, oldBalance, newBalance, oldTotalSupply, totalRewards);
+
+        assertEq(bobRewards, expectedRewards, "test_UpdateAfterEmergencyWithdrawal::2");
+        assertEq(bobRewards, 0, "test_UpdateAfterEmergencyWithdrawal::3");
+    }
 }

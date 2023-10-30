@@ -38,7 +38,9 @@ library Rewarder {
     ) internal view returns (uint256) {
         uint256 accDebtPerShare = rewarder.accDebtPerShare + getDebtPerShare(bank.totalSupply, totalRewards);
 
-        return getDebt(accDebtPerShare, bank.balances[account]) - rewarder.debt[account];
+        uint256 balance = bank.balances[account];
+
+        return balance == 0 ? 0 : getDebt(accDebtPerShare, balance) - rewarder.debt[account];
     }
 
     function update(
@@ -46,21 +48,21 @@ library Rewarder {
         address account,
         uint256 oldBalance,
         uint256 newBalance,
-        uint256 oldTotalSupply,
+        uint256 totalSupply,
         uint256 totalRewards
     ) internal returns (uint256 rewards) {
-        uint256 accDebtPerShare = updateAccDebtPerShare(rewarder, oldTotalSupply, totalRewards);
+        uint256 accDebtPerShare = updateAccDebtPerShare(rewarder, totalSupply, totalRewards);
 
-        rewards = getDebt(accDebtPerShare, oldBalance) - rewarder.debt[account];
+        rewards = oldBalance == 0 ? 0 : getDebt(accDebtPerShare, oldBalance) - rewarder.debt[account];
 
         rewarder.debt[account] = getDebt(accDebtPerShare, newBalance);
     }
 
-    function updateAccDebtPerShare(Parameter storage rewarder, uint256 oldTotalSupply, uint256 totalRewards)
+    function updateAccDebtPerShare(Parameter storage rewarder, uint256 totalSupply, uint256 totalRewards)
         internal
         returns (uint256)
     {
         rewarder.lastUpdateTimestamp = block.timestamp;
-        return rewarder.accDebtPerShare += getDebtPerShare(oldTotalSupply, totalRewards);
+        return rewarder.accDebtPerShare += getDebtPerShare(totalSupply, totalRewards);
     }
 }
