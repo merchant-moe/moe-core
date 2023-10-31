@@ -253,4 +253,49 @@ contract MasterChefTest is Test {
         vm.prank(alice);
         masterChef.add(tokenA, block.timestamp, IRewarder(address(0)));
     }
+
+    function test_EmergencyWithdrawal() public {
+        masterChef.setMoePerSecond(1e18);
+
+        veMoe.setVotes(0, 1e18);
+
+        vm.prank(alice);
+        masterChef.deposit(0, 1e18);
+
+        vm.prank(bob);
+        masterChef.deposit(0, 9e18);
+
+        vm.warp(block.timestamp + 10);
+
+        vm.prank(alice);
+        masterChef.emergencyWithdraw(0);
+
+        assertEq(moe.balanceOf(address(alice)), 0, "test_EmergencyWithdrawal::1");
+        assertEq(tokenA.balanceOf(address(alice)), 1e18, "test_EmergencyWithdrawal::2");
+
+        vm.prank(bob);
+        masterChef.claim(new uint256[](1));
+
+        assertApproxEqAbs(moe.balanceOf(address(bob)), 10e18, 1, "test_EmergencyWithdrawal::3");
+
+        vm.prank(alice);
+        masterChef.deposit(0, 1e18);
+
+        assertEq(moe.balanceOf(address(alice)), 0, "test_EmergencyWithdrawal::5");
+
+        vm.warp(block.timestamp + 10);
+
+        vm.prank(alice);
+        masterChef.claim(new uint256[](1));
+
+        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::6");
+
+        vm.prank(bob);
+        masterChef.emergencyWithdraw(0);
+
+        vm.prank(alice);
+        masterChef.claim(new uint256[](1));
+
+        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::6");
+    }
 }
