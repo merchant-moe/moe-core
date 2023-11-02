@@ -232,14 +232,14 @@ contract MasterChefTest is Test {
 
         assertEq(address(masterChef.getExtraRewarder(2)), address(rewarder1), "test_Add::1");
 
-        vm.expectRevert(IRewarder.SimpleRewarder__AlreadyLinked.selector);
+        vm.expectRevert(SimpleRewarder.SimpleRewarder__AlreadyLinked.selector);
         masterChef.setExtraRewarder(2, IRewarder(address(rewarder1)));
 
         masterChef.setExtraRewarder(2, IRewarder(address(rewarder2)));
 
         assertEq(address(masterChef.getExtraRewarder(2)), address(rewarder2), "test_Add::2");
 
-        vm.expectRevert(IRewarder.SimpleRewarder__AlreadyLinked.selector);
+        vm.expectRevert(SimpleRewarder.SimpleRewarder__AlreadyLinked.selector);
         masterChef.setExtraRewarder(2, IRewarder(address(rewarder2)));
 
         masterChef.setExtraRewarder(2, IRewarder(address(0)));
