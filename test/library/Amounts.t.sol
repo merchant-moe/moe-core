@@ -3,10 +3,10 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 
-import "../../src/library/Bank.sol";
+import "../../src/library/Amounts.sol";
 
-contract BankTest is Test {
-    Bank.Parameter bank;
+contract AmountsTest is Test {
+    Amounts.Parameter amounts;
 
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
@@ -15,10 +15,10 @@ contract BankTest is Test {
         deltaAmount = bound(deltaAmount, 0, type(int256).max);
 
         (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply, uint256 newTotalSupply) =
-            Bank.update(bank, account, deltaAmount);
+            Amounts.update(amounts, account, deltaAmount);
 
-        assertEq(bank.balances[account], newBalance, "test_Update::1");
-        assertEq(bank.totalSupply, newTotalSupply, "test_Update::2");
+        assertEq(Amounts.getAmountOf(amounts, account), newBalance, "test_Update::1");
+        assertEq(Amounts.getTotalAmount(amounts), newTotalSupply, "test_Update::2");
         assertEq(oldBalance, 0, "test_Update::3");
         assertEq(oldTotalSupply, 0, "test_Update::4");
     }
@@ -44,14 +44,14 @@ contract BankTest is Test {
         Balance memory balanceB;
 
         (balanceA.oldBalance, balanceA.newBalance, balanceA.oldTotalSupply, balanceA.newTotalSupply) =
-            Bank.update(bank, alice, deltaAmount1A);
+            Amounts.update(amounts, alice, deltaAmount1A);
 
         (balanceB.oldBalance, balanceB.newBalance, balanceB.oldTotalSupply, balanceB.newTotalSupply) =
-            Bank.update(bank, bob, deltaAmount1B);
+            Amounts.update(amounts, bob, deltaAmount1B);
 
-        assertEq(bank.balances[alice], uint256(deltaAmount1A), "test_UpdateMultiple::1");
-        assertEq(bank.balances[bob], uint256(deltaAmount1B), "test_UpdateMultiple::2");
-        assertEq(bank.totalSupply, uint256(deltaAmount1A + deltaAmount1B), "test_UpdateMultiple::3");
+        assertEq(Amounts.getAmountOf(amounts, alice), uint256(deltaAmount1A), "test_UpdateMultiple::1");
+        assertEq(Amounts.getAmountOf(amounts, bob), uint256(deltaAmount1B), "test_UpdateMultiple::2");
+        assertEq(Amounts.getTotalAmount(amounts), uint256(deltaAmount1A + deltaAmount1B), "test_UpdateMultiple::3");
 
         assertEq(balanceA.oldBalance, 0, "test_UpdateMultiple::4");
         assertEq(balanceB.oldBalance, 0, "test_UpdateMultiple::5");
@@ -63,12 +63,20 @@ contract BankTest is Test {
         assertEq(balanceB.newTotalSupply, uint256(deltaAmount1A + deltaAmount1B), "test_UpdateMultiple::11");
 
         (balanceA.oldBalance, balanceA.newBalance, balanceA.oldTotalSupply, balanceA.newTotalSupply) =
-            Bank.update(bank, alice, deltaAmount2A);
+            Amounts.update(amounts, alice, deltaAmount2A);
 
-        assertEq(bank.balances[alice], uint256(deltaAmount1A + deltaAmount2A), "test_UpdateMultiple::12");
-        assertEq(bank.balances[bob], uint256(deltaAmount1B), "test_UpdateMultiple::13");
-        assertEq(bank.totalSupply, uint256(deltaAmount1A + deltaAmount1B + deltaAmount2A), "test_UpdateMultiple::14");
-        assertEq(bank.totalSupply, bank.balances[alice] + bank.balances[bob], "test_UpdateMultiple::15");
+        assertEq(Amounts.getAmountOf(amounts, alice), uint256(deltaAmount1A + deltaAmount2A), "test_UpdateMultiple::12");
+        assertEq(Amounts.getAmountOf(amounts, bob), uint256(deltaAmount1B), "test_UpdateMultiple::13");
+        assertEq(
+            Amounts.getTotalAmount(amounts),
+            uint256(deltaAmount1A + deltaAmount1B + deltaAmount2A),
+            "test_UpdateMultiple::14"
+        );
+        assertEq(
+            Amounts.getTotalAmount(amounts),
+            Amounts.getAmountOf(amounts, alice) + Amounts.getAmountOf(amounts, bob),
+            "test_UpdateMultiple::15"
+        );
 
         assertEq(balanceA.oldBalance, uint256(deltaAmount1A), "test_UpdateMultiple::16");
         assertEq(balanceA.oldTotalSupply, uint256(deltaAmount1A + deltaAmount1B), "test_UpdateMultiple::17");
@@ -78,12 +86,12 @@ contract BankTest is Test {
         );
 
         (balanceB.oldBalance, balanceB.newBalance, balanceB.oldTotalSupply, balanceB.newTotalSupply) =
-            Bank.update(bank, bob, deltaAmount2B);
+            Amounts.update(amounts, bob, deltaAmount2B);
 
-        assertEq(bank.balances[alice], uint256(deltaAmount1A + deltaAmount2A), "test_UpdateMultiple::20");
-        assertEq(bank.balances[bob], uint256(deltaAmount1B + deltaAmount2B), "test_UpdateMultiple::21");
+        assertEq(Amounts.getAmountOf(amounts, alice), uint256(deltaAmount1A + deltaAmount2A), "test_UpdateMultiple::20");
+        assertEq(Amounts.getAmountOf(amounts, bob), uint256(deltaAmount1B + deltaAmount2B), "test_UpdateMultiple::21");
         assertEq(
-            bank.totalSupply,
+            Amounts.getTotalAmount(amounts),
             uint256(deltaAmount1A + deltaAmount1B + deltaAmount2A + deltaAmount2B),
             "test_UpdateMultiple::22"
         );

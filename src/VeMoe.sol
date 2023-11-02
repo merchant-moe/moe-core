@@ -5,7 +5,7 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 
 import {SafeMath} from "./library/SafeMath.sol";
 import {Rewarder} from "./library/Rewarder.sol";
-import {Bank} from "./library/Bank.sol";
+import {Amounts} from "./library/Amounts.sol";
 import {Constants} from "./library/Constants.sol";
 import {IRewarder} from "./interface/IRewarder.sol";
 import {IMasterChef} from "./interface/IMasterChef.sol";
@@ -14,7 +14,7 @@ contract VeMoe {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using Rewarder for Rewarder.Parameter;
-    using Bank for Bank.Parameter;
+    using Amounts for Amounts.Parameter;
 
     error VeMoe__InvalidLength();
 
@@ -25,11 +25,11 @@ contract VeMoe {
         uint256 veMoe;
         uint256 lastUpdateTimestamp;
         uint256 boostedEndTimestamp;
-        uint256 totalVotes;
+        Amounts.Parameter votes;
     }
 
     struct VeRewarder {
-        Bank.Parameter bank;
+        Amounts.Parameter amounts;
         Rewarder.Parameter rewarder;
     }
 
@@ -37,11 +37,6 @@ contract VeMoe {
         Rewarder.Parameter rewarder;
         IERC20 token;
         uint256 reserve;
-    }
-
-    struct VoteParameter {
-        Bank.Parameter bank;
-        IRewarder optionalRewarder;
     }
 
     IERC20 private immutable _moe;
@@ -55,13 +50,12 @@ contract VeMoe {
 
     uint256 private _maxVeMoePerMoe;
 
-    uint256 private _totalVotes;
-
     VeRewarder private _veRewarder;
     Reward[] private _rewards;
 
     // pid to Vote
-    mapping(uint256 => VoteParameter) private _votes;
+    Amounts.Parameter private _votes;
+
     mapping(address => User) private _users;
 
     constructor(IERC20 moe, IMasterChef masterChef) {
@@ -76,7 +70,7 @@ contract VeMoe {
         Rewarder.Parameter storage rewarder = veRewarder.rewarder;
 
         uint256 totalAddedVeAmount = rewarder.getTotalRewards(_veMoePerSecond);
-        uint256 pendingVeAmount = rewarder.getPendingReward(veRewarder.bank, account, totalAddedVeAmount);
+        uint256 pendingVeAmount = rewarder.getPendingReward(veRewarder.amounts, account, totalAddedVeAmount);
 
         uint256 boostedEndTimestamp = user.boostedEndTimestamp;
         if (boostedEndTimestamp != 0) {
@@ -95,7 +89,7 @@ contract VeMoe {
         }
 
         uint256 newVeMoe = user.veMoe + pendingVeAmount;
-        uint256 maxVeMoe = veRewarder.bank.balances[account] * _maxVeMoePerMoe / Constants.PRECISION;
+        uint256 maxVeMoe = veRewarder.amounts.getAmountOf(account) * _maxVeMoePerMoe / Constants.PRECISION;
 
         return newVeMoe > maxVeMoe ? maxVeMoe : newVeMoe;
     }
@@ -116,15 +110,15 @@ contract VeMoe {
     }
 
     function getTotalDeposit() external view returns (uint256) {
-        return _veRewarder.bank.totalSupply;
+        return _veRewarder.amounts.getTotalAmount();
     }
 
     function getVote(uint256 pid) external view returns (uint256) {
-        return _votes[pid].bank.totalSupply;
+        return _votes.getAmountOf(pid);
     }
 
     function getTotalVotes() external view returns (uint256) {
-        return _totalVotes;
+        return _votes.getTotalAmount();
     }
 
     function stake(uint256 amount) external {
@@ -157,7 +151,7 @@ contract VeMoe {
         User storage user = _users[account];
         Rewarder.Parameter storage rewarder = _veRewarder.rewarder;
 
-        (oldBalance, newBalance, oldTotalSupply, newTotalSupply) = _veRewarder.bank.update(account, deltaAmount);
+        (oldBalance, newBalance, oldTotalSupply, newTotalSupply) = _veRewarder.amounts.update(account, deltaAmount);
 
         uint256 totalAddedVeAmount = rewarder.getTotalRewards(_veMoePerSecond);
         uint256 addedVeAmount = rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalAddedVeAmount);

@@ -9,13 +9,13 @@ import {IMoe} from "./interface/IMoe.sol";
 import {SafeMath} from "./library/SafeMath.sol";
 import {Rewarder} from "./library/Rewarder.sol";
 import {Constants} from "./library/Constants.sol";
-import {Bank} from "./library/Bank.sol";
+import {Amounts} from "./library/Amounts.sol";
 
 contract SimpleRewarder is Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using Rewarder for Rewarder.Parameter;
-    using Bank for Bank.Parameter;
+    using Amounts for Amounts.Parameter;
 
     error SimpleRewarder__NativeTransferFailed();
     error SimpleRewarder__InvalidCaller();

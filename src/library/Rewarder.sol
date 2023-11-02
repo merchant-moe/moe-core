@@ -3,12 +3,12 @@ pragma solidity ^0.8.13;
 
 import {SafeMath} from "./SafeMath.sol";
 
-import {Bank} from "./Bank.sol";
+import {Amounts} from "./Amounts.sol";
 import {Constants} from "./Constants.sol";
 
 library Rewarder {
     using SafeMath for uint256;
-    using Bank for Bank.Parameter;
+    using Amounts for Amounts.Parameter;
 
     struct Parameter {
         uint256 totalDeposit;
@@ -32,13 +32,13 @@ library Rewarder {
 
     function getPendingReward(
         Parameter storage rewarder,
-        Bank.Parameter storage bank,
+        Amounts.Parameter storage amounts,
         address account,
         uint256 totalRewards
     ) internal view returns (uint256) {
-        uint256 accDebtPerShare = rewarder.accDebtPerShare + getDebtPerShare(bank.totalSupply, totalRewards);
+        uint256 accDebtPerShare = rewarder.accDebtPerShare + getDebtPerShare(amounts.getTotalAmount(), totalRewards);
 
-        uint256 balance = bank.balances[account];
+        uint256 balance = amounts.getAmountOf(account);
 
         return balance == 0 ? 0 : getDebt(accDebtPerShare, balance) - rewarder.debt[account];
     }

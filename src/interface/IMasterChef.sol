@@ -7,13 +7,13 @@ import {IRewarder} from "./IRewarder.sol";
 import {IMoe} from "./IMoe.sol";
 import {IVeMoe} from "./IVeMoe.sol";
 import {Rewarder} from "../library/Rewarder.sol";
-import {Bank} from "../library/Bank.sol";
+import {Amounts} from "../library/Amounts.sol";
 
 interface IMasterChef {
     error MasterChef__InvalidStartTimestamp();
 
     struct Farm {
-        Bank.Parameter bank;
+        Amounts.Parameter amounts;
         Rewarder.Parameter rewarder;
         IERC20 token;
         IRewarder extraRewarder;

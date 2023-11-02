@@ -7,7 +7,7 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {SafeMath} from "./library/SafeMath.sol";
 import {Rewarder} from "./library/Rewarder.sol";
 import {Constants} from "./library/Constants.sol";
-import {Bank} from "./library/Bank.sol";
+import {Amounts} from "./library/Amounts.sol";
 import {IMoe} from "./interface/IMoe.sol";
 import {IVeMoe} from "./interface/IVeMoe.sol";
 import {IMasterChef} from "./interface/IMasterChef.sol";
@@ -17,7 +17,7 @@ contract MasterChef is Ownable, IMasterChef {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using Rewarder for Rewarder.Parameter;
-    using Bank for Bank.Parameter;
+    using Amounts for Amounts.Parameter;
 
     IMoe private immutable _moe;
     IVeMoe private immutable _veMoe;
@@ -40,11 +40,11 @@ contract MasterChef is Ownable, IMasterChef {
     }
 
     function getDeposit(uint256 pid, address account) external view override returns (uint256) {
-        return _farms[pid].bank.balances[account];
+        return _farms[pid].amounts.getAmountOf(account);
     }
 
     function getTotalDeposit(uint256 pid) external view override returns (uint256) {
-        return _farms[pid].bank.totalSupply;
+        return _farms[pid].amounts.getTotalAmount();
     }
 
     function getPendingReward(uint256 pid, address account) external view override returns (uint256) {
@@ -52,7 +52,7 @@ contract MasterChef is Ownable, IMasterChef {
 
         Rewarder.Parameter storage rewarder = farm.rewarder;
 
-        return rewarder.getPendingReward(farm.bank, account, _getRewardForPid(rewarder, pid));
+        return rewarder.getPendingReward(farm.amounts, account, _getRewardForPid(rewarder, pid));
     }
 
     function getToken(uint256 pid) external view override returns (IERC20) {
@@ -122,9 +122,9 @@ contract MasterChef is Ownable, IMasterChef {
     function emergencyWithdraw(uint256 pid) external override {
         Farm storage farm = _farms[pid];
 
-        uint256 balance = farm.bank.balances[msg.sender];
+        uint256 balance = farm.amounts.getAmountOf(msg.sender);
 
-        farm.bank.update(msg.sender, -int256(balance));
+        farm.amounts.update(msg.sender, -int256(balance));
 
         farm.token.safeTransfer(msg.sender, balance);
 
@@ -193,14 +193,14 @@ contract MasterChef is Ownable, IMasterChef {
             Rewarder.Parameter storage rewarder = farm.rewarder;
 
             uint256 totalRewards = rewarder.getTotalRewards(moePerSecond);
-            rewarder.updateAccDebtPerShare(farm.bank.totalSupply, _getRewardForPid(i, totalRewards, totalVotes));
+            rewarder.updateAccDebtPerShare(farm.amounts.getTotalAmount(), _getRewardForPid(i, totalRewards, totalVotes));
         }
     }
 
     function _modify(uint256 pid, address account, int256 deltaAmount) private returns (uint256 rewards) {
         Farm storage farm = _farms[pid];
 
-        (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply,) = farm.bank.update(account, deltaAmount);
+        (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply,) = farm.amounts.update(account, deltaAmount);
 
         Rewarder.Parameter storage rewarder = farm.rewarder;
 

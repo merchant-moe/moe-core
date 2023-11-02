@@ -6,15 +6,15 @@ import "forge-std/Test.sol";
 import "../../src/library/Rewarder.sol";
 
 contract RewarderTest is Test {
-    Bank.Parameter bank;
+    Amounts.Parameter amounts;
     Rewarder.Parameter rewarder;
 
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
 
     function setUp() public {
-        Bank.update(bank, alice, 1e18);
-        Bank.update(bank, bob, 2e18);
+        Amounts.update(amounts, alice, 1e18);
+        Amounts.update(amounts, bob, 2e18);
     }
 
     function test_getTotalRewards(uint256 rewardPerSecond, uint256 deltaTime) public {
@@ -84,11 +84,11 @@ contract RewarderTest is Test {
     function test_Update() public {
         uint256 totalRewards = 10e18;
 
-        uint256 expectedRewardsAlice = Rewarder.getPendingReward(rewarder, bank, alice, totalRewards);
+        uint256 expectedRewardsAlice = Rewarder.getPendingReward(rewarder, amounts, alice, totalRewards);
 
         uint256 aliceRewards;
         {
-            (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply,) = Bank.update(bank, alice, 1e18);
+            (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply,) = Amounts.update(amounts, alice, 1e18);
 
             aliceRewards = Rewarder.update(rewarder, alice, oldBalance, newBalance, oldTotalSupply, totalRewards);
             uint256 aliceDebt = rewarder.debt[alice];
@@ -97,19 +97,32 @@ contract RewarderTest is Test {
             assertEq(aliceRewards, expectedRewardsAlice, "test_Update::2");
             assertEq(aliceDebt, 2 * aliceRewards, "test_Update::3");
 
-            expectedRewardsAlice = Rewarder.getPendingReward(rewarder, bank, alice, 0);
+            expectedRewardsAlice = Rewarder.getPendingReward(rewarder, amounts, alice, 0);
 
-            uint256 aliceRewards2 =
-                Rewarder.update(rewarder, alice, bank.balances[alice], bank.balances[alice], bank.totalSupply, 0);
+            uint256 aliceRewards2 = Rewarder.update(
+                rewarder,
+                alice,
+                Amounts.getAmountOf(amounts, alice),
+                Amounts.getAmountOf(amounts, alice),
+                Amounts.getTotalAmount(amounts),
+                0
+            );
 
             assertEq(aliceRewards2, 0, "test_Update::4");
             assertEq(aliceRewards2, expectedRewardsAlice, "test_Update::5");
             assertEq(rewarder.debt[alice], aliceDebt, "test_Update::6");
         }
 
-        uint256 expectedRewardsBob = Rewarder.getPendingReward(rewarder, bank, bob, 0);
+        uint256 expectedRewardsBob = Rewarder.getPendingReward(rewarder, amounts, bob, 0);
 
-        uint256 bobRewards = Rewarder.update(rewarder, bob, bank.balances[bob], bank.balances[bob], bank.totalSupply, 0);
+        uint256 bobRewards = Rewarder.update(
+            rewarder,
+            bob,
+            Amounts.getAmountOf(amounts, bob),
+            Amounts.getAmountOf(amounts, bob),
+            Amounts.getTotalAmount(amounts),
+            0
+        );
 
         assertEq(bobRewards, 2 * aliceRewards, "test_Update::7");
         assertEq(bobRewards, expectedRewardsBob, "test_Update::8");
@@ -117,15 +130,32 @@ contract RewarderTest is Test {
 
         totalRewards = 5e18;
 
-        expectedRewardsAlice = Rewarder.getPendingReward(rewarder, bank, alice, totalRewards);
-        expectedRewardsBob = Rewarder.getPendingReward(rewarder, bank, bob, totalRewards);
+        expectedRewardsAlice = Rewarder.getPendingReward(rewarder, amounts, alice, totalRewards);
+        expectedRewardsBob = Rewarder.getPendingReward(rewarder, amounts, bob, totalRewards);
 
-        bobRewards =
-            Rewarder.update(rewarder, bob, bank.balances[bob], bank.balances[bob], bank.totalSupply, totalRewards);
-        aliceRewards = Rewarder.update(rewarder, alice, bank.balances[alice], bank.balances[alice], bank.totalSupply, 0);
+        bobRewards = Rewarder.update(
+            rewarder,
+            bob,
+            Amounts.getAmountOf(amounts, bob),
+            Amounts.getAmountOf(amounts, bob),
+            Amounts.getTotalAmount(amounts),
+            totalRewards
+        );
+        aliceRewards = Rewarder.update(
+            rewarder,
+            alice,
+            Amounts.getAmountOf(amounts, alice),
+            Amounts.getAmountOf(amounts, alice),
+            Amounts.getTotalAmount(amounts),
+            0
+        );
 
-        assertEq(bank.balances[alice], bank.balances[bob], "test_Update::10");
-        assertEq(aliceRewards, 5e18 * bank.balances[alice] / bank.totalSupply, "test_Update::11");
+        assertEq(Amounts.getAmountOf(amounts, alice), Amounts.getAmountOf(amounts, bob), "test_Update::10");
+        assertEq(
+            aliceRewards,
+            5e18 * Amounts.getAmountOf(amounts, alice) / Amounts.getTotalAmount(amounts),
+            "test_Update::11"
+        );
         assertEq(aliceRewards, expectedRewardsAlice, "test_Update::12");
         assertEq(bobRewards, expectedRewardsBob, "test_Update::13");
         assertEq(bobRewards, aliceRewards, "test_Update::14");
@@ -135,17 +165,23 @@ contract RewarderTest is Test {
     function test_UpdateAfterEmergencyWithdrawal() public {
         uint256 totalRewards = 10e18;
 
-        uint256 rewards =
-            Rewarder.update(rewarder, alice, bank.balances[alice], bank.balances[alice], bank.totalSupply, totalRewards);
+        uint256 rewards = Rewarder.update(
+            rewarder,
+            alice,
+            Amounts.getAmountOf(amounts, alice),
+            Amounts.getAmountOf(amounts, alice),
+            Amounts.getTotalAmount(amounts),
+            totalRewards
+        );
 
         assertGt(rewards, 0, "test_UpdateAfterEmergencyWithdrawal::1");
 
         // emergency withdrawal
-        Bank.update(bank, bob, -int256(bank.balances[bob]));
+        Amounts.update(amounts, bob, -int256(Amounts.getAmountOf(amounts, bob)));
 
-        uint256 expectedRewards = Rewarder.getPendingReward(rewarder, bank, bob, totalRewards);
+        uint256 expectedRewards = Rewarder.getPendingReward(rewarder, amounts, bob, totalRewards);
 
-        (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply,) = Bank.update(bank, bob, 1e18);
+        (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply,) = Amounts.update(amounts, bob, 1e18);
         uint256 bobRewards = Rewarder.update(rewarder, bob, oldBalance, newBalance, oldTotalSupply, totalRewards);
 
         assertEq(bobRewards, expectedRewards, "test_UpdateAfterEmergencyWithdrawal::2");
