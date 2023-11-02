@@ -27,7 +27,7 @@ contract SimpleRewarder is Ownable {
     IMasterChef private immutable _masterChef;
 
     uint256 private _rewardsPerSecond;
-    uint256 private _unclaimedRewards;
+    uint256 private _totalUnclaimedRewards;
     uint256 private _reserve;
     uint256 private _endTimestamp;
     uint256 private _linkedPid;
@@ -49,7 +49,7 @@ contract SimpleRewarder is Ownable {
 
         totalRewards = totalRewards > reserve ? reserve : totalRewards;
 
-        uint256 remainingReward = _balanceOfThis() - (_unclaimedRewards + totalRewards);
+        uint256 remainingReward = _balanceOfThis() - (_totalUnclaimedRewards + totalRewards);
         uint256 duration = remainingReward / rewardPerSecond;
 
         uint256 linkedPid = _linkedPid;
@@ -92,15 +92,11 @@ contract SimpleRewarder is Ownable {
     {
         uint256 endTimestamp = _endTimestamp;
 
-        if (block.timestamp > endTimestamp) {
-            return _rewarder.update(account, oldBalance, newBalance, oldTotalSupply, 0);
-        }
-
-        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond);
+        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, endTimestamp);
 
         rewards = _rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalRewards);
 
-        _unclaimedRewards += totalRewards - rewards;
+        _totalUnclaimedRewards += totalRewards - rewards;
 
         _safeTransferTo(account, rewards);
     }

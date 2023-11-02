@@ -25,9 +25,19 @@ library Rewarder {
         return totalDeposit == 0 ? 0 : (totalRewards << Constants.ACC_PRECISION_BITS) / totalDeposit;
     }
 
-    function getTotalRewards(Parameter storage rewarder, uint256 rewardPerSecond) internal view returns (uint256) {
+    function getTotalRewards(Parameter storage rewarder, uint256 rewardPerSecond, uint256 endTimestamp)
+        internal
+        view
+        returns (uint256)
+    {
         uint256 lastUpdateTimestamp = rewarder.lastUpdateTimestamp;
-        return lastUpdateTimestamp > block.timestamp ? 0 : (block.timestamp - lastUpdateTimestamp) * rewardPerSecond;
+        uint256 timestamp = block.timestamp > endTimestamp ? endTimestamp : block.timestamp;
+
+        return lastUpdateTimestamp > timestamp ? 0 : (timestamp - lastUpdateTimestamp) * rewardPerSecond;
+    }
+
+    function getTotalRewards(Parameter storage rewarder, uint256 rewardPerSecond) internal view returns (uint256) {
+        return getTotalRewards(rewarder, rewardPerSecond, block.timestamp);
     }
 
     function getPendingReward(
