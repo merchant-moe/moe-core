@@ -9,6 +9,7 @@ import {Amounts} from "./library/Amounts.sol";
 import {Constants} from "./library/Constants.sol";
 import {IRewarder} from "./interface/IRewarder.sol";
 import {IMasterChef} from "./interface/IMasterChef.sol";
+import {IBribe} from "./interface/IBribe.sol";
 
 contract VeMoe {
     using SafeERC20 for IERC20;
@@ -17,15 +18,22 @@ contract VeMoe {
     using Amounts for Amounts.Parameter;
 
     error VeMoe__InvalidLength();
+    error VeMoe__InsufficientVeMoe();
+    error VeMoe__InvalidCaller();
+    error VeMoe__CannotUnstakeWithVotes();
+    error VeMoe__NoBribeForPid(uint256 pid);
 
     event Modify(address indexed account, int256 deltaAmount, int256 deltaVeMoe);
     event Claim(address indexed account, address[] tokens, uint256[] rewards);
+    event Vote(address account, uint256[] pids, int256[] deltaVeAmounts);
+    event BribesSet(address indexed account, uint256[] pids, IBribe[] bribes);
 
     struct User {
         uint256 veMoe;
         uint256 lastUpdateTimestamp;
         uint256 boostedEndTimestamp;
         Amounts.Parameter votes;
+        mapping(uint256 => IBribe) bribes;
     }
 
     struct VeRewarder {
@@ -137,6 +145,81 @@ contract VeMoe {
         _modify(msg.sender, 0);
     }
 
+    function vote(uint256[] calldata pids, int256[] calldata deltaAmounts) external {
+        if (pids.length != deltaAmounts.length) {
+            revert VeMoe__InvalidLength();
+        }
+        if (pids.length != deltaAmounts.length) revert VeMoe__InvalidLength();
+
+        User storage user = _users[msg.sender];
+
+        for (uint256 i; i < pids.length; ++i) {
+            int256 deltaAmount = deltaAmounts[i];
+            uint256 pid = pids[i];
+
+            (uint256 oldUserVotes, uint256 newUserVotes,,) = user.votes.update(pid, deltaAmount);
+            (,, uint256 oldTotalVotes,) = _votes.update(pid, deltaAmount);
+
+            IBribe bribe = user.bribes[pid];
+
+            if (address(bribe) != address(0)) {
+                bribe.onVote(msg.sender, pid, oldUserVotes, newUserVotes, oldTotalVotes);
+            }
+        }
+
+        if (user.votes.getTotalAmount() > user.veMoe) revert VeMoe__InsufficientVeMoe();
+
+        _masterChef.updateAll();
+
+        emit Vote(msg.sender, pids, deltaAmounts);
+    }
+
+    function setBribes(uint256[] calldata pids, IBribe[] calldata bribes) external {
+        if (pids.length != bribes.length) revert VeMoe__InvalidLength();
+
+        User storage user = _users[msg.sender];
+
+        for (uint256 i; i < pids.length; ++i) {
+            uint256 pid = pids[i];
+            IBribe newBribe = bribes[i];
+
+            IBribe oldBribe = user.bribes[pid];
+
+            if (oldBribe == newBribe) continue;
+
+            uint256 userVotes = user.votes.getAmountOf(pid);
+            uint256 totalVotes = _votes.getAmountOf(pid);
+
+            user.bribes[pid] = newBribe;
+
+            if (address(oldBribe) != address(0)) {
+                oldBribe.onVote(msg.sender, pid, userVotes, 0, totalVotes);
+            }
+
+            if (address(newBribe) != address(0)) {
+                newBribe.onVote(msg.sender, pid, 0, userVotes, totalVotes);
+            }
+        }
+
+        emit BribesSet(msg.sender, pids, bribes);
+    }
+
+    function emergencyUnsetBribe(uint256[] calldata pids) external {
+        User storage user = _users[msg.sender];
+
+        for (uint256 i; i < pids.length; ++i) {
+            uint256 pid = pids[i];
+
+            IBribe bribe = user.bribes[pid];
+
+            if (address(bribe) == address(0)) revert VeMoe__NoBribeForPid(pid);
+
+            delete user.bribes[pid];
+        }
+
+        emit BribesSet(msg.sender, pids, new IBribe[](pids.length));
+    }
+
     function _modify(address account, int256 deltaAmount) private {
         (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply, uint256 newTotalSupply) =
             _updateUser(account, deltaAmount);
@@ -189,6 +272,8 @@ contract VeMoe {
 
             deltaVeMoe = int256(newVeMoe - oldVeMoe);
         } else {
+            if (user.votes.getTotalAmount() > 0) revert VeMoe__CannotUnstakeWithVotes();
+
             newVeMoe = 0;
             deltaVeMoe = -int256(user.veMoe);
 
