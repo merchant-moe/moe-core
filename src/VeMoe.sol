@@ -9,7 +9,7 @@ import {Amounts} from "./library/Amounts.sol";
 import {Constants} from "./library/Constants.sol";
 import {IRewarder} from "./interface/IRewarder.sol";
 import {IMasterChef} from "./interface/IMasterChef.sol";
-import {IBribe} from "./interface/IBribe.sol";
+import {IMultiRewarder} from "./interface/IMultiRewarder.sol";
 
 contract VeMoe {
     using SafeERC20 for IERC20;
@@ -26,14 +26,14 @@ contract VeMoe {
     event Modify(address indexed account, int256 deltaAmount, int256 deltaVeMoe);
     event Claim(address indexed account, address[] tokens, uint256[] rewards);
     event Vote(address account, uint256[] pids, int256[] deltaVeAmounts);
-    event BribesSet(address indexed account, uint256[] pids, IBribe[] bribes);
+    event BribesSet(address indexed account, uint256[] pids, IMultiRewarder[] bribes);
 
     struct User {
         uint256 veMoe;
         uint256 lastUpdateTimestamp;
         uint256 boostedEndTimestamp;
         Amounts.Parameter votes;
-        mapping(uint256 => IBribe) bribes;
+        mapping(uint256 => IMultiRewarder) bribes;
     }
 
     struct VeRewarder {
@@ -160,10 +160,10 @@ contract VeMoe {
             (uint256 oldUserVotes, uint256 newUserVotes,,) = user.votes.update(pid, deltaAmount);
             (,, uint256 oldTotalVotes,) = _votes.update(pid, deltaAmount);
 
-            IBribe bribe = user.bribes[pid];
+            IMultiRewarder bribe = user.bribes[pid];
 
             if (address(bribe) != address(0)) {
-                bribe.onVote(msg.sender, pid, oldUserVotes, newUserVotes, oldTotalVotes);
+                bribe.onModify(msg.sender, pid, oldUserVotes, newUserVotes, oldTotalVotes);
             }
         }
 
@@ -174,16 +174,16 @@ contract VeMoe {
         emit Vote(msg.sender, pids, deltaAmounts);
     }
 
-    function setBribes(uint256[] calldata pids, IBribe[] calldata bribes) external {
+    function setBribes(uint256[] calldata pids, IMultiRewarder[] calldata bribes) external {
         if (pids.length != bribes.length) revert VeMoe__InvalidLength();
 
         User storage user = _users[msg.sender];
 
         for (uint256 i; i < pids.length; ++i) {
             uint256 pid = pids[i];
-            IBribe newBribe = bribes[i];
+            IMultiRewarder newBribe = bribes[i];
 
-            IBribe oldBribe = user.bribes[pid];
+            IMultiRewarder oldBribe = user.bribes[pid];
 
             if (oldBribe == newBribe) continue;
 
@@ -193,11 +193,11 @@ contract VeMoe {
             user.bribes[pid] = newBribe;
 
             if (address(oldBribe) != address(0)) {
-                oldBribe.onVote(msg.sender, pid, userVotes, 0, totalVotes);
+                oldBribe.onModify(msg.sender, pid, userVotes, 0, totalVotes);
             }
 
             if (address(newBribe) != address(0)) {
-                newBribe.onVote(msg.sender, pid, 0, userVotes, totalVotes);
+                newBribe.onModify(msg.sender, pid, 0, userVotes, totalVotes);
             }
         }
 
@@ -210,14 +210,14 @@ contract VeMoe {
         for (uint256 i; i < pids.length; ++i) {
             uint256 pid = pids[i];
 
-            IBribe bribe = user.bribes[pid];
+            IMultiRewarder bribe = user.bribes[pid];
 
             if (address(bribe) == address(0)) revert VeMoe__NoBribeForPid(pid);
 
             delete user.bribes[pid];
         }
 
-        emit BribesSet(msg.sender, pids, new IBribe[](pids.length));
+        emit BribesSet(msg.sender, pids, new IMultiRewarder[](pids.length));
     }
 
     function _modify(address account, int256 deltaAmount) private {
