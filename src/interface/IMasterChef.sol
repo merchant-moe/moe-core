@@ -24,9 +24,7 @@ interface IMasterChef {
         uint256 amount;
     }
 
-    event Modify(uint256 indexed pid, address indexed account, int256 deltaAmount);
-
-    event Claim(address indexed account, FarmReward[] rewards);
+    event Modify(uint256 indexed pid, address indexed account, int256 deltaAmount, uint256 moeReward);
 
     event ExtraRewardClaimed(address indexed account, uint256 indexed pid, IERC20 indexed token, uint256 amount);
 

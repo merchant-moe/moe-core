@@ -9,17 +9,30 @@ contract Moe is ERC20, IMoe {
     error Moe__NotMinter(address account);
 
     address private immutable _minter;
+    uint256 private immutable _maxSupply;
 
-    constructor(address minter) ERC20("MOE Token", "MOE") {
+    constructor(address minter, uint256 maxSupply) ERC20("Moe Token", "MOE") {
         _minter = minter;
+        _maxSupply = maxSupply;
     }
 
     function getMinter() external view override returns (address) {
         return _minter;
     }
 
-    function mint(address account, uint256 amount) external override {
+    function getMaxSupply() external view override returns (uint256) {
+        return _maxSupply;
+    }
+
+    function mint(address account, uint256 amount) external override returns (uint256) {
         if (msg.sender != _minter) revert Moe__NotMinter(msg.sender);
+
+        uint256 supply = totalSupply();
+
+        amount = supply + amount > _maxSupply ? _maxSupply - supply : amount;
+
         _mint(account, amount);
+
+        return amount;
     }
 }

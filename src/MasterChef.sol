@@ -72,50 +72,20 @@ contract MasterChef is Ownable, IMasterChef {
     }
 
     function deposit(uint256 pid, uint256 amount) external override {
-        uint256 moeRewards = _modify(pid, msg.sender, int256(amount));
+        _modify(pid, msg.sender, int256(amount));
 
-        if (moeRewards > 0) {
-            FarmReward[] memory rewards = new FarmReward[](1);
-            rewards[0] = FarmReward(pid, moeRewards);
-
-            _moe.mint(msg.sender, moeRewards);
-
-            emit Claim(msg.sender, rewards);
-        }
         if (amount > 0) _farms[pid].token.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function withdraw(uint256 pid, uint256 amount) external override {
-        uint256 moeRewards = _modify(pid, msg.sender, -int256(amount));
+        _modify(pid, msg.sender, -int256(amount));
 
-        if (moeRewards > 0) {
-            FarmReward[] memory rewards = new FarmReward[](1);
-            rewards[0] = FarmReward(pid, moeRewards);
-
-            _moe.mint(msg.sender, moeRewards);
-
-            emit Claim(msg.sender, rewards);
-        }
         if (amount > 0) _farms[pid].token.safeTransfer(msg.sender, amount);
     }
 
     function claim(uint256[] calldata pids) external override {
-        uint256 totalRewards;
-
-        FarmReward[] memory rewards = new FarmReward[](pids.length);
-
         for (uint256 i; i < pids.length; ++i) {
-            uint256 moeRewards = _modify(pids[i], msg.sender, 0);
-
-            rewards[i] = FarmReward(pids[i], moeRewards);
-
-            totalRewards += moeRewards;
-        }
-
-        if (totalRewards > 0) {
-            _moe.mint(msg.sender, totalRewards);
-
-            emit Claim(msg.sender, rewards);
+            _modify(pids[i], msg.sender, 0);
         }
     }
 
@@ -128,7 +98,7 @@ contract MasterChef is Ownable, IMasterChef {
 
         farm.token.safeTransfer(msg.sender, balance);
 
-        emit Modify(pid, msg.sender, -int256(balance));
+        emit Modify(pid, msg.sender, -int256(balance), 0);
     }
 
     function setMoePerSecond(uint256 moePerSecond) external override onlyOwner {
@@ -189,7 +159,6 @@ contract MasterChef is Ownable, IMasterChef {
 
         for (uint256 i; i < length; ++i) {
             Farm storage farm = _farms[i];
-
             Rewarder.Parameter storage rewarder = farm.rewarder;
 
             uint256 totalRewards = rewarder.getTotalRewards(moePerSecond);
@@ -197,23 +166,24 @@ contract MasterChef is Ownable, IMasterChef {
         }
     }
 
-    function _modify(uint256 pid, address account, int256 deltaAmount) private returns (uint256 rewards) {
+    function _modify(uint256 pid, address account, int256 deltaAmount) private {
         Farm storage farm = _farms[pid];
+        Rewarder.Parameter storage rewarder = farm.rewarder;
+        IRewarder extraRewarder = farm.extraRewarder;
 
         (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply,) = farm.amounts.update(account, deltaAmount);
 
-        Rewarder.Parameter storage rewarder = farm.rewarder;
+        uint256 totalMoeRewardForPid = _getRewardForPid(rewarder, pid);
+        uint256 moeReward = rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalMoeRewardForPid);
 
-        rewards = rewarder.update(account, oldBalance, newBalance, oldTotalSupply, _getRewardForPid(rewarder, pid));
-
-        IRewarder extraRewarder = farm.extraRewarder;
+        if (moeReward > 0) moeReward = _moe.mint(msg.sender, moeReward);
 
         if (address(extraRewarder) != address(0)) {
             (IERC20 token, uint256 amount) = extraRewarder.claim(account, oldBalance, newBalance, oldTotalSupply);
 
-            emit ExtraRewardClaimed(account, pid, token, amount);
+            if (amount > 0) emit ExtraRewardClaimed(account, pid, token, amount);
         }
 
-        emit Modify(pid, account, deltaAmount);
+        emit Modify(pid, account, deltaAmount, moeReward);
     }
 }

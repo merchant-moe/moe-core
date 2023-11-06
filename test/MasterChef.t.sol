@@ -34,7 +34,7 @@ contract MasterChefTest is Test {
 
         address masterChefAddress = computeCreateAddress(address(this), nonce + 1);
 
-        moe = IMoe(address(new Moe(masterChefAddress)));
+        moe = IMoe(address(new Moe(masterChefAddress, type(uint256).max)));
 
         masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), address(this));
 
