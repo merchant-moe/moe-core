@@ -22,11 +22,6 @@ contract VeMoe is IVeMoe {
     IMasterChef private immutable _masterChef;
 
     uint256 private _veMoePerSecond;
-
-    uint256 private _boostedVeMoeMultiplier;
-    uint256 private _boostedVeMoeDuration;
-    uint256 private _boostedVeMoeRequirement;
-
     uint256 private _maxVeMoePerMoe;
 
     VeRewarder private _veRewarder;
@@ -51,41 +46,14 @@ contract VeMoe is IVeMoe {
         uint256 totalAddedVeAmount = rewarder.getTotalRewards(_veMoePerSecond);
         uint256 pendingVeAmount = rewarder.getPendingReward(veRewarder.amounts, account, totalAddedVeAmount);
 
-        uint256 boostedEndTimestamp = user.boostedEndTimestamp;
-        if (boostedEndTimestamp != 0) {
-            uint256 boostedVeAmount = pendingVeAmount * _boostedVeMoeMultiplier / Constants.PRECISION;
-
-            if (block.timestamp > boostedEndTimestamp) {
-                uint256 lastUpdateTimestamp = user.lastUpdateTimestamp;
-
-                uint256 remaining = boostedEndTimestamp - lastUpdateTimestamp;
-                uint256 duration = block.timestamp - lastUpdateTimestamp;
-
-                boostedVeAmount = boostedVeAmount * remaining / duration;
-            }
-
-            pendingVeAmount += boostedVeAmount;
-        }
-
         uint256 newVeMoe = user.veMoe + pendingVeAmount;
         uint256 maxVeMoe = veRewarder.amounts.getAmountOf(account) * _maxVeMoePerMoe / Constants.PRECISION;
 
         return newVeMoe > maxVeMoe ? maxVeMoe : newVeMoe;
     }
 
-    function getVeMoeParameters()
-        external
-        view
-        returns (
-            uint256 veMoePerSecond,
-            uint256 boostedVeMoeMultiplier,
-            uint256 boostedVeMoeDuration,
-            uint256 boostedVeMoeRequirement,
-            uint256 maxVeMoePerMoe
-        )
-    {
-        return
-            (_veMoePerSecond, _boostedVeMoeMultiplier, _boostedVeMoeDuration, _boostedVeMoeRequirement, _maxVeMoePerMoe);
+    function getVeMoeParameters() external view returns (uint256 veMoePerSecond, uint256 maxVeMoePerMoe) {
+        return (_veMoePerSecond, _maxVeMoePerMoe);
     }
 
     function getTotalDeposit() external view returns (uint256) {
@@ -134,7 +102,7 @@ contract VeMoe is IVeMoe {
             IMultiRewarder bribe = user.bribes[pid];
 
             if (address(bribe) != address(0)) {
-                bribe.onModify(msg.sender, pid, oldUserVotes, newUserVotes, oldTotalVotes);
+                bribe.onModify(msg.sender, pid, oldUserVotes, newUserVotes, oldTotalVotes); // todo should use the totalVotes on this bribes, not the total
             }
         }
 
@@ -214,26 +182,6 @@ contract VeMoe is IVeMoe {
         int256 deltaVeMoe;
 
         if (deltaAmount >= 0) {
-            uint256 boostedEndTimestamp = user.boostedEndTimestamp;
-            if (boostedEndTimestamp != 0) {
-                uint256 boostedVeAmount = addedVeAmount * _boostedVeMoeMultiplier / Constants.PRECISION;
-
-                if (block.timestamp > boostedEndTimestamp) {
-                    uint256 remaining = boostedEndTimestamp - user.lastUpdateTimestamp;
-                    uint256 duration = block.timestamp - user.lastUpdateTimestamp;
-
-                    boostedVeAmount = boostedVeAmount * remaining / duration;
-                    user.boostedEndTimestamp = 0;
-                }
-
-                addedVeAmount += boostedVeAmount;
-            }
-
-            if (newBalance >= oldBalance * _boostedVeMoeRequirement / Constants.PRECISION) {
-                uint256 newBoostedEndTimestamp = block.timestamp + _boostedVeMoeDuration;
-                if (newBoostedEndTimestamp > boostedEndTimestamp) user.boostedEndTimestamp = newBoostedEndTimestamp;
-            }
-
             uint256 oldVeMoe = user.veMoe;
             newVeMoe = oldVeMoe + addedVeAmount;
 
