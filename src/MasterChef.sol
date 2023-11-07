@@ -51,7 +51,7 @@ contract MasterChef is Ownable, IMasterChef {
         external
         view
         override
-        returns (uint256 moeReward, IERC20 extraToken, uint256 extraAmount)
+        returns (uint256 moeReward, IERC20 extraToken, uint256 extraReward)
     {
         Farm storage farm = _farms[pid];
         Rewarder.Parameter storage rewarder = farm.rewarder;
@@ -62,7 +62,7 @@ contract MasterChef is Ownable, IMasterChef {
         if (address(extraRewarder) != address(0)) {
             Amounts.Parameter storage amounts = farm.amounts;
 
-            (extraToken, extraAmount) =
+            (extraToken, extraReward) =
                 extraRewarder.getPendingReward(account, amounts.getAmountOf(account), amounts.getTotalAmount());
         }
     }
@@ -81,6 +81,10 @@ contract MasterChef is Ownable, IMasterChef {
 
     function getMoePerSecond() external view override returns (uint256) {
         return _moePerSecond;
+    }
+
+    function getMoePerSecondForPid(uint256 pid) external view returns (uint256) {
+        return _getRewardForPid(_farms[pid].rewarder, pid);
     }
 
     function deposit(uint256 pid, uint256 amount) external override {
@@ -110,7 +114,7 @@ contract MasterChef is Ownable, IMasterChef {
 
         farm.token.safeTransfer(msg.sender, balance);
 
-        emit Modify(pid, msg.sender, -int256(balance), 0);
+        emit PositionModified(pid, msg.sender, -int256(balance), 0);
     }
 
     function setMoePerSecond(uint256 moePerSecond) external override onlyOwner {
@@ -199,6 +203,6 @@ contract MasterChef is Ownable, IMasterChef {
             if (amount > 0) emit ExtraRewardClaimed(account, pid, token, amount);
         }
 
-        emit Modify(pid, account, deltaAmount, moeReward);
+        emit PositionModified(pid, account, deltaAmount, moeReward);
     }
 }
