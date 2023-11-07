@@ -198,9 +198,7 @@ contract MasterChef is Ownable, IMasterChef {
         if (moeReward > 0) IERC20(_moe).safeTransfer(account, moeReward);
 
         if (address(extraRewarder) != address(0)) {
-            (IERC20 token, uint256 amount) = extraRewarder.claim(account, oldBalance, newBalance, oldTotalSupply);
-
-            if (amount > 0) emit ExtraRewardClaimed(account, pid, token, amount);
+            extraRewarder.onModify(account, pid, oldBalance, newBalance, oldTotalSupply);
         }
 
         emit PositionModified(pid, account, deltaAmount, moeReward);

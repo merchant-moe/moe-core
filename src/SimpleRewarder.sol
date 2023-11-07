@@ -8,48 +8,52 @@ import {IMasterChef} from "./interface/IMasterChef.sol";
 import {IMoe} from "./interface/IMoe.sol";
 import {SafeMath} from "./library/SafeMath.sol";
 import {Rewarder} from "./library/Rewarder.sol";
-import {Constants} from "./library/Constants.sol";
 import {Amounts} from "./library/Amounts.sol";
+import {IRewarder} from "./interface/IRewarder.sol";
 
-contract SimpleRewarder is Ownable {
+abstract contract SimpleRewarder is Ownable, IRewarder {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using Rewarder for Rewarder.Parameter;
     using Amounts for Amounts.Parameter;
 
-    error SimpleRewarder__NativeTransferFailed();
-    error SimpleRewarder__InvalidCaller();
-    error SimpleRewarder__AlreadyLinked();
+    IERC20 internal immutable _token;
+    address internal immutable _caller;
 
-    event Claim(address indexed account, address indexed token, uint256 reward);
+    uint256 internal _rewardsPerSecond;
+    uint256 internal _totalUnclaimedRewards;
+    uint256 internal _reserve;
+    uint256 internal _endTimestamp;
+    Status internal _status;
 
-    IERC20 private immutable _token;
-    IMasterChef private immutable _masterChef;
+    Rewarder.Parameter internal _rewarder;
 
-    uint256 private _rewardsPerSecond;
-    uint256 private _totalUnclaimedRewards;
-    uint256 private _reserve;
-    uint256 private _endTimestamp;
-    uint256 private _linkedPid;
-
-    Rewarder.Parameter private _rewarder;
-
-    constructor(IERC20 token, IMasterChef masterChef, address initialOwner) Ownable(initialOwner) {
+    constructor(IERC20 token, address caller, address initialOwner) Ownable(initialOwner) {
         _token = token;
-        _masterChef = masterChef;
+        _caller = caller;
     }
 
-    function getRewarderParameter() external view returns (uint256 rewardPerSecond, uint256 endTimestamp) {
-        return (_rewardsPerSecond, _endTimestamp);
+    function getRewarderParameter()
+        public
+        view
+        virtual
+        returns (IERC20 token, uint256 rewardPerSecond, uint256 lastUpdateTimestamp, uint256 endTimestamp)
+    {
+        return (_token, _rewardsPerSecond, _rewarder.lastUpdateTimestamp, _endTimestamp);
     }
 
-    function getPendingReward(address account, uint256 balance, uint256 totalSupply) external view returns (uint256) {
+    function getPendingReward(address account, uint256 balance, uint256 totalSupply)
+        public
+        view
+        virtual
+        returns (IERC20, uint256)
+    {
         uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
 
-        return _rewarder.getPendingReward(account, balance, totalSupply, totalRewards);
+        return (_token, _rewarder.getPendingReward(account, balance, totalSupply, totalRewards));
     }
 
-    function setRewardPerSecond(uint256 rewardPerSecond) external onlyOwner {
+    function setRewardPerSecond(uint256 rewardPerSecond) public virtual onlyOwner {
         uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond);
         uint256 reserve = _reserve;
 
@@ -58,8 +62,7 @@ contract SimpleRewarder is Ownable {
         uint256 remainingReward = _balanceOfThis() - (_totalUnclaimedRewards + totalRewards);
         uint256 duration = remainingReward / rewardPerSecond;
 
-        uint256 linkedPid = _linkedPid;
-        uint256 totalSupply = linkedPid == 0 ? 0 : _masterChef.getTotalDeposit(linkedPid - 1);
+        uint256 totalSupply = _getTotalSupply();
 
         _rewarder.updateAccDebtPerShare(totalSupply, totalRewards);
 
@@ -68,48 +71,49 @@ contract SimpleRewarder is Ownable {
         _reserve = remainingReward;
     }
 
-    function link(uint256 pid) external {
-        if (msg.sender != address(_masterChef)) revert SimpleRewarder__InvalidCaller();
-        if (_linkedPid != 0) revert SimpleRewarder__AlreadyLinked();
+    function link(uint256) public virtual {
+        if (msg.sender != _caller) revert Rewarder__InvalidCaller();
+        if (_status != Status.Unlinked) revert Rewarder__AlreadyLinked();
 
-        _linkedPid = pid + 1;
+        _status = Status.Linked;
     }
 
-    function unlink(uint256) external {
-        if (msg.sender != address(_masterChef)) revert SimpleRewarder__InvalidCaller();
+    function unlink(uint256) public virtual {
+        if (msg.sender != _caller) revert Rewarder__InvalidCaller();
+        if (_status != Status.Linked) revert Rewarder__NotLinked();
 
-        _endTimestamp = 0;
+        _status = Status.Stopped;
     }
 
-    function claim(address account, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply)
-        external
-        returns (IERC20 token, uint256 rewards)
+    function onModify(address account, uint256, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply)
+        public
+        virtual
     {
-        if (msg.sender != address(_masterChef)) revert SimpleRewarder__InvalidCaller();
+        if (msg.sender != _caller) revert Rewarder__InvalidCaller();
+        if (_status != Status.Linked) revert Rewarder__NotLinked();
 
-        rewards = _claim(account, oldBalance, newBalance, oldTotalSupply);
-
-        return (_token, rewards);
+        _claim(account, oldBalance, newBalance, oldTotalSupply);
     }
 
-    function _claim(address account, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply)
-        private
-        returns (uint256 rewards)
-    {
+    function _balanceOfThis() internal view virtual returns (uint256) {
+        return address(_token) == address(0) ? address(this).balance : _token.balanceOf(address(this));
+    }
+
+    function _getTotalSupply() internal view virtual returns (uint256);
+
+    function _claim(address account, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply) internal virtual {
         uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
 
-        rewards = _rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalRewards);
+        uint256 rewards = _rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalRewards);
 
         _totalUnclaimedRewards += totalRewards - rewards;
 
         _safeTransferTo(account, rewards);
+
+        emit Claim(account, _token, rewards);
     }
 
-    function _balanceOfThis() private view returns (uint256) {
-        return address(_token) == address(0) ? address(this).balance : _token.balanceOf(address(this));
-    }
-
-    function _safeTransferTo(address account, uint256 amount) private {
+    function _safeTransferTo(address account, uint256 amount) internal virtual {
         uint256 reserve = _reserve;
         amount = amount > reserve ? reserve : amount;
 
@@ -117,7 +121,7 @@ contract SimpleRewarder is Ownable {
 
         if (address(_token) == address(0)) {
             (bool s,) = account.call{value: amount}("");
-            if (!s) revert SimpleRewarder__NativeTransferFailed();
+            if (!s) revert Rewarder__NativeTransferFailed();
         } else {
             _token.safeTransfer(account, amount);
         }

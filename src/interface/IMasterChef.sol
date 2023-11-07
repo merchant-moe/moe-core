@@ -21,8 +21,6 @@ interface IMasterChef {
 
     event PositionModified(uint256 indexed pid, address indexed account, int256 deltaAmount, uint256 moeReward);
 
-    event ExtraRewardClaimed(address indexed account, uint256 indexed pid, IERC20 indexed token, uint256 amount);
-
     event MoePerSecondSet(uint256 moePerSecond);
 
     event FarmAdded(uint256 indexed pid, IERC20 indexed token, uint256 startTimestamp);
