@@ -46,9 +46,17 @@ library Rewarder {
         address account,
         uint256 totalRewards
     ) internal view returns (uint256) {
-        uint256 accDebtPerShare = rewarder.accDebtPerShare + getDebtPerShare(amounts.getTotalAmount(), totalRewards);
+        return getPendingReward(rewarder, account, amounts.getAmountOf(account), amounts.getTotalAmount(), totalRewards);
+    }
 
-        uint256 balance = amounts.getAmountOf(account);
+    function getPendingReward(
+        Parameter storage rewarder,
+        address account,
+        uint256 balance,
+        uint256 totalSupply,
+        uint256 totalRewards
+    ) internal view returns (uint256) {
+        uint256 accDebtPerShare = rewarder.accDebtPerShare + getDebtPerShare(totalSupply, totalRewards);
 
         return balance == 0 ? 0 : getDebt(accDebtPerShare, balance) - rewarder.debt[account];
     }

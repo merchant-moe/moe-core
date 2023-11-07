@@ -47,12 +47,24 @@ contract MasterChef is Ownable, IMasterChef {
         return _farms[pid].amounts.getTotalAmount();
     }
 
-    function getPendingReward(uint256 pid, address account) external view override returns (uint256) {
+    function getPendingRewards(uint256 pid, address account)
+        external
+        view
+        override
+        returns (uint256 moeReward, IERC20 extraToken, uint256 extraAmount)
+    {
         Farm storage farm = _farms[pid];
-
         Rewarder.Parameter storage rewarder = farm.rewarder;
+        IRewarder extraRewarder = farm.extraRewarder;
 
-        return rewarder.getPendingReward(farm.amounts, account, _getRewardForPid(rewarder, pid));
+        moeReward = rewarder.getPendingReward(farm.amounts, account, _getRewardForPid(rewarder, pid));
+
+        if (address(extraRewarder) != address(0)) {
+            Amounts.Parameter storage amounts = farm.amounts;
+
+            (extraToken, extraAmount) =
+                extraRewarder.getPendingReward(account, amounts.getAmountOf(account), amounts.getTotalAmount());
+        }
     }
 
     function getToken(uint256 pid) external view override returns (IERC20) {

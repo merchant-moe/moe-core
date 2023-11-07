@@ -46,7 +46,10 @@ interface IMasterChef {
 
     function getLastUpdateTimestamp(uint256 pid) external view returns (uint256);
 
-    function getPendingReward(uint256 pid, address account) external view returns (uint256);
+    function getPendingReward(uint256 pid, address account)
+        external
+        view
+        returns (uint256 moeReward, IERC20 extraToken, uint256 extraReward);
 
     function getExtraRewarder(uint256 pid) external view returns (IRewarder);
 

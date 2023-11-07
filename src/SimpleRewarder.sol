@@ -43,6 +43,12 @@ contract SimpleRewarder is Ownable {
         return (_rewardsPerSecond, _endTimestamp);
     }
 
+    function getPendingReward(address account, uint256 balance, uint256 totalSupply) external view returns (uint256) {
+        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
+
+        return _rewarder.getPendingReward(account, balance, totalSupply, totalRewards);
+    }
+
     function setRewardPerSecond(uint256 rewardPerSecond) external onlyOwner {
         uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond);
         uint256 reserve = _reserve;
@@ -90,9 +96,7 @@ contract SimpleRewarder is Ownable {
         private
         returns (uint256 rewards)
     {
-        uint256 endTimestamp = _endTimestamp;
-
-        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, endTimestamp);
+        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
 
         rewards = _rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalRewards);
 
