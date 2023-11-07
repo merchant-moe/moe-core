@@ -80,7 +80,10 @@ library Rewarder {
         internal
         returns (uint256)
     {
-        rewarder.lastUpdateTimestamp = block.timestamp;
-        return rewarder.accDebtPerShare += getDebtPerShare(totalSupply, totalRewards);
+        uint256 debtPerShare = getDebtPerShare(totalSupply, totalRewards);
+
+        if (block.timestamp > rewarder.lastUpdateTimestamp) rewarder.lastUpdateTimestamp = block.timestamp;
+
+        return debtPerShare == 0 ? rewarder.accDebtPerShare : rewarder.accDebtPerShare += debtPerShare;
     }
 }
