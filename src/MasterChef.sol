@@ -155,7 +155,7 @@ contract MasterChef is Ownable, IMasterChef {
     function _setExtraRewarder(uint256 pid, IRewarder extraRewarder) private {
         IRewarder oldExtraRewarder = _farms[pid].extraRewarder;
 
-        if (address(oldExtraRewarder) != address(0)) oldExtraRewarder.unlink();
+        if (address(oldExtraRewarder) != address(0)) oldExtraRewarder.unlink(pid);
         if (address(extraRewarder) != address(0)) extraRewarder.link(pid);
 
         _farms[pid].extraRewarder = extraRewarder;

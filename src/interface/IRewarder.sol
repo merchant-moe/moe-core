@@ -12,5 +12,5 @@ interface IRewarder {
         external
         returns (IERC20 token, uint256 reward);
     function link(uint256 pid) external;
-    function unlink() external;
+    function unlink(uint256 pid) external;
 }
