@@ -57,40 +57,46 @@ abstract contract SimpleRewarder is Ownable, IRewarder {
         return (_token, _rewarder.getPendingReward(account, balance, totalSupply, totalRewards));
     }
 
-    function setRewardPerSecond(uint256 rewardPerSecond) public virtual onlyOwner {
+    function setRewardPerSecond(uint256 rewardPerSecond, uint256 expectedDuration) public virtual onlyOwner {
         if (_status == Status.Stopped) revert Rewarder__Stopped();
+        if (expectedDuration == 0 && rewardPerSecond != 0) revert Rewarder__InvalidDuration();
 
         uint256 totalUnclaimedRewards = _totalUnclaimedRewards;
-        uint256 totalRewards = _getTotalReward(totalUnclaimedRewards);
+        uint256 totalRewards = _getTotalReward(_reserve, totalUnclaimedRewards);
 
         totalUnclaimedRewards += totalRewards;
 
-        uint256 remainingReward = _balanceOfThis() - totalUnclaimedRewards;
-        uint256 duration = remainingReward / rewardPerSecond;
+        uint256 remainingReward = _balanceOfThis(_token) - totalUnclaimedRewards;
+        uint256 expectedReward = rewardPerSecond * expectedDuration;
+
+        if (remainingReward < expectedReward) revert Rewarder__InsufficientReward(remainingReward, expectedReward);
 
         uint256 totalSupply = _getTotalSupply();
+        uint256 endTimestamp = block.timestamp + expectedDuration;
 
         _rewarder.updateAccDebtPerShare(totalSupply, totalRewards);
 
         _rewardsPerSecond = rewardPerSecond;
-        _reserve = rewardPerSecond * duration;
+        _reserve = totalUnclaimedRewards + expectedReward;
 
-        _endTimestamp = block.timestamp + duration;
+        _endTimestamp = endTimestamp;
         _totalUnclaimedRewards = totalUnclaimedRewards;
+
+        emit RewardPerSecondSet(rewardPerSecond, endTimestamp);
     }
 
-    function emergencyWithdraw(address account) public virtual onlyOwner {
+    function emergencyWithdrawReward(address account) public virtual onlyOwner {
         if (_status != Status.Stopped) revert Rewarder__NotStopped();
 
         _reserve = 0;
 
-        _safeTransferTo(account, _balanceOfThis());
+        _safeTransferTo(_token, account, _balanceOfThis(_token));
     }
 
     function sweep(IERC20 token, address account) public virtual onlyOwner {
         if (token == _token) revert Rewarder__InvalidToken();
 
-        token.safeTransfer(account, token.balanceOf(address(this)));
+        _safeTransferTo(token, account, _balanceOfThis(token));
     }
 
     function link(uint256) public virtual {
@@ -117,44 +123,43 @@ abstract contract SimpleRewarder is Ownable, IRewarder {
         _claim(account, oldBalance, newBalance, oldTotalSupply);
     }
 
-    function _balanceOfThis() internal view virtual returns (uint256) {
-        return address(_token) == address(0) ? address(this).balance : _token.balanceOf(address(this));
+    function _balanceOfThis(IERC20 token) internal view virtual returns (uint256) {
+        return address(token) == address(0) ? address(this).balance : token.balanceOf(address(this));
     }
-
-    function _getTotalSupply() internal view virtual returns (uint256);
 
     function _claim(address account, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply) internal virtual {
         uint256 totalUnclaimedRewards = _totalUnclaimedRewards;
-        uint256 totalRewards = _getTotalReward(totalUnclaimedRewards);
+        uint256 reserve = _reserve;
+
+        uint256 totalRewards = _getTotalReward(reserve, totalUnclaimedRewards);
 
         uint256 rewards = _rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalRewards);
 
         _totalUnclaimedRewards = totalUnclaimedRewards + totalRewards - rewards;
+        _reserve = reserve - rewards;
 
-        _safeTransferTo(account, rewards);
+        _safeTransferTo(_token, account, rewards);
 
         emit Claim(account, _token, rewards);
     }
 
-    function _getTotalReward(uint256 totalUnclaimedRewards) internal view virtual returns (uint256) {
+    function _getTotalReward(uint256 reserve, uint256 totalUnclaimedRewards) internal view virtual returns (uint256) {
         uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
-        uint256 reserve = _reserve;
-
         uint256 avalaibleRewards = reserve > totalUnclaimedRewards ? reserve - totalUnclaimedRewards : 0;
 
         return totalRewards > avalaibleRewards ? avalaibleRewards : totalRewards;
     }
 
-    function _safeTransferTo(address account, uint256 amount) internal virtual {
+    function _safeTransferTo(IERC20 token, address account, uint256 amount) internal virtual {
         if (amount == 0) return;
 
-        if (address(_token) == address(0)) {
+        if (address(token) == address(0)) {
             (bool s,) = account.call{value: amount}("");
             if (!s) revert Rewarder__NativeTransferFailed();
         } else {
-            _token.safeTransfer(account, amount);
+            token.safeTransfer(account, amount);
         }
-
-        _reserve -= amount;
     }
+
+    function _getTotalSupply() internal view virtual returns (uint256);
 }

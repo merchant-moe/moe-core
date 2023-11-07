@@ -12,6 +12,8 @@ interface IRewarder {
     error Rewarder__Stopped();
     error Rewarder__NotNativeToken();
     error Rewarder__InvalidToken();
+    error Rewarder__InsufficientReward(uint256 remainingReward, uint256 expectedReward);
+    error Rewarder__InvalidDuration();
 
     enum Status {
         Unlinked,
@@ -20,6 +22,8 @@ interface IRewarder {
     }
 
     event Claim(address indexed account, IERC20 indexed token, uint256 reward);
+
+    event RewardPerSecondSet(uint256 rewardPerSecond, uint256 endTimestamp);
 
     function getPendingReward(address account, uint256 balance, uint256 totalSupply)
         external
