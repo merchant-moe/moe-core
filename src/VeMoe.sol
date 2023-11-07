@@ -10,42 +10,13 @@ import {Constants} from "./library/Constants.sol";
 import {IRewarder} from "./interface/IRewarder.sol";
 import {IMasterChef} from "./interface/IMasterChef.sol";
 import {IMultiRewarder} from "./interface/IMultiRewarder.sol";
+import {IVeMoe} from "./interface/IVeMoe.sol";
 
-contract VeMoe {
+contract VeMoe is IVeMoe {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using Rewarder for Rewarder.Parameter;
     using Amounts for Amounts.Parameter;
-
-    error VeMoe__InvalidLength();
-    error VeMoe__InsufficientVeMoe();
-    error VeMoe__InvalidCaller();
-    error VeMoe__CannotUnstakeWithVotes();
-    error VeMoe__NoBribeForPid(uint256 pid);
-
-    event Modify(address indexed account, int256 deltaAmount, int256 deltaVeMoe);
-    event Claim(address indexed account, address[] tokens, uint256[] rewards);
-    event Vote(address account, uint256[] pids, int256[] deltaVeAmounts);
-    event BribesSet(address indexed account, uint256[] pids, IMultiRewarder[] bribes);
-
-    struct User {
-        uint256 veMoe;
-        uint256 lastUpdateTimestamp;
-        uint256 boostedEndTimestamp;
-        Amounts.Parameter votes;
-        mapping(uint256 => IMultiRewarder) bribes;
-    }
-
-    struct VeRewarder {
-        Amounts.Parameter amounts;
-        Rewarder.Parameter rewarder;
-    }
-
-    struct Reward {
-        Rewarder.Parameter rewarder;
-        IERC20 token;
-        uint256 reserve;
-    }
 
     IERC20 private immutable _moe;
     IMasterChef private immutable _masterChef;
@@ -121,11 +92,11 @@ contract VeMoe {
         return _veRewarder.amounts.getTotalAmount();
     }
 
-    function getVote(uint256 pid) external view returns (uint256) {
+    function getVotes(uint256 pid) external view override returns (uint256) {
         return _votes.getAmountOf(pid);
     }
 
-    function getTotalVotes() external view returns (uint256) {
+    function getTotalVotes() external view override returns (uint256) {
         return _votes.getTotalAmount();
     }
 
