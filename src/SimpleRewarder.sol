@@ -33,6 +33,10 @@ abstract contract SimpleRewarder is Ownable, IRewarder {
         _caller = caller;
     }
 
+    receive() external payable {
+        if (address(_token) != address(0)) revert Rewarder__NotNativeToken();
+    }
+
     function getRewarderParameter()
         public
         view
@@ -54,21 +58,39 @@ abstract contract SimpleRewarder is Ownable, IRewarder {
     }
 
     function setRewardPerSecond(uint256 rewardPerSecond) public virtual onlyOwner {
-        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond);
-        uint256 reserve = _reserve;
+        if (_status == Status.Stopped) revert Rewarder__Stopped();
 
-        totalRewards = totalRewards > reserve ? reserve : totalRewards;
+        uint256 totalUnclaimedRewards = _totalUnclaimedRewards;
+        uint256 totalRewards = _getTotalReward(totalUnclaimedRewards);
 
-        uint256 remainingReward = _balanceOfThis() - (_totalUnclaimedRewards + totalRewards);
+        totalUnclaimedRewards += totalRewards;
+
+        uint256 remainingReward = _balanceOfThis() - totalUnclaimedRewards;
         uint256 duration = remainingReward / rewardPerSecond;
 
         uint256 totalSupply = _getTotalSupply();
 
         _rewarder.updateAccDebtPerShare(totalSupply, totalRewards);
 
-        _endTimestamp = block.timestamp + duration;
         _rewardsPerSecond = rewardPerSecond;
-        _reserve = remainingReward;
+        _reserve = rewardPerSecond * duration;
+
+        _endTimestamp = block.timestamp + duration;
+        _totalUnclaimedRewards = totalUnclaimedRewards;
+    }
+
+    function emergencyWithdraw(address account) public virtual onlyOwner {
+        if (_status != Status.Stopped) revert Rewarder__NotStopped();
+
+        _reserve = 0;
+
+        _safeTransferTo(account, _balanceOfThis());
+    }
+
+    function sweep(IERC20 token, address account) public virtual onlyOwner {
+        if (token == _token) revert Rewarder__InvalidToken();
+
+        token.safeTransfer(account, token.balanceOf(address(this)));
     }
 
     function link(uint256) public virtual {
@@ -102,21 +124,28 @@ abstract contract SimpleRewarder is Ownable, IRewarder {
     function _getTotalSupply() internal view virtual returns (uint256);
 
     function _claim(address account, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply) internal virtual {
-        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
+        uint256 totalUnclaimedRewards = _totalUnclaimedRewards;
+        uint256 totalRewards = _getTotalReward(totalUnclaimedRewards);
 
         uint256 rewards = _rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalRewards);
 
-        _totalUnclaimedRewards += totalRewards - rewards;
+        _totalUnclaimedRewards = totalUnclaimedRewards + totalRewards - rewards;
 
         _safeTransferTo(account, rewards);
 
         emit Claim(account, _token, rewards);
     }
 
-    function _safeTransferTo(address account, uint256 amount) internal virtual {
+    function _getTotalReward(uint256 totalUnclaimedRewards) internal view virtual returns (uint256) {
+        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
         uint256 reserve = _reserve;
-        amount = amount > reserve ? reserve : amount;
 
+        uint256 avalaibleRewards = reserve > totalUnclaimedRewards ? reserve - totalUnclaimedRewards : 0;
+
+        return totalRewards > avalaibleRewards ? avalaibleRewards : totalRewards;
+    }
+
+    function _safeTransferTo(address account, uint256 amount) internal virtual {
         if (amount == 0) return;
 
         if (address(_token) == address(0)) {

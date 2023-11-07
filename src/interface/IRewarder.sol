@@ -8,6 +8,10 @@ interface IRewarder {
     error Rewarder__InvalidCaller();
     error Rewarder__AlreadyLinked();
     error Rewarder__NotLinked();
+    error Rewarder__NotStopped();
+    error Rewarder__Stopped();
+    error Rewarder__NotNativeToken();
+    error Rewarder__InvalidToken();
 
     enum Status {
         Unlinked,
