@@ -7,7 +7,7 @@ import "../src/MasterChef.sol";
 import "../src/Moe.sol";
 import "./mocks/MockVeMoe.sol";
 import "./mocks/MockERC20.sol";
-import "../src/SimpleRewarder.sol";
+import "../src/MasterChefRewarder.sol";
 
 contract MasterChefTest is Test {
     MasterChef masterChef;
@@ -219,27 +219,27 @@ contract MasterChefTest is Test {
     function test_Add() public {
         masterChef.add(tokenA, block.timestamp, IRewarder(address(0)));
 
-        SimpleRewarder rewarder = new SimpleRewarder(rewardToken, masterChef, address(this));
+        MasterChefRewarder rewarder = new MasterChefRewarder(rewardToken, address(masterChef), 3, address(this));
 
         masterChef.add(tokenA, block.timestamp, IRewarder(address(rewarder)));
 
         assertEq(address(masterChef.getExtraRewarder(3)), address(rewarder), "test_Add::1");
 
-        SimpleRewarder rewarder1 = new SimpleRewarder(rewardToken, masterChef, address(this));
-        SimpleRewarder rewarder2 = new SimpleRewarder(rewardToken, masterChef, address(this));
+        MasterChefRewarder rewarder1 = new MasterChefRewarder(rewardToken, address(masterChef), 2, address(this));
+        MasterChefRewarder rewarder2 = new MasterChefRewarder(rewardToken, address(masterChef), 2, address(this));
 
         masterChef.setExtraRewarder(2, IRewarder(address(rewarder1)));
 
         assertEq(address(masterChef.getExtraRewarder(2)), address(rewarder1), "test_Add::1");
 
-        vm.expectRevert(SimpleRewarder.SimpleRewarder__AlreadyLinked.selector);
+        vm.expectRevert(IRewarder.Rewarder__AlreadyLinked.selector);
         masterChef.setExtraRewarder(2, IRewarder(address(rewarder1)));
 
         masterChef.setExtraRewarder(2, IRewarder(address(rewarder2)));
 
         assertEq(address(masterChef.getExtraRewarder(2)), address(rewarder2), "test_Add::2");
 
-        vm.expectRevert(SimpleRewarder.SimpleRewarder__AlreadyLinked.selector);
+        vm.expectRevert(IRewarder.Rewarder__AlreadyLinked.selector);
         masterChef.setExtraRewarder(2, IRewarder(address(rewarder2)));
 
         masterChef.setExtraRewarder(2, IRewarder(address(0)));
