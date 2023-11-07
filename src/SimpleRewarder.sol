@@ -75,7 +75,7 @@ contract SimpleRewarder is Ownable {
         _linkedPid = pid + 1;
     }
 
-    function unlink() external {
+    function unlink(uint256) external {
         if (msg.sender != address(_masterChef)) revert SimpleRewarder__InvalidCaller();
 
         _endTimestamp = 0;
