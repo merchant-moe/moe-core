@@ -90,6 +90,8 @@ contract VeMoe is IVeMoe {
         }
         if (pids.length != deltaAmounts.length) revert VeMoe__InvalidLength();
 
+        _masterChef.updateAll();
+
         User storage user = _users[msg.sender];
 
         for (uint256 i; i < pids.length; ++i) {
@@ -107,8 +109,6 @@ contract VeMoe is IVeMoe {
         }
 
         if (user.votes.getTotalAmount() > user.veMoe) revert VeMoe__InsufficientVeMoe();
-
-        _masterChef.updateAll();
 
         emit Vote(msg.sender, pids, deltaAmounts);
     }
