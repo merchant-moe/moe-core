@@ -30,7 +30,7 @@ contract Moe is ERC20, IMoe {
 
         amount = supply + amount > _maxSupply ? _maxSupply - supply : amount;
 
-        _mint(account, amount);
+        if (amount > 0) _mint(account, amount);
 
         return amount;
     }

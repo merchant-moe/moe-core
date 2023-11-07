@@ -186,9 +186,12 @@ contract MasterChef is Ownable, IMasterChef {
         (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply,) = farm.amounts.update(account, deltaAmount);
 
         uint256 totalMoeRewardForPid = _getRewardForPid(rewarder, pid);
+
+        if (totalMoeRewardForPid > 0) totalMoeRewardForPid = _moe.mint(address(this), totalMoeRewardForPid);
+
         uint256 moeReward = rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalMoeRewardForPid);
 
-        if (moeReward > 0) moeReward = _moe.mint(msg.sender, moeReward);
+        if (moeReward > 0) IERC20(_moe).safeTransfer(account, moeReward);
 
         if (address(extraRewarder) != address(0)) {
             (IERC20 token, uint256 amount) = extraRewarder.claim(account, oldBalance, newBalance, oldTotalSupply);

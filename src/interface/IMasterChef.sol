@@ -19,11 +19,6 @@ interface IMasterChef {
         IRewarder extraRewarder;
     }
 
-    struct FarmReward {
-        uint256 pid;
-        uint256 amount;
-    }
-
     event Modify(uint256 indexed pid, address indexed account, int256 deltaAmount, uint256 moeReward);
 
     event ExtraRewardClaimed(address indexed account, uint256 indexed pid, IERC20 indexed token, uint256 amount);
