@@ -178,31 +178,24 @@ contract VeMoe is IVeMoe {
         uint256 totalAddedVeAmount = rewarder.getTotalRewards(_veMoePerSecond);
         uint256 addedVeAmount = rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalAddedVeAmount);
 
+        uint256 oldVeMoe = user.veMoe;
         uint256 newVeMoe;
-        int256 deltaVeMoe;
 
         if (deltaAmount >= 0) {
-            uint256 oldVeMoe = user.veMoe;
             newVeMoe = oldVeMoe + addedVeAmount;
-
-            uint256 maxVeMoe = newBalance * _maxVeMoePerMoe / Constants.PRECISION;
+            uint256 maxVeMoe = oldBalance * _maxVeMoePerMoe / Constants.PRECISION;
 
             newVeMoe = newVeMoe > maxVeMoe ? maxVeMoe : newVeMoe;
-
-            deltaVeMoe = int256(newVeMoe - oldVeMoe);
         } else {
             if (user.votes.getTotalAmount() > 0) revert VeMoe__CannotUnstakeWithVotes();
 
             newVeMoe = 0;
-            deltaVeMoe = -int256(user.veMoe);
-
-            user.boostedEndTimestamp = 0;
         }
 
         user.veMoe = newVeMoe;
         user.lastUpdateTimestamp = block.timestamp;
 
-        emit Modify(account, deltaAmount, deltaVeMoe);
+        emit Modify(account, deltaAmount, int256(newVeMoe) - int256(oldVeMoe));
     }
 
     function _claim(

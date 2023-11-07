@@ -17,7 +17,6 @@ interface IVeMoe {
     struct User {
         uint256 veMoe;
         uint256 lastUpdateTimestamp;
-        uint256 boostedEndTimestamp;
         Amounts.Parameter votes;
         mapping(uint256 => IMultiRewarder) bribes;
     }
