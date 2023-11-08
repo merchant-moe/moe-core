@@ -163,8 +163,17 @@ contract MasterChefTest is Test {
     function test_Claim() public {
         masterChef.setMoePerSecond(1e18);
 
-        veMoe.setVotes(0, 1e18);
-        veMoe.setVotes(1, 1e18);
+        {
+            veMoe.setVotes(0, 1e18);
+            veMoe.setVotes(1, 1e18);
+
+            uint256[] memory topPids = new uint256[](2);
+
+            topPids[0] = 0;
+            topPids[1] = 1;
+
+            veMoe.setTopPoolIds(topPids);
+        }
 
         vm.startPrank(alice);
         masterChef.deposit(0, 1e18);
@@ -258,6 +267,8 @@ contract MasterChefTest is Test {
         masterChef.setMoePerSecond(1e18);
 
         veMoe.setVotes(0, 1e18);
+
+        veMoe.setTopPoolIds(new uint256[](1));
 
         vm.prank(alice);
         masterChef.deposit(0, 1e18);
