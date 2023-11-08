@@ -6,7 +6,6 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IMoe} from "./interface/IMoe.sol";
 
 contract Moe is ERC20, IMoe {
-
     address private immutable _minter;
     uint256 private immutable _maxSupply;
 
