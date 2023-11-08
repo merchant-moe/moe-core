@@ -11,6 +11,7 @@ import {Amounts} from "../library/Amounts.sol";
 
 interface IMasterChef {
     error MasterChef__InvalidStartTimestamp();
+    error MasterChef__InvalidPid(uint256 pid);
 
     struct Farm {
         Amounts.Parameter amounts;
@@ -60,7 +61,7 @@ interface IMasterChef {
 
     function setMoePerSecond(uint256 moePerSecond) external;
 
-    function updateAll() external;
+    function updateAll(uint256[] calldata pids) external;
 
     function withdraw(uint256 pid, uint256 amount) external;
 }

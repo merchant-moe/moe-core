@@ -118,7 +118,7 @@ contract MasterChef is Ownable, IMasterChef {
     }
 
     function setMoePerSecond(uint256 moePerSecond) external override onlyOwner {
-        _updateAll();
+        _updateAll(_veMoe.getTopPoolIds());
 
         _moePerSecond = moePerSecond;
 
@@ -144,11 +144,13 @@ contract MasterChef is Ownable, IMasterChef {
         _setExtraRewarder(pid, extraRewarder);
     }
 
-    function updateAll() external override {
-        _updateAll();
+    function updateAll(uint256[] calldata pids) external override {
+        _updateAll(pids);
     }
 
     function _getRewardForPid(Rewarder.Parameter storage rewarder, uint256 pid) private view returns (uint256) {
+        if (!_veMoe.isInTopPoolIds(pid)) return 0;
+
         return _getRewardForPid(pid, rewarder.getTotalRewards(_moePerSecond), _veMoe.getTotalVotes());
     }
 
@@ -167,18 +169,25 @@ contract MasterChef is Ownable, IMasterChef {
         emit ExtraRewarderSet(pid, extraRewarder);
     }
 
-    function _updateAll() private {
-        uint256 length = _farms.length;
+    function _updateAll(uint256[] memory pids) private {
+        uint256 nbOfFarms = _farms.length;
+        uint256 length = pids.length;
 
-        uint256 totalVotes = _veMoe.getTotalVotes();
+        uint256 totalVotes = _veMoe.getTopPidsTotalVotes();
         uint256 moePerSecond = _moePerSecond;
 
         for (uint256 i; i < length; ++i) {
-            Farm storage farm = _farms[i];
+            uint256 pid = pids[i];
+
+            if (pid >= nbOfFarms) revert MasterChef__InvalidPid(pid);
+
+            Farm storage farm = _farms[pid];
             Rewarder.Parameter storage rewarder = farm.rewarder;
 
             uint256 totalRewards = rewarder.getTotalRewards(moePerSecond);
-            rewarder.updateAccDebtPerShare(farm.amounts.getTotalAmount(), _getRewardForPid(i, totalRewards, totalVotes));
+            rewarder.updateAccDebtPerShare(
+                farm.amounts.getTotalAmount(), _getRewardForPid(pid, totalRewards, totalVotes)
+            );
         }
     }
 
