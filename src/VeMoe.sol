@@ -31,7 +31,9 @@ contract VeMoe is Ownable, IVeMoe {
     EnumerableSet.UintSet private _topPids;
 
     VeRewarder private _veRewarder;
+
     Reward[] private _rewards;
+    mapping(IERC20 => uint256) private _rewardsMap;
 
     // pid to Vote
     Amounts.Parameter private _votes;
@@ -252,6 +254,17 @@ contract VeMoe is Ownable, IVeMoe {
         _topPidsTotalVotes = totalVotes;
 
         emit TopPoolIdsSet(pids);
+    }
+
+    function addReward(IERC20 token) external onlyOwner {
+        if (_rewardsMap[token] != 0) revert VeMoe__RewardAlreadyAdded();
+
+        Reward storage reward = _rewards.push();
+        _rewardsMap[token] = _rewards.length;
+
+        reward.token = token;
+
+        emit RewardAdded(token);
     }
 
     function _modify(address account, int256 deltaAmount) private {

@@ -14,6 +14,7 @@ interface IVeMoe {
     error VeMoe__CannotUnstakeWithVotes();
     error VeMoe__NoBribeForPid(uint256 pid);
     error VeMoe__TooManyPoolIds();
+    error VeMoe__RewardAlreadyAdded();
 
     struct User {
         uint256 veMoe;
@@ -43,6 +44,8 @@ interface IVeMoe {
 
     event TopPoolIdsSet(uint256[] topPoolIds);
 
+    event RewardAdded(IERC20 indexed token);
+
     function getVotes(uint256 pid) external view returns (uint256);
 
     function getTotalVotes() external view returns (uint256);
@@ -52,4 +55,6 @@ interface IVeMoe {
     function getTopPidsTotalVotes() external view returns (uint256);
 
     function isInTopPoolIds(uint256 pid) external view returns (bool);
+
+    function getBribesTotalVotes(IRewarder bribe, uint256 pid) external view returns (uint256);
 }
