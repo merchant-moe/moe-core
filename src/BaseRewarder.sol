@@ -11,7 +11,7 @@ import {Rewarder} from "./library/Rewarder.sol";
 import {Amounts} from "./library/Amounts.sol";
 import {IRewarder} from "./interface/IRewarder.sol";
 
-abstract contract SimpleRewarder is Ownable, IRewarder {
+abstract contract BaseRewarder is Ownable, IRewarder {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using Rewarder for Rewarder.Parameter;

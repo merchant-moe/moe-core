@@ -4,15 +4,15 @@ pragma solidity ^0.8.13;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IVeMoe} from "./interface/IVeMoe.sol";
-import {SimpleRewarder, IRewarder} from "./SimpleRewarder.sol";
+import {BaseRewarder, IRewarder} from "./BaseRewarder.sol";
 
-contract VeMoeRewarder is SimpleRewarder {
+contract VeMoeRewarder is BaseRewarder {
     error VeMoeRewarder__InvalidPid(uint256 pid);
 
     uint256 internal immutable _pid;
 
     constructor(IERC20 token, address caller, uint256 pid, address initialOwner)
-        SimpleRewarder(token, caller, initialOwner)
+        BaseRewarder(token, caller, initialOwner)
     {
         _pid = pid;
     }

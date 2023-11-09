@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 
 import "../src/interface/IMasterChef.sol";
 import "../src/MasterChefRewarder.sol";
-import "../src/SimpleRewarder.sol";
+import "../src/BaseRewarder.sol";
 import "./mocks/MockERC20.sol";
 
 contract MasterChefRewarderTest is Test {

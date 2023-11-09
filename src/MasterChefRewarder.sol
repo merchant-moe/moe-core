@@ -5,15 +5,15 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IMasterChefRewarder} from "./interface/IMasterChefRewarder.sol";
 import {IMasterChef} from "./interface/IMasterChef.sol";
-import {SimpleRewarder, IRewarder} from "./SimpleRewarder.sol";
+import {BaseRewarder, IRewarder} from "./BaseRewarder.sol";
 
-contract MasterChefRewarder is SimpleRewarder, IMasterChefRewarder {
+contract MasterChefRewarder is BaseRewarder, IMasterChefRewarder {
     uint256 internal immutable _pid;
 
     Status internal _status;
 
     constructor(IERC20 token, address caller, uint256 pid, address initialOwner)
-        SimpleRewarder(token, caller, initialOwner)
+        BaseRewarder(token, caller, initialOwner)
     {
         _pid = pid;
     }
@@ -40,18 +40,18 @@ contract MasterChefRewarder is SimpleRewarder, IMasterChefRewarder {
         _isStopped = true;
     }
 
-    function stop() public pure override(IRewarder, SimpleRewarder) {
+    function stop() public pure override(IRewarder, BaseRewarder) {
         revert MasterChefRewarder__UseUnlink();
     }
 
     function onModify(address account, uint256 pid, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply)
         public
-        override(SimpleRewarder, IRewarder)
+        override(BaseRewarder, IRewarder)
     {
         if (pid != _pid) revert MasterChefRewarder__InvalidPid(pid);
         if (_status != Status.Linked) revert MasterChefRewarder__NotLinked();
 
-        SimpleRewarder.onModify(account, pid, oldBalance, newBalance, oldTotalSupply);
+        BaseRewarder.onModify(account, pid, oldBalance, newBalance, oldTotalSupply);
     }
 
     function _getTotalSupply() internal view override returns (uint256) {
