@@ -27,6 +27,8 @@ contract StableMoe is Ownable, IStableMoe {
         _moeStaking = moeStaking;
     }
 
+    receive() external payable {}
+
     function getMoeStaking() external view returns (IMoeStaking) {
         return _moeStaking;
     }
@@ -39,16 +41,14 @@ contract StableMoe is Ownable, IStableMoe {
         return _rewards[id].token;
     }
 
-    function getActiveRewardTokens() external view returns (IERC20[] memory) {
+    function getActiveRewardTokens() external view returns (IERC20[] memory tokens) {
         uint256 length = _activeRewardIds.length();
 
-        IERC20[] memory tokens = new IERC20[](length);
+        tokens = new IERC20[](length);
 
         for (uint256 i; i < length; ++i) {
-            tokens[i] = _rewards[_activeRewardIds.at(i)].token;
+            tokens[i] = _rewards[_activeRewardIds.at(i) - 1].token;
         }
-
-        return tokens;
     }
 
     function getPendingRewards(address account)
@@ -65,20 +65,20 @@ contract StableMoe is Ownable, IStableMoe {
         uint256 balance = _moeStaking.getDeposit(account);
 
         for (uint256 i; i < length; ++i) {
-            Reward storage reward = _rewards[_activeRewardIds.at(i)];
+            Reward storage reward = _rewards[_activeRewardIds.at(i) - 1];
 
-            uint256 totalRewards = reward.token.balanceOf(address(this)) - reward.reserve;
+            uint256 totalRewards = _balanceOfThis(reward.token) - reward.reserve;
 
             tokens[i] = reward.token;
             rewards[i] = reward.rewarder.getPendingReward(account, balance, totalSupply, totalRewards);
         }
     }
 
-    function claim(address account) external {
-        uint256 balance = _moeStaking.getDeposit(account);
+    function claim() external {
+        uint256 balance = _moeStaking.getDeposit(msg.sender);
         uint256 totalSupply = _moeStaking.getTotalDeposit();
 
-        _claim(account, balance, balance, totalSupply);
+        _claim(msg.sender, balance, balance, totalSupply);
     }
 
     function onModify(address account, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply, uint256)
@@ -92,14 +92,13 @@ contract StableMoe is Ownable, IStableMoe {
     function addReward(IERC20 reward) external onlyOwner {
         if (_rewardIds[reward] != 0) revert StableMoe__RewardAlreadyAdded(reward);
 
+        Reward storage _reward = _rewards.push();
+        _reward.token = reward;
+
         uint256 id = _rewards.length;
 
         _activeRewardIds.add(id);
-        _rewardIds[reward] = id + 1;
-
-        Reward storage _reward = _rewards.push();
-
-        _reward.token = reward;
+        _rewardIds[reward] = id;
 
         emit AddReward(reward);
     }
@@ -107,10 +106,7 @@ contract StableMoe is Ownable, IStableMoe {
     function removeReward(IERC20 reward) external onlyOwner {
         uint256 id = _rewardIds[reward];
 
-        if (id == 0) revert StableMoe__RewardNotAdded(reward);
-        if (_activeRewardIds.contains(id - 1)) revert StableMoe__RewardAlreadyRemoved(reward);
-
-        _activeRewardIds.remove(id - 1);
+        if (!_activeRewardIds.remove(id)) revert StableMoe__RewardAlreadyRemoved(reward);
 
         emit RemoveReward(reward);
     }
@@ -118,23 +114,27 @@ contract StableMoe is Ownable, IStableMoe {
     function sweep(IERC20 token, address account) external onlyOwner {
         uint256 id = _rewardIds[token];
 
-        if (_activeRewardIds.contains(id - 1)) revert StableMoe__ActiveReward(token);
+        if (_activeRewardIds.contains(id)) revert StableMoe__ActiveReward(token);
 
-        token.safeTransfer(account, token.balanceOf(address(this)));
+        _safeTransferTo(token, account, _balanceOfThis(token));
 
         emit Sweep(token, account);
+    }
+
+    function _balanceOfThis(IERC20 token) internal view virtual returns (uint256) {
+        return address(token) == address(0) ? address(this).balance : token.balanceOf(address(this));
     }
 
     function _claim(address account, uint256 oldBalance, uint256 newBalance, uint256 totalSupply) private {
         uint256 length = _activeRewardIds.length();
 
         for (uint256 i; i < length; ++i) {
-            Reward storage reward = _rewards[_activeRewardIds.at(i)];
+            Reward storage reward = _rewards[_activeRewardIds.at(i) - 1];
 
             IERC20 token = reward.token;
 
             uint256 reserve = reward.reserve;
-            uint256 balance = token.balanceOf(address(this));
+            uint256 balance = _balanceOfThis(token);
 
             uint256 totalRewards = balance - reserve;
 
@@ -142,9 +142,20 @@ contract StableMoe is Ownable, IStableMoe {
 
             reward.reserve = balance - rewards;
 
-            if (rewards > 0) token.safeTransfer(account, rewards);
+            _safeTransferTo(token, account, rewards);
 
             emit Claim(account, token, rewards);
+        }
+    }
+
+    function _safeTransferTo(IERC20 token, address account, uint256 amount) internal virtual {
+        if (amount == 0) return;
+
+        if (address(token) == address(0)) {
+            (bool s,) = account.call{value: amount}("");
+            if (!s) revert StableMoe__NativeTransferFailed();
+        } else {
+            token.safeTransfer(account, amount);
         }
     }
 }

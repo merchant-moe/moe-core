@@ -12,6 +12,7 @@ interface IStableMoe {
     error StableMoe__RewardNotAdded(IERC20 reward);
     error StableMoe__RewardAlreadyRemoved(IERC20 reward);
     error StableMoe__ActiveReward(IERC20 reward);
+    error StableMoe__NativeTransferFailed();
 
     struct Reward {
         Rewarder.Parameter rewarder;
@@ -40,7 +41,7 @@ interface IStableMoe {
         view
         returns (IERC20[] memory tokens, uint256[] memory rewards);
 
-    function claim(address account) external;
+    function claim() external;
 
     function onModify(
         address account,
