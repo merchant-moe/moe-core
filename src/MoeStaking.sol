@@ -6,16 +6,8 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {Math} from "./library/Math.sol";
 import {Amounts} from "./library/Amounts.sol";
 import {IMoeStaking} from "./interface/IMoeStaking.sol";
-
-interface IRewarder {
-    function onModify(
-        address account,
-        uint256 oldBalance,
-        uint256 newBalance,
-        uint256 oldTotalSupply,
-        uint256 newTotalSupply
-    ) external;
-}
+import {IVeMoe} from "./interface/IVeMoe.sol";
+import {IStableMoe} from "./interface/IStableMoe.sol";
 
 contract MoeStaking is IMoeStaking {
     using SafeERC20 for IERC20;
@@ -23,12 +15,12 @@ contract MoeStaking is IMoeStaking {
     using Amounts for Amounts.Parameter;
 
     IERC20 private immutable _moe;
-    IRewarder private immutable _veMoe;
-    IRewarder private immutable _sMoe;
+    IVeMoe private immutable _veMoe;
+    IStableMoe private immutable _sMoe;
 
     Amounts.Parameter private _amounts;
 
-    constructor(IERC20 moe, IRewarder veMoe, IRewarder sMoe) {
+    constructor(IERC20 moe, IVeMoe veMoe, IStableMoe sMoe) {
         _moe = moe;
         _veMoe = veMoe;
         _sMoe = sMoe;
