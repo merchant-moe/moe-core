@@ -21,14 +21,23 @@ contract MasterChef is Ownable, IMasterChef {
 
     IMoe private immutable _moe;
     IVeMoe private immutable _veMoe;
+    uint256 private immutable _treasuryShare;
 
-    uint256 private _moePerSecond;
+    address private _treasury;
+    uint96 private _moePerSecond;
 
     Farm[] private _farms;
 
-    constructor(IMoe moe, IVeMoe veMoe, address initialOwner) Ownable(initialOwner) {
+    constructor(IMoe moe, IVeMoe veMoe, address treasury, uint256 treasuryShare, address initialOwner)
+        Ownable(initialOwner)
+    {
+        assert(treasuryShare <= Constants.BASIS_POINTS);
+
         _moe = moe;
         _veMoe = veMoe;
+        _treasuryShare = treasuryShare;
+
+        _setTreasury(treasury);
     }
 
     function getMoe() external view override returns (IMoe) {
@@ -37,6 +46,18 @@ contract MasterChef is Ownable, IMasterChef {
 
     function getVeMoe() external view override returns (IVeMoe) {
         return _veMoe;
+    }
+
+    function getTreasury() external view override returns (address) {
+        return _treasury;
+    }
+
+    function getTreasuryShare() external view override returns (uint256) {
+        return _treasuryShare;
+    }
+
+    function getNumberOfFarms() external view override returns (uint256) {
+        return _farms.length;
     }
 
     function getDeposit(uint256 pid, address account) external view override returns (uint256) {
@@ -117,7 +138,7 @@ contract MasterChef is Ownable, IMasterChef {
         emit PositionModified(pid, msg.sender, -int256(balance), 0);
     }
 
-    function setMoePerSecond(uint256 moePerSecond) external override onlyOwner {
+    function setMoePerSecond(uint96 moePerSecond) external override onlyOwner {
         _updateAll(_veMoe.getTopPoolIds());
 
         _moePerSecond = moePerSecond;
@@ -137,11 +158,17 @@ contract MasterChef is Ownable, IMasterChef {
 
         if (address(extraRewarder) != address(0)) _setExtraRewarder(pid, extraRewarder);
 
+        token.balanceOf(address(this)); // sanity check
+
         emit FarmAdded(pid, token, startTimestamp);
     }
 
     function setExtraRewarder(uint256 pid, IMasterChefRewarder extraRewarder) external override onlyOwner {
         _setExtraRewarder(pid, extraRewarder);
+    }
+
+    function setTreasury(address treasury) external override onlyOwner {
+        _setTreasury(treasury);
     }
 
     function updateAll(uint256[] calldata pids) external override {
@@ -200,7 +227,13 @@ contract MasterChef is Ownable, IMasterChef {
 
         uint256 totalMoeRewardForPid = _getRewardForPid(rewarder, pid);
 
-        if (totalMoeRewardForPid > 0) totalMoeRewardForPid = _moe.mint(address(this), totalMoeRewardForPid);
+        if (totalMoeRewardForPid > 0) {
+            uint256 treasuryAmount = totalMoeRewardForPid * _treasuryShare / Constants.BASIS_POINTS;
+            totalMoeRewardForPid -= treasuryAmount;
+
+            _moe.mint(_treasury, treasuryAmount);
+            totalMoeRewardForPid = _moe.mint(address(this), totalMoeRewardForPid);
+        }
 
         uint256 moeReward = rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalMoeRewardForPid);
 
@@ -211,5 +244,13 @@ contract MasterChef is Ownable, IMasterChef {
         }
 
         emit PositionModified(pid, account, deltaAmount, moeReward);
+    }
+
+    function _setTreasury(address treasury) private {
+        if (treasury == address(0)) revert MasterChef__InvalidTreasury();
+
+        _treasury = treasury;
+
+        emit TreasurySet(treasury);
     }
 }
