@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {SafeMath} from "./SafeMath.sol";
+import {Math} from "./Math.sol";
 
 library Amounts {
-    using SafeMath for uint256;
+    using Math for uint256;
 
     struct Parameter {
         uint256 totalAmount;

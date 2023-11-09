@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {SafeMath} from "./library/SafeMath.sol";
+import {Math} from "./library/Math.sol";
 import {Amounts} from "./library/Amounts.sol";
 import {IMoeStaking} from "./interface/IMoeStaking.sol";
 
@@ -19,7 +19,7 @@ interface IRewarder {
 
 contract MoeStaking is IMoeStaking {
     using SafeERC20 for IERC20;
-    using SafeMath for uint256;
+    using Math for uint256;
     using Amounts for Amounts.Parameter;
 
     IERC20 private immutable _moe;

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-library SafeMath {
-    error SafeMath__Overflow();
+library Math {
+    error Math__Overflow();
 
     uint256 internal constant MAX_INT256 = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
@@ -15,6 +15,6 @@ library SafeMath {
             success := iszero(or(gt(x, MAX_INT256), gt(y, MAX_INT256)))
         }
 
-        if (success == 0) revert SafeMath__Overflow();
+        if (success == 0) revert Math__Overflow();
     }
 }

@@ -5,7 +5,7 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {SafeMath} from "./library/SafeMath.sol";
+import {Math} from "./library/Math.sol";
 import {Rewarder} from "./library/Rewarder.sol";
 import {Amounts} from "./library/Amounts.sol";
 import {Constants} from "./library/Constants.sol";
@@ -16,7 +16,7 @@ import {IRewarder} from "./interface/IRewarder.sol";
 import {IVeMoe} from "./interface/IVeMoe.sol";
 
 contract VeMoe is Ownable, IVeMoe {
-    using SafeMath for uint256;
+    using Math for uint256;
     using Rewarder for Rewarder.Parameter;
     using Amounts for Amounts.Parameter;
     using EnumerableSet for EnumerableSet.UintSet;

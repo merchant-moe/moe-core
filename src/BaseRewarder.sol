@@ -6,14 +6,14 @@ import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 
 import {IMasterChef} from "./interface/IMasterChef.sol";
 import {IMoe} from "./interface/IMoe.sol";
-import {SafeMath} from "./library/SafeMath.sol";
+import {Math} from "./library/Math.sol";
 import {Rewarder} from "./library/Rewarder.sol";
 import {Amounts} from "./library/Amounts.sol";
 import {IRewarder} from "./interface/IRewarder.sol";
 
 abstract contract BaseRewarder is Ownable, IRewarder {
     using SafeERC20 for IERC20;
-    using SafeMath for uint256;
+    using Math for uint256;
     using Rewarder for Rewarder.Parameter;
     using Amounts for Amounts.Parameter;
 

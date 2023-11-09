@@ -3,9 +3,9 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 
-import "../../src/library/SafeMath.sol";
+import "../../src/library/Math.sol";
 
-contract SafeMathTest is Test {
+contract MathTest is Test {
     function test_fuzz_AddDelta(uint256 x, int256 delta) public returns (uint256 y) {
         x = bound(x, 0, uint256(type(int256).max));
         delta = bound(delta, -int256(x), type(int256).max - int256(x));
@@ -17,7 +17,7 @@ contract SafeMathTest is Test {
             else y = x - uint256(-delta);
         }
 
-        assertEq(SafeMath.addDelta(x, delta), y, "test_fuzz_AddDelta::1");
+        assertEq(Math.addDelta(x, delta), y, "test_fuzz_AddDelta::1");
     }
 
     function test_fuzz_revert_AddDelta(uint256 x, int256 delta) public {
@@ -30,8 +30,8 @@ contract SafeMathTest is Test {
             }
         }
 
-        vm.expectRevert(SafeMath.SafeMath__Overflow.selector);
-        SafeMath.addDelta(x, delta);
+        vm.expectRevert(Math.Math__Overflow.selector);
+        Math.addDelta(x, delta);
     }
 
     function _abs(int256 x) internal pure returns (uint256) {
