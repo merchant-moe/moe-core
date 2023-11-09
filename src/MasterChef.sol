@@ -31,7 +31,7 @@ contract MasterChef is Ownable, IMasterChef {
     constructor(IMoe moe, IVeMoe veMoe, address treasury, uint256 treasuryShare, address initialOwner)
         Ownable(initialOwner)
     {
-        assert(treasuryShare <= Constants.BASIS_POINTS);
+        assert(treasuryShare <= Constants.PRECISION);
 
         _moe = moe;
         _veMoe = veMoe;
@@ -228,7 +228,7 @@ contract MasterChef is Ownable, IMasterChef {
         uint256 totalMoeRewardForPid = _getRewardForPid(rewarder, pid);
 
         if (totalMoeRewardForPid > 0) {
-            uint256 treasuryAmount = totalMoeRewardForPid * _treasuryShare / Constants.BASIS_POINTS;
+            uint256 treasuryAmount = totalMoeRewardForPid * _treasuryShare / Constants.PRECISION;
             totalMoeRewardForPid -= treasuryAmount;
 
             _moe.mint(_treasury, treasuryAmount);

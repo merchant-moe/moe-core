@@ -36,7 +36,7 @@ contract MasterChefTest is Test {
 
         moe = IMoe(address(new Moe(masterChefAddress, type(uint256).max)));
 
-        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), address(this));
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), address(this), 0, address(this));
 
         vm.label(address(moe), "moe");
         vm.label(address(veMoe), "veMoe");
@@ -147,7 +147,7 @@ contract MasterChefTest is Test {
         assertEq(tokenA.balanceOf(address(masterChef)), 10e18, "test_Withdraw::24");
     }
 
-    function test_SetMoePerSecond(uint256 moePerSecond) public {
+    function test_SetMoePerSecond(uint96 moePerSecond) public {
         masterChef.setMoePerSecond(moePerSecond);
 
         assertEq(masterChef.getMoePerSecond(), moePerSecond, "test_SetMoePerSecond::1");
@@ -308,5 +308,46 @@ contract MasterChefTest is Test {
         masterChef.claim(new uint256[](1));
 
         assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::6");
+    }
+
+    function test_TreasuryShare() public {
+        veMoe.setVotes(0, 1e18);
+        veMoe.setTopPoolIds(new uint256[](1));
+
+        uint256 nonce = vm.getNonce(address(this));
+        address masterChefAddress = computeCreateAddress(address(this), nonce + 1);
+
+        moe = IMoe(address(new Moe(masterChefAddress, type(uint256).max)));
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), address(this), 0.1e18, address(this));
+
+        assertEq(masterChef.getTreasuryShare(), 0.1e18, "test_TreasuryShare::1");
+        assertEq(masterChef.getTreasury(), address(this), "test_TreasuryShare::2");
+
+        masterChef.add(tokenA, block.timestamp, IMasterChefRewarder(address(0)));
+        masterChef.setMoePerSecond(1e18);
+
+        vm.startPrank(alice);
+        tokenA.approve(address(masterChef), type(uint256).max);
+        masterChef.deposit(0, 1e18);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 10);
+
+        vm.prank(alice);
+        masterChef.claim(new uint256[](1));
+
+        assertEq(moe.balanceOf(address(this)), 1e18, "test_TreasuryShare::3");
+        assertEq(moe.balanceOf(address(alice)), 9e18, "test_TreasuryShare::4");
+
+        vm.expectRevert(IMasterChef.MasterChef__InvalidTreasury.selector);
+        masterChef.setTreasury(address(0));
+
+        masterChef.setTreasury(address(1));
+
+        assertEq(masterChef.getTreasuryShare(), 0.1e18, "test_TreasuryShare::1");
+        assertEq(masterChef.getTreasury(), address(1), "test_TreasuryShare::5");
+
+        vm.expectRevert();
+        new MasterChef(moe, IVeMoe(address(veMoe)), address(this), 1e18 + 1, address(this));
     }
 }
