@@ -30,7 +30,7 @@ contract MathTest is Test {
             }
         }
 
-        vm.expectRevert(Math.Math__Overflow.selector);
+        vm.expectRevert(Math.Math__UnderOverflow.selector);
         Math.addDelta(x, delta);
     }
 
