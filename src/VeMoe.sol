@@ -9,10 +9,9 @@ import {Math} from "./library/Math.sol";
 import {Rewarder} from "./library/Rewarder.sol";
 import {Amounts} from "./library/Amounts.sol";
 import {Constants} from "./library/Constants.sol";
-import {IRewarder} from "./interface/IRewarder.sol";
+import {IVeMoeRewarder} from "./interface/IVeMoeRewarder.sol";
 import {IMoeStaking} from "./interface/IMoeStaking.sol";
 import {IMasterChef} from "./interface/IMasterChef.sol";
-import {IRewarder} from "./interface/IRewarder.sol";
 import {IVeMoe} from "./interface/IVeMoe.sol";
 
 contract VeMoe is Ownable, IVeMoe {
@@ -36,21 +35,28 @@ contract VeMoe is Ownable, IVeMoe {
     Amounts.Parameter private _votes;
 
     mapping(address => User) private _users;
-    mapping(IRewarder => mapping(uint256 => uint256)) private _bribesTotalVotes;
+    mapping(IVeMoeRewarder => mapping(uint256 => uint256)) private _bribesTotalVotes;
 
     constructor(IMoeStaking moeStaking, IMasterChef masterChef, address initialOwner) Ownable(initialOwner) {
         _moeStaking = moeStaking;
         _masterChef = masterChef;
     }
 
+    function getMoeStaking() external view override returns (IMoeStaking) {
+        return _moeStaking;
+    }
+
+    function getMasterChef() external view override returns (IMasterChef) {
+        return _masterChef;
+    }
+
     function balanceOf(address account) external view override returns (uint256 veMoe) {
         User storage user = _users[account];
 
         uint256 balance = _moeStaking.getDeposit(account);
-        uint256 totalSupply = _moeStaking.getTotalDeposit();
 
         uint256 totalVested = _veRewarder.getTotalRewards(_veMoePerSecond);
-        uint256 userVested = _veRewarder.getPendingReward(account, balance, totalSupply, totalVested);
+        uint256 userVested = _veRewarder.getPendingReward(account, balance, Constants.PRECISION, totalVested);
 
         (veMoe,) = _getVeMoe(user, balance, balance, userVested);
     }
@@ -67,11 +73,11 @@ contract VeMoe is Ownable, IVeMoe {
         return _votes.getTotalAmount();
     }
 
-    function getBribesTotalVotes(IRewarder bribe, uint256 pid) external view override returns (uint256) {
+    function getBribesTotalVotes(IVeMoeRewarder bribe, uint256 pid) external view override returns (uint256) {
         return _bribesTotalVotes[bribe][pid];
     }
 
-    function getBribesOf(address account, uint256 pid) external view override returns (IRewarder) {
+    function getBribesOf(address account, uint256 pid) external view override returns (IVeMoeRewarder) {
         return _users[account].bribes[pid];
     }
 
@@ -95,16 +101,41 @@ contract VeMoe is Ownable, IVeMoe {
         return _topPidsTotalVotes;
     }
 
+    function getPendingRewards(address account, uint256[] calldata pids)
+        external
+        view
+        override
+        returns (IERC20[] memory tokens, uint256[] memory pendingRewards)
+    {
+        uint256 length = pids.length;
+
+        tokens = new IERC20[](length);
+        pendingRewards = new uint256[](length);
+
+        User storage user = _users[account];
+
+        for (uint256 i; i < length; ++i) {
+            uint256 pid = pids[i];
+
+            IVeMoeRewarder bribe = user.bribes[pid];
+
+            if (address(bribe) != address(0)) {
+                uint256 userVotes = user.votes.getAmountOf(pid);
+
+                (tokens[i], pendingRewards[i]) = bribe.getPendingReward(account, pid, userVotes);
+            }
+        }
+    }
+
     function claim(uint256[] calldata pids) external override {
         uint256 balance = _moeStaking.getDeposit(msg.sender);
-        uint256 totalSupply = _moeStaking.getTotalDeposit();
 
-        _claim(msg.sender, balance, balance, totalSupply);
+        _claim(msg.sender, balance, balance);
 
         for (uint256 i; i < pids.length; ++i) {
             uint256 pid = pids[i];
 
-            IRewarder bribe = _users[msg.sender].bribes[pid];
+            IVeMoeRewarder bribe = _users[msg.sender].bribes[pid];
 
             if (address(bribe) != address(0)) {
                 uint256 userVotes = _votes.getAmountOf(pid);
@@ -118,31 +149,35 @@ contract VeMoe is Ownable, IVeMoe {
     function vote(uint256[] calldata pids, int256[] calldata deltaAmounts) external override {
         if (pids.length != deltaAmounts.length) revert VeMoe__InvalidLength();
 
+        uint256 numberOfFarm = _masterChef.getNumberOfFarms();
+
         _masterChef.updateAll(_topPids.values());
 
         User storage user = _users[msg.sender];
 
         uint256 balance = _moeStaking.getDeposit(msg.sender);
-        uint256 totalSupply = _moeStaking.getTotalDeposit();
 
-        _claim(msg.sender, balance, balance, totalSupply);
+        _claim(msg.sender, balance, balance);
 
         uint256 userTotalVeMoe = user.veMoe;
+        uint256 topPidsTotalVotes = _topPidsTotalVotes;
 
         for (uint256 i; i < pids.length; ++i) {
             int256 deltaAmount = deltaAmounts[i];
             uint256 pid = pids[i];
 
+            if (pid >= numberOfFarm) revert VeMoe__InvalidPid(pid);
+
             (uint256 userOldVotes, uint256 userNewVotes,, uint256 userNewTotalVotes) =
                 user.votes.update(pid, deltaAmount);
 
-            if (userNewTotalVotes > userTotalVeMoe) revert VeMoe__InsufficientVeMoe();
+            if (userNewTotalVotes > userTotalVeMoe) revert VeMoe__InsufficientVeMoe(userTotalVeMoe, userNewTotalVotes);
 
             _votes.update(pid, deltaAmount);
 
-            if (_topPids.contains(pid)) _topPidsTotalVotes.addDelta(deltaAmount);
+            if (_topPids.contains(pid)) topPidsTotalVotes = topPidsTotalVotes.addDelta(deltaAmount);
 
-            IRewarder bribe = user.bribes[pid];
+            IVeMoeRewarder bribe = user.bribes[pid];
 
             if (address(bribe) != address(0)) {
                 uint256 totalVotes = _bribesTotalVotes[bribe][pid];
@@ -152,10 +187,12 @@ contract VeMoe is Ownable, IVeMoe {
             }
         }
 
+        _topPidsTotalVotes = topPidsTotalVotes;
+
         emit Vote(msg.sender, pids, deltaAmounts);
     }
 
-    function setBribes(uint256[] calldata pids, IRewarder[] calldata bribes) external override {
+    function setBribes(uint256[] calldata pids, IVeMoeRewarder[] calldata bribes) external override {
         if (pids.length != bribes.length) revert VeMoe__InvalidLength();
 
         User storage user = _users[msg.sender];
@@ -163,8 +200,8 @@ contract VeMoe is Ownable, IVeMoe {
         for (uint256 i; i < pids.length; ++i) {
             uint256 pid = pids[i];
 
-            IRewarder newBribe = bribes[i];
-            IRewarder oldBribe = user.bribes[pid];
+            IVeMoeRewarder newBribe = bribes[i];
+            IVeMoeRewarder oldBribe = user.bribes[pid];
 
             if (oldBribe == newBribe) continue;
 
@@ -191,13 +228,13 @@ contract VeMoe is Ownable, IVeMoe {
         emit BribesSet(msg.sender, pids, bribes);
     }
 
-    function emergencyUnsetBribe(uint256[] calldata pids) external override {
+    function emergencyUnsetBribes(uint256[] calldata pids) external override {
         User storage user = _users[msg.sender];
 
         for (uint256 i; i < pids.length; ++i) {
             uint256 pid = pids[i];
 
-            IRewarder bribe = user.bribes[pid];
+            IVeMoeRewarder bribe = user.bribes[pid];
 
             if (address(bribe) == address(0)) revert VeMoe__NoBribeForPid(pid);
 
@@ -207,16 +244,13 @@ contract VeMoe is Ownable, IVeMoe {
             delete user.bribes[pid];
         }
 
-        emit BribesSet(msg.sender, pids, new IRewarder[](pids.length));
+        emit BribesSet(msg.sender, pids, new IVeMoeRewarder[](pids.length));
     }
 
-    function onModify(address account, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply, uint256)
-        external
-        override
-    {
+    function onModify(address account, uint256 oldBalance, uint256 newBalance, uint256, uint256) external override {
         if (msg.sender != address(_moeStaking)) revert VeMoe__InvalidCaller();
 
-        _claim(account, oldBalance, newBalance, oldTotalSupply);
+        _claim(account, oldBalance, newBalance);
     }
 
     function setTopPoolIds(uint256[] calldata pids) external override onlyOwner {
@@ -224,16 +258,24 @@ contract VeMoe is Ownable, IVeMoe {
 
         if (length > Constants.MAX_NUMBER_OF_FARMS) revert VeMoe__TooManyPoolIds();
 
-        uint256 oldLength = _topPids.length();
-        while (oldLength > 0) {
-            _topPids.remove(_topPids.at(--oldLength));
+        uint256[] memory oldIds = _topPids.values();
+
+        if (oldIds.length > 0) {
+            _masterChef.updateAll(oldIds);
+
+            for (uint256 i; i < oldIds.length; ++i) {
+                _topPids.remove(oldIds[i]);
+            }
         }
+
+        uint256 numberOfFarm = _masterChef.getNumberOfFarms();
 
         uint256 totalVotes;
         for (uint256 i; i < length; ++i) {
             uint256 pid = pids[i];
 
-            if (!_topPids.add(pid)) revert VeMoe__InvalidLength();
+            if (pid >= numberOfFarm) revert VeMoe__InvalidPid(pid);
+            if (!_topPids.add(pid)) revert VeMoe__DuplicatePoolId(pid);
 
             uint256 votes = _votes.getAmountOf(pid);
             totalVotes += votes;
@@ -244,11 +286,27 @@ contract VeMoe is Ownable, IVeMoe {
         emit TopPoolIdsSet(pids);
     }
 
-    function _claim(address account, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply) private {
+    function setVeMoePerSecond(uint256 veMoePerSecond) external override onlyOwner {
+        _veRewarder.updateAccDebtPerShare(Constants.PRECISION, _veRewarder.getTotalRewards(_veMoePerSecond));
+
+        _veMoePerSecond = veMoePerSecond;
+
+        emit VeMoePerSecondSet(veMoePerSecond);
+    }
+
+    function setMaxVeMoePerMoe(uint256 maxVeMoePerMoe) external override onlyOwner {
+        if (maxVeMoePerMoe < _maxVeMoePerMoe) revert VeMoe__OnlyIncreaseMaxVeMoePerMoe();
+
+        _maxVeMoePerMoe = maxVeMoePerMoe;
+
+        emit MaxVeMoePerMoeSet(maxVeMoePerMoe);
+    }
+
+    function _claim(address account, uint256 oldBalance, uint256 newBalance) private {
         User storage user = _users[account];
 
         uint256 totalVested = _veRewarder.getTotalRewards(_veMoePerSecond);
-        uint256 userVested = _veRewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalVested);
+        uint256 userVested = _veRewarder.update(account, oldBalance, newBalance, Constants.PRECISION, totalVested);
 
         (uint256 newVeMoe, int256 deltaVeMoe) = _getVeMoe(user, oldBalance, newBalance, userVested);
 

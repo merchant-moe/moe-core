@@ -3,26 +3,29 @@ pragma solidity ^0.8.13;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {IRewarder} from "./IRewarder.sol";
-
+import {IVeMoeRewarder} from "./IVeMoeRewarder.sol";
+import {IMoeStaking} from "./IMoeStaking.sol";
+import {IMasterChef} from "./IMasterChef.sol";
 import {Amounts} from "../library/Amounts.sol";
-
 import {Rewarder} from "../library/Rewarder.sol";
 
 interface IVeMoe {
     error VeMoe__InvalidLength();
-    error VeMoe__InsufficientVeMoe();
+    error VeMoe__InsufficientVeMoe(uint256 totalVeMoe, uint256 requiredVeMoe);
     error VeMoe__InvalidCaller();
     error VeMoe__CannotUnstakeWithVotes();
     error VeMoe__NoBribeForPid(uint256 pid);
     error VeMoe__TooManyPoolIds();
     error VeMoe__RewardAlreadyAdded();
     error VeMoe__VeMoeOverflow();
+    error VeMoe__InvalidPid(uint256 pid);
+    error VeMoe__DuplicatePoolId(uint256 pid);
+    error VeMoe__OnlyIncreaseMaxVeMoePerMoe();
 
     struct User {
         uint256 veMoe;
         Amounts.Parameter votes;
-        mapping(uint256 => IRewarder) bribes;
+        mapping(uint256 => IVeMoeRewarder) bribes;
     }
 
     struct Reward {
@@ -31,7 +34,7 @@ interface IVeMoe {
         uint256 reserve;
     }
 
-    event BribesSet(address indexed account, uint256[] pids, IRewarder[] bribes);
+    event BribesSet(address indexed account, uint256[] pids, IVeMoeRewarder[] bribes);
 
     event Claim(address indexed account, int256 deltaVeMoe);
 
@@ -41,15 +44,28 @@ interface IVeMoe {
 
     event Vote(address account, uint256[] pids, int256[] deltaVeAmounts);
 
+    event VeMoePerSecondSet(uint256 veMoePerSecond);
+
+    event MaxVeMoePerMoeSet(uint256 maxVeMoePerMoe);
+
     function balanceOf(address account) external view returns (uint256 veMoe);
 
     function claim(uint256[] memory pids) external;
 
-    function emergencyUnsetBribe(uint256[] memory pids) external;
+    function emergencyUnsetBribes(uint256[] memory pids) external;
 
-    function getBribesOf(address account, uint256 pid) external view returns (IRewarder);
+    function getBribesOf(address account, uint256 pid) external view returns (IVeMoeRewarder);
 
-    function getBribesTotalVotes(IRewarder bribe, uint256 pid) external view returns (uint256);
+    function getBribesTotalVotes(IVeMoeRewarder bribe, uint256 pid) external view returns (uint256);
+
+    function getMasterChef() external view returns (IMasterChef);
+
+    function getMoeStaking() external view returns (IMoeStaking);
+
+    function getPendingRewards(address account, uint256[] calldata pids)
+        external
+        view
+        returns (IERC20[] memory tokens, uint256[] memory pendingRewards);
 
     function getTopPidsTotalVotes() external view returns (uint256);
 
@@ -70,9 +86,13 @@ interface IVeMoe {
     function onModify(address account, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply, uint256)
         external;
 
-    function setBribes(uint256[] memory pids, IRewarder[] memory bribes) external;
+    function setBribes(uint256[] memory pids, IVeMoeRewarder[] memory bribes) external;
+
+    function setMaxVeMoePerMoe(uint256 maxVeMoePerMoe) external;
 
     function setTopPoolIds(uint256[] memory pids) external;
+
+    function setVeMoePerSecond(uint256 veMoePerSecond) external;
 
     function vote(uint256[] memory pids, int256[] memory deltaAmounts) external;
 }
