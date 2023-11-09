@@ -45,8 +45,8 @@ contract MasterChefTest is Test {
         vm.label(address(rewardToken), "rewardToken");
         vm.label(address(masterChef), "masterChef");
 
-        masterChef.add(tokenA, block.timestamp, IRewarder(address(0)));
-        masterChef.add(tokenB, block.timestamp, IRewarder(address(0)));
+        masterChef.add(tokenA, block.timestamp, IMasterChefRewarder(address(0)));
+        masterChef.add(tokenB, block.timestamp, IMasterChefRewarder(address(0)));
 
         deal(address(tokenA), address(alice), 1e18);
         deal(address(tokenB), address(alice), 2e18);
@@ -226,41 +226,41 @@ contract MasterChefTest is Test {
     }
 
     function test_Add() public {
-        masterChef.add(tokenA, block.timestamp, IRewarder(address(0)));
+        masterChef.add(tokenA, block.timestamp, IMasterChefRewarder(address(0)));
 
         MasterChefRewarder rewarder = new MasterChefRewarder(rewardToken, address(masterChef), 3, address(this));
 
-        masterChef.add(tokenA, block.timestamp, IRewarder(address(rewarder)));
+        masterChef.add(tokenA, block.timestamp, IMasterChefRewarder(address(rewarder)));
 
         assertEq(address(masterChef.getExtraRewarder(3)), address(rewarder), "test_Add::1");
 
         MasterChefRewarder rewarder1 = new MasterChefRewarder(rewardToken, address(masterChef), 2, address(this));
         MasterChefRewarder rewarder2 = new MasterChefRewarder(rewardToken, address(masterChef), 2, address(this));
 
-        masterChef.setExtraRewarder(2, IRewarder(address(rewarder1)));
+        masterChef.setExtraRewarder(2, IMasterChefRewarder(address(rewarder1)));
 
         assertEq(address(masterChef.getExtraRewarder(2)), address(rewarder1), "test_Add::1");
 
-        vm.expectRevert(IRewarder.Rewarder__AlreadyLinked.selector);
-        masterChef.setExtraRewarder(2, IRewarder(address(rewarder1)));
+        vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__AlreadyLinked.selector);
+        masterChef.setExtraRewarder(2, IMasterChefRewarder(address(rewarder1)));
 
-        masterChef.setExtraRewarder(2, IRewarder(address(rewarder2)));
+        masterChef.setExtraRewarder(2, IMasterChefRewarder(address(rewarder2)));
 
         assertEq(address(masterChef.getExtraRewarder(2)), address(rewarder2), "test_Add::2");
 
-        vm.expectRevert(IRewarder.Rewarder__AlreadyLinked.selector);
-        masterChef.setExtraRewarder(2, IRewarder(address(rewarder2)));
+        vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__AlreadyLinked.selector);
+        masterChef.setExtraRewarder(2, IMasterChefRewarder(address(rewarder2)));
 
-        masterChef.setExtraRewarder(2, IRewarder(address(0)));
+        masterChef.setExtraRewarder(2, IMasterChefRewarder(address(0)));
 
         assertEq(address(masterChef.getExtraRewarder(2)), address(0), "test_Add::3");
 
         vm.expectRevert(IMasterChef.MasterChef__InvalidStartTimestamp.selector);
-        masterChef.add(tokenA, block.timestamp - 1, IRewarder(address(0)));
+        masterChef.add(tokenA, block.timestamp - 1, IMasterChefRewarder(address(0)));
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
         vm.prank(alice);
-        masterChef.add(tokenA, block.timestamp, IRewarder(address(0)));
+        masterChef.add(tokenA, block.timestamp, IMasterChefRewarder(address(0)));
     }
 
     function test_EmergencyWithdrawal() public {

@@ -11,7 +11,7 @@ import {Amounts} from "./library/Amounts.sol";
 import {IMoe} from "./interface/IMoe.sol";
 import {IVeMoe} from "./interface/IVeMoe.sol";
 import {IMasterChef} from "./interface/IMasterChef.sol";
-import {IRewarder} from "./interface/IRewarder.sol";
+import {IMasterChefRewarder} from "./interface/IMasterChefRewarder.sol";
 
 contract MasterChef is Ownable, IMasterChef {
     using SafeERC20 for IERC20;
@@ -55,7 +55,7 @@ contract MasterChef is Ownable, IMasterChef {
     {
         Farm storage farm = _farms[pid];
         Rewarder.Parameter storage rewarder = farm.rewarder;
-        IRewarder extraRewarder = farm.extraRewarder;
+        IMasterChefRewarder extraRewarder = farm.extraRewarder;
 
         moeReward = rewarder.getPendingReward(farm.amounts, account, _getRewardForPid(rewarder, pid));
 
@@ -75,7 +75,7 @@ contract MasterChef is Ownable, IMasterChef {
         return _farms[pid].rewarder.lastUpdateTimestamp;
     }
 
-    function getExtraRewarder(uint256 pid) external view override returns (IRewarder) {
+    function getExtraRewarder(uint256 pid) external view override returns (IMasterChefRewarder) {
         return _farms[pid].extraRewarder;
     }
 
@@ -125,7 +125,7 @@ contract MasterChef is Ownable, IMasterChef {
         emit MoePerSecondSet(moePerSecond);
     }
 
-    function add(IERC20 token, uint256 startTimestamp, IRewarder extraRewarder) external override onlyOwner {
+    function add(IERC20 token, uint256 startTimestamp, IMasterChefRewarder extraRewarder) external override onlyOwner {
         if (startTimestamp < block.timestamp) revert MasterChef__InvalidStartTimestamp();
 
         uint256 pid = _farms.length;
@@ -140,7 +140,7 @@ contract MasterChef is Ownable, IMasterChef {
         emit FarmAdded(pid, token, startTimestamp);
     }
 
-    function setExtraRewarder(uint256 pid, IRewarder extraRewarder) external override onlyOwner {
+    function setExtraRewarder(uint256 pid, IMasterChefRewarder extraRewarder) external override onlyOwner {
         _setExtraRewarder(pid, extraRewarder);
     }
 
@@ -158,8 +158,8 @@ contract MasterChef is Ownable, IMasterChef {
         return totalVote == 0 ? 0 : totalRewards * _veMoe.getVotes(pid) / totalVote;
     }
 
-    function _setExtraRewarder(uint256 pid, IRewarder extraRewarder) private {
-        IRewarder oldExtraRewarder = _farms[pid].extraRewarder;
+    function _setExtraRewarder(uint256 pid, IMasterChefRewarder extraRewarder) private {
+        IMasterChefRewarder oldExtraRewarder = _farms[pid].extraRewarder;
 
         if (address(oldExtraRewarder) != address(0)) oldExtraRewarder.unlink(pid);
         if (address(extraRewarder) != address(0)) extraRewarder.link(pid);
@@ -194,7 +194,7 @@ contract MasterChef is Ownable, IMasterChef {
     function _modify(uint256 pid, address account, int256 deltaAmount) private {
         Farm storage farm = _farms[pid];
         Rewarder.Parameter storage rewarder = farm.rewarder;
-        IRewarder extraRewarder = farm.extraRewarder;
+        IMasterChefRewarder extraRewarder = farm.extraRewarder;
 
         (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply,) = farm.amounts.update(account, deltaAmount);
 

@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {IRewarder} from "./IRewarder.sol";
+import {IMasterChefRewarder} from "./IMasterChefRewarder.sol";
 import {IMoe} from "./IMoe.sol";
 import {IVeMoe} from "./IVeMoe.sol";
 import {Rewarder} from "../library/Rewarder.sol";
@@ -17,7 +17,7 @@ interface IMasterChef {
         Amounts.Parameter amounts;
         Rewarder.Parameter rewarder;
         IERC20 token;
-        IRewarder extraRewarder;
+        IMasterChefRewarder extraRewarder;
     }
 
     event PositionModified(uint256 indexed pid, address indexed account, int256 deltaAmount, uint256 moeReward);
@@ -26,9 +26,9 @@ interface IMasterChef {
 
     event FarmAdded(uint256 indexed pid, IERC20 indexed token, uint256 startTimestamp);
 
-    event ExtraRewarderSet(uint256 indexed pid, IRewarder extraRewarder);
+    event ExtraRewarderSet(uint256 indexed pid, IMasterChefRewarder extraRewarder);
 
-    function add(IERC20 token, uint256 startTimestamp, IRewarder extraRewarder) external;
+    function add(IERC20 token, uint256 startTimestamp, IMasterChefRewarder extraRewarder) external;
 
     function claim(uint256[] memory pids) external;
 
@@ -45,7 +45,7 @@ interface IMasterChef {
         view
         returns (uint256 moeReward, IERC20 extraToken, uint256 extraReward);
 
-    function getExtraRewarder(uint256 pid) external view returns (IRewarder);
+    function getExtraRewarder(uint256 pid) external view returns (IMasterChefRewarder);
 
     function getMoe() external view returns (IMoe);
 
@@ -57,7 +57,7 @@ interface IMasterChef {
 
     function getVeMoe() external view returns (IVeMoe);
 
-    function setExtraRewarder(uint256 pid, IRewarder extraRewarder) external;
+    function setExtraRewarder(uint256 pid, IMasterChefRewarder extraRewarder) external;
 
     function setMoePerSecond(uint256 moePerSecond) external;
 

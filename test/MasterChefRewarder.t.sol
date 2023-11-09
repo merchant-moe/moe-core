@@ -99,12 +99,6 @@ contract MasterChefRewarderTest is Test {
     }
 
     function test_LinkUnlink() public {
-        vm.expectRevert(abi.encodeWithSelector(MasterChefRewarder.MasterChefRewarder__InvalidPid.selector, uint256(1)));
-        rewarder.link(1);
-
-        vm.expectRevert(abi.encodeWithSelector(MasterChefRewarder.MasterChefRewarder__InvalidPid.selector, uint256(1)));
-        rewarder.unlink(1);
-
         vm.expectRevert(IRewarder.Rewarder__InvalidCaller.selector);
         rewarder.link(0);
 
@@ -113,38 +107,48 @@ contract MasterChefRewarderTest is Test {
 
         vm.startPrank(address(masterchef));
 
-        vm.expectRevert(IRewarder.Rewarder__NotLinked.selector);
+        vm.expectRevert(abi.encodeWithSelector(IMasterChefRewarder.MasterChefRewarder__InvalidPid.selector, uint256(1)));
+        rewarder.link(1);
+
+        vm.expectRevert(abi.encodeWithSelector(IMasterChefRewarder.MasterChefRewarder__InvalidPid.selector, uint256(1)));
+        rewarder.unlink(1);
+
+        vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__NotLinked.selector);
         rewarder.unlink(0);
 
         rewarder.link(0);
 
-        vm.expectRevert(IRewarder.Rewarder__AlreadyLinked.selector);
+        vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__AlreadyLinked.selector);
         rewarder.link(0);
 
         rewarder.unlink(0);
 
-        vm.expectRevert(IRewarder.Rewarder__AlreadyLinked.selector);
+        vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__AlreadyLinked.selector);
         rewarder.link(0);
 
-        vm.expectRevert(IRewarder.Rewarder__NotLinked.selector);
+        vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__NotLinked.selector);
         rewarder.unlink(0);
 
         vm.stopPrank();
     }
 
     function test_OnModify() public {
+        vm.startPrank(address(masterchef));
+
+        vm.expectRevert(abi.encodeWithSelector(IMasterChefRewarder.MasterChefRewarder__InvalidPid.selector, uint256(1)));
+        rewarder.onModify(alice, 1, 0, 0, 0);
+
+        vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__NotLinked.selector);
+        rewarder.onModify(alice, 0, 0, 0, 0);
+
+        rewarder.link(0);
+
+        vm.stopPrank();
+
         vm.expectRevert(IRewarder.Rewarder__InvalidCaller.selector);
         rewarder.onModify(alice, 0, 0, 0, 0);
 
         vm.startPrank(address(masterchef));
-
-        vm.expectRevert(abi.encodeWithSelector(MasterChefRewarder.MasterChefRewarder__InvalidPid.selector, uint256(1)));
-        rewarder.onModify(alice, 1, 0, 0, 0);
-
-        vm.expectRevert(IRewarder.Rewarder__NotLinked.selector);
-        rewarder.onModify(alice, 0, 0, 0, 0);
-
-        rewarder.link(0);
 
         rewarder.onModify(alice, 0, 0, 1e18, 1e18);
         rewarder.onModify(bob, 0, 0, 2e18, 3e18);
@@ -262,29 +266,35 @@ contract MasterChefRewarderTest is Test {
         assertEq(address(alice).balance, 1e18, "test_Sweep::4");
     }
 
-    function test_EmergencyWithdrawReward() public {
-        vm.prank(alice);
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
-        rewarder.emergencyWithdrawReward(alice);
-
+    function test_Stop() public {
         MockERC20(address(rewardToken)).mint(address(rewarder), 100e18);
 
-        vm.expectRevert(IRewarder.Rewarder__NotStopped.selector);
-        rewarder.emergencyWithdrawReward(alice);
+        vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__UseUnlink.selector);
+        rewarder.stop();
 
         vm.prank(address(masterchef));
         rewarder.link(0);
 
-        vm.expectRevert(IRewarder.Rewarder__NotStopped.selector);
-        rewarder.emergencyWithdrawReward(alice);
+        vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__UseUnlink.selector);
+        rewarder.stop();
+
+        assertFalse(rewarder.isStopped(), "test_Stop::1");
 
         vm.prank(address(masterchef));
         rewarder.unlink(0);
 
-        rewarder.emergencyWithdrawReward(alice);
+        assertTrue(rewarder.isStopped(), "test_Stop::2");
 
-        assertEq(rewardToken.balanceOf(alice), 100e18, "test_EmergencyWithdrawReward::1");
-        assertEq(rewardToken.balanceOf(address(rewarder)), 0, "test_EmergencyWithdrawReward::2");
+        vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__UseUnlink.selector);
+        rewarder.stop();
+
+        assertEq(rewardToken.balanceOf(alice), 0, "test_Stop::3");
+        assertEq(rewardToken.balanceOf(address(rewarder)), 100e18, "test_Stop::4");
+
+        rewarder.sweep(rewardToken, alice);
+
+        assertEq(rewardToken.balanceOf(alice), 100e18, "test_Stop::5");
+        assertEq(rewardToken.balanceOf(address(rewarder)), 0, "test_Stop::6");
     }
 }
 

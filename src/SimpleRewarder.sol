@@ -24,7 +24,7 @@ abstract contract SimpleRewarder is Ownable, IRewarder {
     uint256 internal _totalUnclaimedRewards;
     uint256 internal _reserve;
     uint256 internal _endTimestamp;
-    Status internal _status;
+    bool internal _isStopped;
 
     Rewarder.Parameter internal _rewarder;
 
@@ -37,10 +37,15 @@ abstract contract SimpleRewarder is Ownable, IRewarder {
         if (address(_token) != address(0)) revert Rewarder__NotNativeToken();
     }
 
+    function getCaller() public view virtual override returns (address) {
+        return _caller;
+    }
+
     function getRewarderParameter()
         public
         view
         virtual
+        override
         returns (IERC20 token, uint256 rewardPerSecond, uint256 lastUpdateTimestamp, uint256 endTimestamp)
     {
         return (_token, _rewardsPerSecond, _rewarder.lastUpdateTimestamp, _endTimestamp);
@@ -50,6 +55,7 @@ abstract contract SimpleRewarder is Ownable, IRewarder {
         public
         view
         virtual
+        override
         returns (IERC20, uint256)
     {
         uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
@@ -57,8 +63,12 @@ abstract contract SimpleRewarder is Ownable, IRewarder {
         return (_token, _rewarder.getPendingReward(account, balance, totalSupply, totalRewards));
     }
 
-    function setRewardPerSecond(uint256 rewardPerSecond, uint256 expectedDuration) public virtual onlyOwner {
-        if (_status == Status.Stopped) revert Rewarder__Stopped();
+    function isStopped() public view virtual override returns (bool) {
+        return _isStopped;
+    }
+
+    function setRewardPerSecond(uint256 rewardPerSecond, uint256 expectedDuration) public virtual override onlyOwner {
+        if (_isStopped) revert Rewarder__Stopped();
         if (expectedDuration == 0 && rewardPerSecond != 0) revert Rewarder__InvalidDuration();
 
         uint256 totalUnclaimedRewards = _totalUnclaimedRewards;
@@ -85,40 +95,25 @@ abstract contract SimpleRewarder is Ownable, IRewarder {
         emit RewardPerSecondSet(rewardPerSecond, endTimestamp);
     }
 
-    function emergencyWithdrawReward(address account) public virtual onlyOwner {
-        if (_status != Status.Stopped) revert Rewarder__NotStopped();
+    function stop() public virtual override onlyOwner {
+        if (_isStopped) revert Rewarder__AlreadyStopped();
 
-        _reserve = 0;
-
-        _safeTransferTo(_token, account, _balanceOfThis(_token));
+        _isStopped = true;
     }
 
-    function sweep(IERC20 token, address account) public virtual onlyOwner {
-        if (token == _token) revert Rewarder__InvalidToken();
+    function sweep(IERC20 token, address account) public virtual override onlyOwner {
+        if (!_isStopped && token == _token) revert Rewarder__InvalidToken();
 
         _safeTransferTo(token, account, _balanceOfThis(token));
-    }
-
-    function link(uint256) public virtual {
-        if (msg.sender != _caller) revert Rewarder__InvalidCaller();
-        if (_status != Status.Unlinked) revert Rewarder__AlreadyLinked();
-
-        _status = Status.Linked;
-    }
-
-    function unlink(uint256) public virtual {
-        if (msg.sender != _caller) revert Rewarder__InvalidCaller();
-        if (_status != Status.Linked) revert Rewarder__NotLinked();
-
-        _status = Status.Stopped;
     }
 
     function onModify(address account, uint256, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply)
         public
         virtual
+        override
     {
         if (msg.sender != _caller) revert Rewarder__InvalidCaller();
-        if (_status != Status.Linked) revert Rewarder__NotLinked();
+        if (_isStopped) revert Rewarder__Stopped();
 
         _claim(account, oldBalance, newBalance, oldTotalSupply);
     }
