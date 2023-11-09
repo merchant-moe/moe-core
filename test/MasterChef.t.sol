@@ -239,21 +239,21 @@ contract MasterChefTest is Test {
 
         masterChef.setExtraRewarder(2, IMasterChefRewarder(address(rewarder1)));
 
-        assertEq(address(masterChef.getExtraRewarder(2)), address(rewarder1), "test_Add::1");
+        assertEq(address(masterChef.getExtraRewarder(2)), address(rewarder1), "test_Add::2");
 
         vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__AlreadyLinked.selector);
         masterChef.setExtraRewarder(2, IMasterChefRewarder(address(rewarder1)));
 
         masterChef.setExtraRewarder(2, IMasterChefRewarder(address(rewarder2)));
 
-        assertEq(address(masterChef.getExtraRewarder(2)), address(rewarder2), "test_Add::2");
+        assertEq(address(masterChef.getExtraRewarder(2)), address(rewarder2), "test_Add::3");
 
         vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__AlreadyLinked.selector);
         masterChef.setExtraRewarder(2, IMasterChefRewarder(address(rewarder2)));
 
         masterChef.setExtraRewarder(2, IMasterChefRewarder(address(0)));
 
-        assertEq(address(masterChef.getExtraRewarder(2)), address(0), "test_Add::3");
+        assertEq(address(masterChef.getExtraRewarder(2)), address(0), "test_Add::4");
 
         vm.expectRevert(IMasterChef.MasterChef__InvalidStartTimestamp.selector);
         masterChef.add(tokenA, block.timestamp - 1, IMasterChefRewarder(address(0)));
@@ -292,14 +292,14 @@ contract MasterChefTest is Test {
         vm.prank(alice);
         masterChef.deposit(0, 1e18);
 
-        assertEq(moe.balanceOf(address(alice)), 0, "test_EmergencyWithdrawal::5");
+        assertEq(moe.balanceOf(address(alice)), 0, "test_EmergencyWithdrawal::4");
 
         vm.warp(block.timestamp + 10);
 
         vm.prank(alice);
         masterChef.claim(new uint256[](1));
 
-        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::6");
+        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::5");
 
         vm.prank(bob);
         masterChef.emergencyWithdraw(0);

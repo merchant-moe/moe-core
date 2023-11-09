@@ -189,12 +189,12 @@ contract MasterChefRewarderTest is Test {
         (, rewardA) = rewarder.getPendingReward(alice, 1e18, 3e18);
         (, rewardB) = rewarder.getPendingReward(bob, 2e18, 3e18);
 
-        assertEq(rewardA, 50e18, "test_OnModify::5");
-        assertEq(rewardB, 200e18, "test_OnModify::6");
+        assertEq(rewardA, 50e18, "test_OnModify::7");
+        assertEq(rewardB, 200e18, "test_OnModify::8");
 
         vm.stopPrank();
 
-        assertGt(rewardToken.balanceOf(address(rewarder)), 0, "test_OnModify::7");
+        assertGt(rewardToken.balanceOf(address(rewarder)), 0, "test_OnModify::9");
 
         vm.expectRevert(abi.encodeWithSelector(IRewarder.Rewarder__InsufficientReward.selector, 0, 1));
         rewarder.setRewardPerSecond(1, 1);
@@ -212,8 +212,8 @@ contract MasterChefRewarderTest is Test {
         (, rewardA) = rewarder.getPendingReward(alice, 1e18, 3e18);
         (, rewardB) = rewarder.getPendingReward(bob, 2e18, 3e18);
 
-        assertEq(rewardA, 60e18, "test_OnModify::8");
-        assertEq(rewardB, 220e18, "test_OnModify::9");
+        assertEq(rewardA, 60e18, "test_OnModify::10");
+        assertEq(rewardB, 220e18, "test_OnModify::11");
 
         rewarder.setRewardPerSecond(0, 0);
 
@@ -222,20 +222,20 @@ contract MasterChefRewarderTest is Test {
         (, rewardA) = rewarder.getPendingReward(alice, 1e18, 3e18);
         (, rewardB) = rewarder.getPendingReward(bob, 2e18, 3e18);
 
-        assertEq(rewardA, 60e18, "test_OnModify::8");
-        assertEq(rewardB, 220e18, "test_OnModify::9");
+        assertEq(rewardA, 60e18, "test_OnModify::12");
+        assertEq(rewardB, 220e18, "test_OnModify::13");
 
         vm.startPrank(address(masterchef));
 
         rewarder.onModify(alice, 0, 1e18, 1e18, 3e18);
 
-        assertEq(rewardToken.balanceOf(alice), 110e18, "test_OnModify::10");
-        assertEq(rewardToken.balanceOf(address(rewarder)), 220e18, "test_OnModify::11");
+        assertEq(rewardToken.balanceOf(alice), 110e18, "test_OnModify::14");
+        assertEq(rewardToken.balanceOf(address(rewarder)), 220e18, "test_OnModify::15");
 
         rewarder.onModify(bob, 0, 2e18, 2e18, 3e18);
 
-        assertEq(rewardToken.balanceOf(bob), 220e18, "test_OnModify::12");
-        assertEq(rewardToken.balanceOf(address(rewarder)), 0, "test_OnModify::13");
+        assertEq(rewardToken.balanceOf(bob), 220e18, "test_OnModify::16");
+        assertEq(rewardToken.balanceOf(address(rewarder)), 0, "test_OnModify::17");
 
         vm.stopPrank();
     }
