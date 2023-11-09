@@ -59,10 +59,10 @@ contract MasterChefRewarderTest is Test {
 
         vm.warp(block.timestamp + 1);
 
-        vm.expectRevert(IRewarder.Rewarder__InvalidDuration.selector);
+        vm.expectRevert(IBaseRewarder.BaseRewarder__InvalidDuration.selector);
         rewarder.setRewardPerSecond(1, 0);
 
-        vm.expectRevert(abi.encodeWithSelector(IRewarder.Rewarder__InsufficientReward.selector, 0, 1));
+        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InsufficientReward.selector, 0, 1));
         rewarder.setRewardPerSecond(1, 1);
 
         MockERC20(address(rewardToken)).mint(address(rewarder), 100e18);
@@ -76,7 +76,7 @@ contract MasterChefRewarderTest is Test {
 
         vm.warp(block.timestamp + 50);
 
-        vm.expectRevert(abi.encodeWithSelector(IRewarder.Rewarder__InsufficientReward.selector, 50e18, 51e18));
+        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InsufficientReward.selector, 50e18, 51e18));
         rewarder.setRewardPerSecond(1e18, 51);
 
         rewarder.setRewardPerSecond(0.5e18, 100);
@@ -94,23 +94,23 @@ contract MasterChefRewarderTest is Test {
         vm.prank(address(masterchef));
         rewarder.unlink(0);
 
-        vm.expectRevert(IRewarder.Rewarder__Stopped.selector);
+        vm.expectRevert(IBaseRewarder.BaseRewarder__Stopped.selector);
         rewarder.setRewardPerSecond(0, 0);
     }
 
     function test_LinkUnlink() public {
-        vm.expectRevert(IRewarder.Rewarder__InvalidCaller.selector);
+        vm.expectRevert(IBaseRewarder.BaseRewarder__InvalidCaller.selector);
         rewarder.link(0);
 
-        vm.expectRevert(IRewarder.Rewarder__InvalidCaller.selector);
+        vm.expectRevert(IBaseRewarder.BaseRewarder__InvalidCaller.selector);
         rewarder.unlink(0);
 
         vm.startPrank(address(masterchef));
 
-        vm.expectRevert(abi.encodeWithSelector(IMasterChefRewarder.MasterChefRewarder__InvalidPid.selector, uint256(1)));
+        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InvalidPid.selector, uint256(1)));
         rewarder.link(1);
 
-        vm.expectRevert(abi.encodeWithSelector(IMasterChefRewarder.MasterChefRewarder__InvalidPid.selector, uint256(1)));
+        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InvalidPid.selector, uint256(1)));
         rewarder.unlink(1);
 
         vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__NotLinked.selector);
@@ -135,7 +135,7 @@ contract MasterChefRewarderTest is Test {
     function test_OnModify() public {
         vm.startPrank(address(masterchef));
 
-        vm.expectRevert(abi.encodeWithSelector(IMasterChefRewarder.MasterChefRewarder__InvalidPid.selector, uint256(1)));
+        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InvalidPid.selector, uint256(1)));
         rewarder.onModify(alice, 1, 0, 0, 0);
 
         vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__NotLinked.selector);
@@ -145,7 +145,7 @@ contract MasterChefRewarderTest is Test {
 
         vm.stopPrank();
 
-        vm.expectRevert(IRewarder.Rewarder__InvalidCaller.selector);
+        vm.expectRevert(IBaseRewarder.BaseRewarder__InvalidCaller.selector);
         rewarder.onModify(alice, 0, 0, 0, 0);
 
         vm.startPrank(address(masterchef));
@@ -196,7 +196,7 @@ contract MasterChefRewarderTest is Test {
 
         assertGt(rewardToken.balanceOf(address(rewarder)), 0, "test_OnModify::9");
 
-        vm.expectRevert(abi.encodeWithSelector(IRewarder.Rewarder__InsufficientReward.selector, 0, 1));
+        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InsufficientReward.selector, 0, 1));
         rewarder.setRewardPerSecond(1, 1);
 
         MockERC20(address(rewardToken)).mint(address(rewarder), 30e18);
@@ -252,12 +252,12 @@ contract MasterChefRewarderTest is Test {
         assertEq(tokenA.balanceOf(alice), 100e18, "test_Sweep::1");
         assertEq(tokenA.balanceOf(address(rewarder)), 0, "test_Sweep::2");
 
-        vm.expectRevert(IRewarder.Rewarder__InvalidToken.selector);
+        vm.expectRevert(IBaseRewarder.BaseRewarder__InvalidToken.selector);
         rewarder.sweep(rewardToken, alice);
 
         vm.deal(address(rewarder), 1e18);
 
-        vm.expectRevert(IRewarder.Rewarder__NativeTransferFailed.selector);
+        vm.expectRevert(IBaseRewarder.BaseRewarder__NativeTransferFailed.selector);
         rewarder.sweep(IERC20(address(0)), address(rewarder));
 
         rewarder.sweep(IERC20(address(0)), alice);

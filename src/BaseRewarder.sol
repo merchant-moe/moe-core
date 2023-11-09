@@ -9,9 +9,9 @@ import {IMoe} from "./interface/IMoe.sol";
 import {Math} from "./library/Math.sol";
 import {Rewarder} from "./library/Rewarder.sol";
 import {Amounts} from "./library/Amounts.sol";
-import {IRewarder} from "./interface/IRewarder.sol";
+import {IBaseRewarder} from "./interface/IBaseRewarder.sol";
 
-abstract contract BaseRewarder is Ownable, IRewarder {
+abstract contract BaseRewarder is Ownable, IBaseRewarder {
     using SafeERC20 for IERC20;
     using Math for uint256;
     using Rewarder for Rewarder.Parameter;
@@ -19,6 +19,7 @@ abstract contract BaseRewarder is Ownable, IRewarder {
 
     IERC20 internal immutable _token;
     address internal immutable _caller;
+    uint256 internal immutable _pid;
 
     uint256 internal _rewardsPerSecond;
     uint256 internal _totalUnclaimedRewards;
@@ -28,17 +29,22 @@ abstract contract BaseRewarder is Ownable, IRewarder {
 
     Rewarder.Parameter internal _rewarder;
 
-    constructor(IERC20 token, address caller, address initialOwner) Ownable(initialOwner) {
+    constructor(IERC20 token, address caller, uint256 pid, address initialOwner) Ownable(initialOwner) {
         _token = token;
         _caller = caller;
+        _pid = pid;
     }
 
     receive() external payable {
-        if (address(_token) != address(0)) revert Rewarder__NotNativeToken();
+        if (address(_token) != address(0)) revert BaseRewarder__NotNativeToken();
     }
 
     function getCaller() public view virtual override returns (address) {
         return _caller;
+    }
+
+    function getPid() public view virtual override returns (uint256) {
+        return _pid;
     }
 
     function getRewarderParameter()
@@ -68,8 +74,8 @@ abstract contract BaseRewarder is Ownable, IRewarder {
     }
 
     function setRewardPerSecond(uint256 rewardPerSecond, uint256 expectedDuration) public virtual override onlyOwner {
-        if (_isStopped) revert Rewarder__Stopped();
-        if (expectedDuration == 0 && rewardPerSecond != 0) revert Rewarder__InvalidDuration();
+        if (_isStopped) revert BaseRewarder__Stopped();
+        if (expectedDuration == 0 && rewardPerSecond != 0) revert BaseRewarder__InvalidDuration();
 
         uint256 totalUnclaimedRewards = _totalUnclaimedRewards;
         uint256 totalRewards = _getTotalReward(_reserve, totalUnclaimedRewards);
@@ -79,7 +85,7 @@ abstract contract BaseRewarder is Ownable, IRewarder {
         uint256 remainingReward = _balanceOfThis(_token) - totalUnclaimedRewards;
         uint256 expectedReward = rewardPerSecond * expectedDuration;
 
-        if (remainingReward < expectedReward) revert Rewarder__InsufficientReward(remainingReward, expectedReward);
+        if (remainingReward < expectedReward) revert BaseRewarder__InsufficientReward(remainingReward, expectedReward);
 
         uint256 totalSupply = _getTotalSupply();
         uint256 endTimestamp = block.timestamp + expectedDuration;
@@ -96,24 +102,25 @@ abstract contract BaseRewarder is Ownable, IRewarder {
     }
 
     function stop() public virtual override onlyOwner {
-        if (_isStopped) revert Rewarder__AlreadyStopped();
+        if (_isStopped) revert BaseRewarder__AlreadyStopped();
 
         _isStopped = true;
     }
 
     function sweep(IERC20 token, address account) public virtual override onlyOwner {
-        if (!_isStopped && token == _token) revert Rewarder__InvalidToken();
+        if (!_isStopped && token == _token) revert BaseRewarder__InvalidToken();
 
         _safeTransferTo(token, account, _balanceOfThis(token));
     }
 
-    function onModify(address account, uint256, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply)
+    function onModify(address account, uint256 pid, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply)
         public
         virtual
         override
     {
-        if (msg.sender != _caller) revert Rewarder__InvalidCaller();
-        if (_isStopped) revert Rewarder__Stopped();
+        if (msg.sender != _caller) revert BaseRewarder__InvalidCaller();
+        if (pid != _pid) revert BaseRewarder__InvalidPid(pid);
+        if (_isStopped) revert BaseRewarder__Stopped();
 
         _claim(account, oldBalance, newBalance, oldTotalSupply);
     }
@@ -150,7 +157,7 @@ abstract contract BaseRewarder is Ownable, IRewarder {
 
         if (address(token) == address(0)) {
             (bool s,) = account.call{value: amount}("");
-            if (!s) revert Rewarder__NativeTransferFailed();
+            if (!s) revert BaseRewarder__NativeTransferFailed();
         } else {
             token.safeTransfer(account, amount);
         }

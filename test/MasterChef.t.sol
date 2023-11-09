@@ -344,8 +344,8 @@ contract MasterChefTest is Test {
 
         masterChef.setTreasury(address(1));
 
-        assertEq(masterChef.getTreasuryShare(), 0.1e18, "test_TreasuryShare::1");
-        assertEq(masterChef.getTreasury(), address(1), "test_TreasuryShare::5");
+        assertEq(masterChef.getTreasuryShare(), 0.1e18, "test_TreasuryShare::5");
+        assertEq(masterChef.getTreasury(), address(1), "test_TreasuryShare::6");
 
         vm.expectRevert();
         new MasterChef(moe, IVeMoe(address(veMoe)), address(this), 1e18 + 1, address(this));

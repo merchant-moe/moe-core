@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {IRewarder} from "./IRewarder.sol";
+import {IBaseRewarder} from "./IBaseRewarder.sol";
 
-interface IMasterChefRewarder is IRewarder {
-    error MasterChefRewarder__InvalidPid(uint256 pid);
+interface IMasterChefRewarder is IBaseRewarder {
     error MasterChefRewarder__AlreadyLinked();
     error MasterChefRewarder__NotLinked();
     error MasterChefRewarder__UseUnlink();
@@ -14,8 +13,6 @@ interface IMasterChefRewarder is IRewarder {
         Linked,
         Stopped
     }
-
-    function getPid() external view returns (uint256);
 
     function link(uint256 pid) external;
 
