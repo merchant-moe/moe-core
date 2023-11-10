@@ -121,14 +121,16 @@ contract VeMoe is Ownable, IVeMoe {
 
             if (address(bribe) != address(0)) {
                 uint256 userVotes = user.votes.getAmountOf(pid);
+                uint256 totalVotes = _bribesTotalVotes[bribe][pid];
 
-                (tokens[i], pendingRewards[i]) = bribe.getPendingReward(account, pid, userVotes);
+                (tokens[i], pendingRewards[i]) = bribe.getPendingReward(account, userVotes, totalVotes);
             }
         }
     }
 
     function claim(uint256[] calldata pids) external override {
         uint256 balance = _moeStaking.getDeposit(msg.sender);
+        User storage user = _users[msg.sender];
 
         _claim(msg.sender, balance, balance);
 
@@ -138,7 +140,7 @@ contract VeMoe is Ownable, IVeMoe {
             IVeMoeRewarder bribe = _users[msg.sender].bribes[pid];
 
             if (address(bribe) != address(0)) {
-                uint256 userVotes = _votes.getAmountOf(pid);
+                uint256 userVotes = user.votes.getAmountOf(pid);
                 uint256 totalVotes = _bribesTotalVotes[bribe][pid];
 
                 bribe.onModify(msg.sender, pid, userVotes, userVotes, totalVotes);

@@ -608,6 +608,97 @@ contract VeMoeTest is Test {
         vm.prank(alice);
         staking.unstake(1e18);
     }
+
+    function test_ClaimBribesRewards() external {
+        veMoe.setVeMoePerSecond(1e18);
+        veMoe.setMaxVeMoePerMoe(100e18);
+
+        vm.prank(alice);
+        staking.stake(1e18);
+
+        vm.prank(bob);
+        staking.stake(9e18);
+
+        vm.warp(block.timestamp + 50);
+
+        uint256[] memory pids = new uint256[](2);
+
+        pids[0] = 0;
+        pids[1] = 1;
+
+        int256[] memory deltaAmounts = new int256[](2);
+
+        deltaAmounts[0] = 25e18;
+        deltaAmounts[1] = 25e18;
+
+        vm.prank(alice);
+        veMoe.vote(pids, deltaAmounts);
+
+        deltaAmounts[0] = 75e18;
+        deltaAmounts[1] = 25e18;
+
+        vm.prank(bob);
+        veMoe.vote(pids, deltaAmounts);
+
+        IVeMoeRewarder[] memory bribes = new IVeMoeRewarder[](2);
+
+        bribes[0] = bribes0;
+        bribes[1] = bribes1;
+
+        vm.prank(alice);
+        veMoe.setBribes(pids, bribes);
+
+        assertEq(address(veMoe.getBribesOf(alice, 0)), address(bribes0), "test_ClaimBribesRewards::1");
+        assertEq(address(veMoe.getBribesOf(alice, 1)), address(bribes1), "test_ClaimBribesRewards::2");
+        assertEq(veMoe.getBribesTotalVotes(bribes0, 0), 25e18, "test_ClaimBribesRewards::3");
+        assertEq(veMoe.getBribesTotalVotes(bribes1, 1), 25e18, "test_ClaimBribesRewards::4");
+
+        vm.prank(bob);
+        veMoe.setBribes(pids, bribes);
+
+        assertEq(address(veMoe.getBribesOf(bob, 0)), address(bribes0), "test_ClaimBribesRewards::5");
+        assertEq(address(veMoe.getBribesOf(bob, 1)), address(bribes1), "test_ClaimBribesRewards::6");
+        assertEq(veMoe.getBribesTotalVotes(bribes0, 0), 100e18, "test_ClaimBribesRewards::7");
+        assertEq(veMoe.getBribesTotalVotes(bribes1, 1), 50e18, "test_ClaimBribesRewards::8");
+
+        MockERC20(address(token18d)).mint(address(bribes0), 100e18);
+        MockERC20(address(token6d)).mint(address(bribes1), 100e6);
+
+        bribes0.setRewardPerSecond(1e18, 100);
+        bribes1.setRewardPerSecond(1e6, 100);
+
+        vm.warp(block.timestamp + 50);
+
+        (IERC20[] memory bribeTokens, uint256[] memory bribeRewards) = veMoe.getPendingRewards(alice, pids);
+
+        assertEq(bribeTokens.length, 2, "test_ClaimBribesRewards::9");
+        assertEq(address(bribeTokens[0]), address(token18d), "test_ClaimBribesRewards::10");
+        assertEq(address(bribeTokens[1]), address(token6d), "test_ClaimBribesRewards::11");
+        assertEq(bribeRewards.length, 2, "test_ClaimBribesRewards::12");
+        assertApproxEqAbs(bribeRewards[0], 12.5e18, 1, "test_ClaimBribesRewards::13");
+        assertApproxEqAbs(bribeRewards[1], 25e6, 1, "test_ClaimBribesRewards::14");
+
+        vm.prank(alice);
+        veMoe.claim(pids);
+
+        assertEq(token18d.balanceOf(address(alice)), bribeRewards[0], "test_ClaimBribesRewards::15");
+        assertEq(token6d.balanceOf(address(alice)), bribeRewards[1], "test_ClaimBribesRewards::16");
+
+        (bribeTokens, bribeRewards) = veMoe.getPendingRewards(bob, pids);
+
+        assertEq(bribeTokens.length, 2, "test_ClaimBribesRewards::17");
+        assertEq(address(bribeTokens[0]), address(token18d), "test_ClaimBribesRewards::18");
+        assertEq(address(bribeTokens[1]), address(token6d), "test_ClaimBribesRewards::19");
+        assertEq(bribeRewards.length, 2, "test_ClaimBribesRewards::20");
+        assertApproxEqAbs(bribeRewards[0], 37.5e18, 1, "test_ClaimBribesRewards::21");
+        assertApproxEqAbs(bribeRewards[1], 25e6, 1, "test_ClaimBribesRewards::22");
+
+        vm.prank(bob);
+        veMoe.claim(pids);
+
+        assertEq(token18d.balanceOf(address(bob)), bribeRewards[0], "test_ClaimBribesRewards::23");
+        assertEq(token6d.balanceOf(address(bob)), bribeRewards[1], "test_ClaimBribesRewards::24");
+    }
 }
 
 contract BadBribes {
