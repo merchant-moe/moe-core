@@ -17,7 +17,8 @@ contract MasterChefTest is Test {
     IERC20 tokenA;
     IERC20 tokenB;
 
-    IERC20 rewardToken;
+    IERC20 rewardToken0;
+    IERC20 rewardToken1;
 
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
@@ -28,13 +29,14 @@ contract MasterChefTest is Test {
         tokenA = IERC20(new MockERC20("Token A", "TA", 18));
         tokenB = IERC20(new MockERC20("Token B", "TB", 18));
 
-        rewardToken = IERC20(new MockERC20("Reward Token", "RT", 6));
+        rewardToken0 = IERC20(new MockERC20("Reward Token", "RT", 18));
+        rewardToken1 = IERC20(new MockERC20("Reward Token", "RT", 6));
 
         uint256 nonce = vm.getNonce(address(this));
 
         address masterChefAddress = computeCreateAddress(address(this), nonce + 1);
 
-        moe = IMoe(address(new Moe(masterChefAddress, type(uint256).max)));
+        moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
 
         masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), address(this), 0, address(this));
 
@@ -42,7 +44,7 @@ contract MasterChefTest is Test {
         vm.label(address(veMoe), "veMoe");
         vm.label(address(tokenA), "tokenA");
         vm.label(address(tokenB), "tokenB");
-        vm.label(address(rewardToken), "rewardToken");
+        vm.label(address(rewardToken0), "rewardToken0");
         vm.label(address(masterChef), "masterChef");
 
         masterChef.add(tokenA, block.timestamp, IMasterChefRewarder(address(0)));
@@ -69,8 +71,9 @@ contract MasterChefTest is Test {
         assertEq(address(masterChef.getMoe()), address(moe), "test_SetUp::1");
         assertEq(address(masterChef.getVeMoe()), address(veMoe), "test_SetUp::2");
         assertEq(address(moe.getMinter()), address(masterChef), "test_SetUp::3");
-        assertEq(address(masterChef.getToken(0)), address(tokenA), "test_SetUp::4");
-        assertEq(address(masterChef.getToken(1)), address(tokenB), "test_SetUp::5");
+        assertEq(moe.getMaxSupply(), type(uint256).max, "test_SetUp::4");
+        assertEq(address(masterChef.getToken(0)), address(tokenA), "test_SetUp::5");
+        assertEq(address(masterChef.getToken(1)), address(tokenB), "test_SetUp::6");
     }
 
     function test_Deposit() public {
@@ -228,14 +231,14 @@ contract MasterChefTest is Test {
     function test_Add() public {
         masterChef.add(tokenA, block.timestamp, IMasterChefRewarder(address(0)));
 
-        MasterChefRewarder rewarder = new MasterChefRewarder(rewardToken, address(masterChef), 3, address(this));
+        MasterChefRewarder rewarder = new MasterChefRewarder(rewardToken0, address(masterChef), 3, address(this));
 
         masterChef.add(tokenA, block.timestamp, IMasterChefRewarder(address(rewarder)));
 
         assertEq(address(masterChef.getExtraRewarder(3)), address(rewarder), "test_Add::1");
 
-        MasterChefRewarder rewarder1 = new MasterChefRewarder(rewardToken, address(masterChef), 2, address(this));
-        MasterChefRewarder rewarder2 = new MasterChefRewarder(rewardToken, address(masterChef), 2, address(this));
+        MasterChefRewarder rewarder1 = new MasterChefRewarder(rewardToken0, address(masterChef), 2, address(this));
+        MasterChefRewarder rewarder2 = new MasterChefRewarder(rewardToken0, address(masterChef), 2, address(this));
 
         masterChef.setExtraRewarder(2, IMasterChefRewarder(address(rewarder1)));
 
@@ -267,8 +270,10 @@ contract MasterChefTest is Test {
         masterChef.setMoePerSecond(1e18);
 
         veMoe.setVotes(0, 1e18);
-
         veMoe.setTopPoolIds(new uint256[](1));
+
+        assertEq(masterChef.getMoePerSecondForPid(0), 1e18, "test_EmergencyWithdrawal::1");
+        assertEq(masterChef.getMoePerSecondForPid(1), 0, "test_EmergencyWithdrawal::2");
 
         vm.prank(alice);
         masterChef.deposit(0, 1e18);
@@ -281,25 +286,25 @@ contract MasterChefTest is Test {
         vm.prank(alice);
         masterChef.emergencyWithdraw(0);
 
-        assertEq(moe.balanceOf(address(alice)), 0, "test_EmergencyWithdrawal::1");
-        assertEq(tokenA.balanceOf(address(alice)), 1e18, "test_EmergencyWithdrawal::2");
+        assertEq(moe.balanceOf(address(alice)), 0, "test_EmergencyWithdrawal::3");
+        assertEq(tokenA.balanceOf(address(alice)), 1e18, "test_EmergencyWithdrawal::4");
 
         vm.prank(bob);
         masterChef.claim(new uint256[](1));
 
-        assertApproxEqAbs(moe.balanceOf(address(bob)), 10e18, 1, "test_EmergencyWithdrawal::3");
+        assertApproxEqAbs(moe.balanceOf(address(bob)), 10e18, 1, "test_EmergencyWithdrawal::5");
 
         vm.prank(alice);
         masterChef.deposit(0, 1e18);
 
-        assertEq(moe.balanceOf(address(alice)), 0, "test_EmergencyWithdrawal::4");
+        assertEq(moe.balanceOf(address(alice)), 0, "test_EmergencyWithdrawal::6");
 
         vm.warp(block.timestamp + 10);
 
         vm.prank(alice);
         masterChef.claim(new uint256[](1));
 
-        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::5");
+        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::7");
 
         vm.prank(bob);
         masterChef.emergencyWithdraw(0);
@@ -307,7 +312,7 @@ contract MasterChefTest is Test {
         vm.prank(alice);
         masterChef.claim(new uint256[](1));
 
-        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::6");
+        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::8");
     }
 
     function test_TreasuryShare() public {
@@ -317,7 +322,7 @@ contract MasterChefTest is Test {
         uint256 nonce = vm.getNonce(address(this));
         address masterChefAddress = computeCreateAddress(address(this), nonce + 1);
 
-        moe = IMoe(address(new Moe(masterChefAddress, type(uint256).max)));
+        moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
         masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), address(this), 0.1e18, address(this));
 
         assertEq(masterChef.getTreasuryShare(), 0.1e18, "test_TreasuryShare::1");
@@ -349,5 +354,84 @@ contract MasterChefTest is Test {
 
         vm.expectRevert();
         new MasterChef(moe, IVeMoe(address(veMoe)), address(this), 1e18 + 1, address(this));
+    }
+
+    function test_ExtraRewarder() public {
+        MasterChefRewarder rewarder0 = new MasterChefRewarder(rewardToken0, address(masterChef), 0, address(this));
+        MasterChefRewarder rewarder1 = new MasterChefRewarder(rewardToken1, address(masterChef), 1, address(this));
+
+        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InvalidPid.selector, 2));
+        masterChef.add(tokenA, block.timestamp, rewarder0);
+
+        MockERC20(address(rewardToken0)).mint(address(rewarder0), 100e18);
+        rewarder0.setRewardPerSecond(1e18, 100);
+
+        MockERC20(address(rewardToken1)).mint(address(rewarder1), 400e6);
+        rewarder1.setRewardPerSecond(4e6, 100);
+
+        masterChef.setExtraRewarder(0, IMasterChefRewarder(address(rewarder0)));
+        masterChef.setExtraRewarder(1, IMasterChefRewarder(address(rewarder1)));
+
+        masterChef.setMoePerSecond(10e18);
+
+        veMoe.setVotes(0, 1e18);
+        veMoe.setTopPoolIds(new uint256[](1));
+
+        vm.startPrank(alice);
+        masterChef.deposit(0, 1e18);
+        masterChef.deposit(1, 2e18);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        masterChef.deposit(0, 9e18);
+        masterChef.deposit(1, 8e18);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 50);
+
+        uint256[] memory pids = new uint256[](2);
+
+        pids[0] = 0;
+        pids[1] = 1;
+
+        (uint256[] memory moeRewardAlice, IERC20[] memory extraTokenAlice, uint256[] memory extraRewardAlice) =
+            masterChef.getPendingRewards(alice, pids);
+
+        assertEq(moeRewardAlice.length, 2, "test_ExtraRewarder::1");
+        assertEq(extraTokenAlice.length, 2, "test_ExtraRewarder::2");
+        assertEq(extraRewardAlice.length, 2, "test_ExtraRewarder::3");
+        assertApproxEqAbs(moeRewardAlice[0], 50e18, 1, "test_ExtraRewarder::4");
+        assertApproxEqAbs(moeRewardAlice[1], 0, 1, "test_ExtraRewarder::5");
+        assertEq(address(extraTokenAlice[0]), address(rewardToken0), "test_ExtraRewarder::6");
+        assertEq(address(extraTokenAlice[1]), address(rewardToken1), "test_ExtraRewarder::7");
+        assertApproxEqAbs(extraRewardAlice[0], 5e18, 1, "test_ExtraRewarder::8");
+        assertApproxEqAbs(extraRewardAlice[1], 40e6, 1, "test_ExtraRewarder::9");
+
+        vm.prank(alice);
+        masterChef.claim(pids);
+
+        assertEq(moe.balanceOf(address(alice)), moeRewardAlice[0], "test_ExtraRewarder::10");
+        assertEq(rewardToken0.balanceOf(address(alice)), extraRewardAlice[0], "test_ExtraRewarder::11");
+        assertEq(rewardToken1.balanceOf(address(alice)), extraRewardAlice[1], "test_ExtraRewarder::12");
+
+        (uint256[] memory moeRewardBob, IERC20[] memory extraTokenBob, uint256[] memory extraRewardBob) =
+            masterChef.getPendingRewards(bob, pids);
+
+        assertEq(moeRewardBob.length, 2, "test_ExtraRewarder::13");
+        assertEq(extraTokenBob.length, 2, "test_ExtraRewarder::14");
+        assertEq(extraRewardBob.length, 2, "test_ExtraRewarder::15");
+        assertApproxEqAbs(moeRewardBob[0], 450e18, 1, "test_ExtraRewarder::16");
+        assertApproxEqAbs(moeRewardBob[1], 0, 1, "test_ExtraRewarder::17");
+        assertEq(address(extraTokenBob[0]), address(rewardToken0), "test_ExtraRewarder::18");
+        assertEq(address(extraTokenBob[1]), address(rewardToken1), "test_ExtraRewarder::19");
+        assertApproxEqAbs(extraRewardBob[0], 45e18, 1, "test_ExtraRewarder::20");
+        assertApproxEqAbs(extraRewardBob[1], 160e6, 1, "test_ExtraRewarder::21");
+
+        vm.prank(bob);
+        masterChef.claim(pids);
+
+        assertEq(moe.balanceOf(address(bob)), moeRewardBob[0], "test_ExtraRewarder::22");
+        assertEq(rewardToken0.balanceOf(address(bob)), extraRewardBob[0], "test_ExtraRewarder::23");
+        assertEq(rewardToken1.balanceOf(address(bob)), extraRewardBob[1], "test_ExtraRewarder::24");
     }
 }

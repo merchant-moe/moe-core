@@ -68,23 +68,31 @@ contract MasterChef is Ownable, IMasterChef {
         return _farms[pid].amounts.getTotalAmount();
     }
 
-    function getPendingRewards(uint256 pid, address account)
+    function getPendingRewards(address account, uint256[] calldata pids)
         external
         view
         override
-        returns (uint256 moeReward, IERC20 extraToken, uint256 extraReward)
+        returns (uint256[] memory moeRewards, IERC20[] memory extraTokens, uint256[] memory extraRewards)
     {
-        Farm storage farm = _farms[pid];
-        Rewarder.Parameter storage rewarder = farm.rewarder;
-        IMasterChefRewarder extraRewarder = farm.extraRewarder;
+        moeRewards = new uint256[](pids.length);
+        extraTokens = new IERC20[](pids.length);
+        extraRewards = new uint256[](pids.length);
 
-        moeReward = rewarder.getPendingReward(farm.amounts, account, _getRewardForPid(rewarder, pid));
+        for (uint256 i; i < pids.length; ++i) {
+            uint256 pid = pids[i];
 
-        if (address(extraRewarder) != address(0)) {
-            Amounts.Parameter storage amounts = farm.amounts;
+            Farm storage farm = _farms[pid];
+            Rewarder.Parameter storage rewarder = farm.rewarder;
+            IMasterChefRewarder extraRewarder = farm.extraRewarder;
 
-            (extraToken, extraReward) =
-                extraRewarder.getPendingReward(account, amounts.getAmountOf(account), amounts.getTotalAmount());
+            moeRewards[i] = rewarder.getPendingReward(farm.amounts, account, _getRewardForPid(rewarder, pid));
+
+            if (address(extraRewarder) != address(0)) {
+                Amounts.Parameter storage amounts = farm.amounts;
+
+                (extraTokens[i], extraRewards[i]) =
+                    extraRewarder.getPendingReward(account, amounts.getAmountOf(account), amounts.getTotalAmount());
+            }
         }
     }
 
@@ -105,7 +113,11 @@ contract MasterChef is Ownable, IMasterChef {
     }
 
     function getMoePerSecondForPid(uint256 pid) external view returns (uint256) {
-        return _getRewardForPid(_farms[pid].rewarder, pid);
+        if (!_veMoe.isInTopPoolIds(pid)) return 0;
+
+        uint256 totalVotes = _veMoe.getTotalVotes();
+
+        return totalVotes == 0 ? 0 : _moePerSecond * _veMoe.getVotes(pid) / totalVotes;
     }
 
     function deposit(uint256 pid, uint256 amount) external override {

@@ -135,13 +135,13 @@ contract MasterChefRewarderTest is Test {
     function test_OnModify() public {
         vm.startPrank(address(masterchef));
 
-        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InvalidPid.selector, uint256(1)));
-        rewarder.onModify(alice, 1, 0, 0, 0);
-
         vm.expectRevert(IMasterChefRewarder.MasterChefRewarder__NotLinked.selector);
         rewarder.onModify(alice, 0, 0, 0, 0);
 
         rewarder.link(0);
+
+        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InvalidPid.selector, uint256(1)));
+        rewarder.onModify(alice, 1, 0, 0, 0);
 
         vm.stopPrank();
 

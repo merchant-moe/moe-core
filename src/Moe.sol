@@ -9,9 +9,13 @@ contract Moe is ERC20, IMoe {
     address private immutable _minter;
     uint256 private immutable _maxSupply;
 
-    constructor(address minter, uint256 maxSupply) ERC20("Moe Token", "MOE") {
+    constructor(address minter, uint256 initialSupply, uint256 maxSupply) ERC20("Moe Token", "MOE") {
+        if (initialSupply > maxSupply) revert Moe__InvalidInitialSupply();
+
         _minter = minter;
         _maxSupply = maxSupply;
+
+        _mint(msg.sender, initialSupply);
     }
 
     function getMinter() external view override returns (address) {

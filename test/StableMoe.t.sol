@@ -26,7 +26,7 @@ contract StableMoeTest is Test {
     address bob = makeAddr("bob");
 
     function setUp() public {
-        moe = new Moe(address(this), type(uint256).max);
+        moe = new Moe(address(this), 0, type(uint256).max);
         reward18d = new MockERC20("18d", "18d", 18);
         reward6d = new MockERC20("6d", "6d", 6);
 
