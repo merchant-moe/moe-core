@@ -13,10 +13,11 @@ interface IBaseRewarder {
     error BaseRewarder__InsufficientReward(uint256 remainingReward, uint256 expectedReward);
     error BaseRewarder__InvalidDuration();
     error BaseRewarder__InvalidPid(uint256 pid);
+    error BaseRewarder__InvalidStartTimestamp(uint256 startTimestamp);
 
     event Claim(address indexed account, IERC20 indexed token, uint256 reward);
 
-    event RewardPerSecondSet(uint256 rewardPerSecond, uint256 endTimestamp);
+    event RewardParameterUpdated(uint256 rewardPerSecond, uint256 startTimestamp, uint256 endTimestamp);
 
     function getCaller() external view returns (address);
 
@@ -35,6 +36,9 @@ interface IBaseRewarder {
     function isStopped() external view returns (bool);
 
     function setRewardPerSecond(uint256 rewardPerSecond, uint256 expectedDuration) external;
+
+    function setRewarderParameters(uint256 rewardPerSecond, uint256 startTimestamp, uint256 expectedDuration)
+        external;
 
     function stop() external;
 

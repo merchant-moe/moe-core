@@ -317,6 +317,75 @@ contract MasterChefRewarderTest is Test {
         assertEq(rewardToken.balanceOf(alice), 100e18, "test_Stop::5");
         assertEq(rewardToken.balanceOf(address(rewarder)), 0, "test_Stop::6");
     }
+
+    function test_SetRewarderParameters() public {
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        vm.prank(alice);
+        rewarder.setRewarderParameters(0, 0, 0);
+
+        vm.expectRevert(
+            abi.encodePacked(IBaseRewarder.BaseRewarder__InvalidStartTimestamp.selector, block.timestamp - 1)
+        );
+        rewarder.setRewarderParameters(1e18, block.timestamp - 1, 100);
+
+        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InvalidDuration.selector));
+        rewarder.setRewarderParameters(1e18, block.timestamp, 0);
+
+        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InsufficientReward.selector, 0, 1));
+        rewarder.setRewarderParameters(1, block.timestamp, 1);
+
+        vm.startPrank(address(masterchef));
+        masterchef.setTotalDeposit(0, 1e18);
+        rewarder.link(0);
+        rewarder.onModify(alice, 0, 1e18, 0, 1e18);
+        vm.stopPrank();
+
+        MockERC20(address(rewardToken)).mint(address(rewarder), 100e18);
+
+        rewarder.setRewarderParameters(1e18, block.timestamp, 100);
+
+        (, uint256 rewardPerSecond, uint256 startTimestamp, uint256 endTimestamp) = rewarder.getRewarderParameter();
+
+        assertEq(rewardPerSecond, 1e18, "test_SetRewarderParameters::1");
+        assertEq(startTimestamp, block.timestamp, "test_SetRewarderParameters::2");
+        assertEq(endTimestamp, block.timestamp + 100, "test_SetRewarderParameters::3");
+
+        vm.warp(block.timestamp + 50);
+
+        (, uint256 pendingReward1) = rewarder.getPendingReward(alice, 1e18, 1e18);
+
+        assertEq(pendingReward1, 50e18, "test_SetRewarderParameters::4");
+
+        rewarder.setRewarderParameters(0.5e18, block.timestamp + 50, 100);
+
+        (, rewardPerSecond, startTimestamp, endTimestamp) = rewarder.getRewarderParameter();
+
+        assertEq(rewardPerSecond, 0.5e18, "test_SetRewarderParameters::5");
+        assertEq(startTimestamp, block.timestamp + 50, "test_SetRewarderParameters::6");
+        assertEq(endTimestamp, block.timestamp + 150, "test_SetRewarderParameters::7");
+
+        (, uint256 pendingReward2) = rewarder.getPendingReward(alice, 1e18, 1e18);
+
+        assertEq(pendingReward2, pendingReward1, "test_SetRewarderParameters::8");
+
+        vm.warp(block.timestamp + 50);
+
+        (, pendingReward2) = rewarder.getPendingReward(alice, 1e18, 1e18);
+
+        assertEq(pendingReward2, pendingReward1, "test_SetRewarderParameters::9");
+
+        vm.warp(block.timestamp + 50);
+
+        (, pendingReward2) = rewarder.getPendingReward(alice, 1e18, 1e18);
+
+        assertEq(pendingReward2, pendingReward1 + 25e18, "test_SetRewarderParameters::10");
+
+        vm.warp(block.timestamp + 50);
+
+        (, pendingReward2) = rewarder.getPendingReward(alice, 1e18, 1e18);
+
+        assertEq(pendingReward2, pendingReward1 + 50e18, "test_SetRewarderParameters::11");
+    }
 }
 
 contract MockMasterChef {

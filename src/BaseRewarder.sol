@@ -110,37 +110,31 @@ abstract contract BaseRewarder is Ownable, IBaseRewarder {
     }
 
     /**
+     * @dev Sets the start of the reward distribution.
+     * @param startTimestamp The start timestamp.
+     */
+    function setRewarderParameters(uint256 rewardPerSecond, uint256 startTimestamp, uint256 expectedDuration)
+        public
+        virtual
+        onlyOwner
+    {
+        if (_isStopped) revert BaseRewarder__Stopped();
+        if (startTimestamp < block.timestamp) revert BaseRewarder__InvalidStartTimestamp(startTimestamp);
+
+        _setRewardParameters(rewardPerSecond, startTimestamp, expectedDuration);
+    }
+
+    /**
      * @dev Sets the reward per second and expected duration.
      * If the expected duration is 0, the reward distribution will be stopped.
      * @param rewardPerSecond The new reward per second.
      * @param expectedDuration The expected duration of the reward distribution.
      */
     function setRewardPerSecond(uint256 rewardPerSecond, uint256 expectedDuration) public virtual override onlyOwner {
-        if (_isStopped) revert BaseRewarder__Stopped();
-        if (expectedDuration == 0 && rewardPerSecond != 0) revert BaseRewarder__InvalidDuration();
+        uint256 lastUpdateTimestamp = _rewarder.lastUpdateTimestamp;
+        uint256 startTimestamp = lastUpdateTimestamp > block.timestamp ? lastUpdateTimestamp : block.timestamp;
 
-        uint256 totalUnclaimedRewards = _totalUnclaimedRewards;
-        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
-
-        totalUnclaimedRewards += totalRewards;
-
-        uint256 remainingReward = _balanceOfThis(_token) - totalUnclaimedRewards;
-        uint256 expectedReward = rewardPerSecond * expectedDuration;
-
-        if (remainingReward < expectedReward) revert BaseRewarder__InsufficientReward(remainingReward, expectedReward);
-
-        uint256 totalSupply = _getTotalSupply();
-        uint256 endTimestamp = block.timestamp + expectedDuration;
-
-        _rewarder.updateAccDebtPerShare(totalSupply, totalRewards);
-
-        _rewardsPerSecond = rewardPerSecond;
-        _reserve = totalUnclaimedRewards + expectedReward;
-
-        _endTimestamp = endTimestamp;
-        _totalUnclaimedRewards = totalUnclaimedRewards;
-
-        emit RewardPerSecondSet(rewardPerSecond, endTimestamp);
+        _setRewardParameters(rewardPerSecond, startTimestamp, expectedDuration);
     }
 
     /**
@@ -234,6 +228,47 @@ abstract contract BaseRewarder is Ownable, IBaseRewarder {
         } else {
             token.safeTransfer(account, amount);
         }
+    }
+
+    /**
+     * @dev Sets the reward parameters.
+     * This will set the reward per second, the start timestamp, and the end timestamp.
+     * If the expected duration is 0, the reward distribution will be stopped.
+     * @param rewardPerSecond The new reward per second.
+     * @param startTimestamp The start timestamp.
+     * @param expectedDuration The expected duration of the reward distribution.
+     */
+    function _setRewardParameters(uint256 rewardPerSecond, uint256 startTimestamp, uint256 expectedDuration)
+        internal
+        virtual
+    {
+        if (_isStopped) revert BaseRewarder__Stopped();
+        if (expectedDuration == 0 && rewardPerSecond != 0) revert BaseRewarder__InvalidDuration();
+
+        uint256 totalUnclaimedRewards = _totalUnclaimedRewards;
+        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
+
+        totalUnclaimedRewards += totalRewards;
+
+        uint256 remainingReward = _balanceOfThis(_token) - totalUnclaimedRewards;
+        uint256 expectedReward = rewardPerSecond * expectedDuration;
+
+        if (remainingReward < expectedReward) revert BaseRewarder__InsufficientReward(remainingReward, expectedReward);
+
+        uint256 endTimestamp = startTimestamp + expectedDuration;
+        uint256 totalSupply = _getTotalSupply();
+
+        _rewardsPerSecond = rewardPerSecond;
+        _reserve = totalUnclaimedRewards + expectedReward;
+
+        _endTimestamp = endTimestamp;
+        _totalUnclaimedRewards = totalUnclaimedRewards;
+
+        _rewarder.updateAccDebtPerShare(totalSupply, totalRewards);
+
+        if (startTimestamp != block.timestamp) _rewarder.lastUpdateTimestamp = startTimestamp;
+
+        emit RewardParameterUpdated(rewardPerSecond, startTimestamp, endTimestamp);
     }
 
     /**
