@@ -10,7 +10,6 @@ import {Rewarder} from "../library/Rewarder.sol";
 import {Amounts} from "../library/Amounts.sol";
 
 interface IMasterChef {
-    error MasterChef__InvalidStartTimestamp();
     error MasterChef__InvalidPid(uint256 pid);
     error MasterChef__InvalidTreasury();
 
@@ -25,13 +24,13 @@ interface IMasterChef {
 
     event MoePerSecondSet(uint256 moePerSecond);
 
-    event FarmAdded(uint256 indexed pid, IERC20 indexed token, uint256 startTimestamp);
+    event FarmAdded(uint256 indexed pid, IERC20 indexed token);
 
     event ExtraRewarderSet(uint256 indexed pid, IMasterChefRewarder extraRewarder);
 
     event TreasurySet(address indexed treasury);
 
-    function add(IERC20 token, uint256 startTimestamp, IMasterChefRewarder extraRewarder) external;
+    function add(IERC20 token, IMasterChefRewarder extraRewarder) external;
 
     function claim(uint256[] memory pids) external;
 

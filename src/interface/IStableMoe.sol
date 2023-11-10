@@ -12,6 +12,7 @@ interface IStableMoe {
     error StableMoe__RewardAlreadyRemoved(IERC20 reward);
     error StableMoe__ActiveReward(IERC20 reward);
     error StableMoe__NativeTransferFailed();
+    error StableMoe__TooManyActiveRewards();
 
     struct Reward {
         Rewarder.Parameter rewarder;

@@ -7,13 +7,29 @@ import {IMasterChefRewarder} from "./interface/IMasterChefRewarder.sol";
 import {IMasterChef} from "./interface/IMasterChef.sol";
 import {BaseRewarder, IBaseRewarder} from "./BaseRewarder.sol";
 
+/**
+ * @title MasterChef Rewarder Contract
+ * @dev Contract for distributing rewards to stakers in the MasterChef contract.
+ */
 contract MasterChefRewarder is BaseRewarder, IMasterChefRewarder {
     Status internal _status;
 
+    /**
+     * @dev Constructor for MasterChefRewarder contract.
+     * @param token The token to be distributed as rewards.
+     * @param caller The address of the contract that will call the onModify function.
+     * @param pid The pool ID of the staking pool.
+     * @param initialOwner The initial owner of the contract.
+     */
     constructor(IERC20 token, address caller, uint256 pid, address initialOwner)
         BaseRewarder(token, caller, pid, initialOwner)
     {}
 
+    /**
+     * @dev Links the rewarder to the MasterChef contract.
+     * Can only be called by the caller contract and only once.
+     * @param pid The pool ID of the staking pool.
+     */
     function link(uint256 pid) public override {
         if (msg.sender != _caller) revert BaseRewarder__InvalidCaller();
         if (_status != Status.Unlinked) revert MasterChefRewarder__AlreadyLinked();
@@ -23,6 +39,11 @@ contract MasterChefRewarder is BaseRewarder, IMasterChefRewarder {
         _status = Status.Linked;
     }
 
+    /**
+     * @dev Unlinks the rewarder from the MasterChef contract.
+     * Can only be called by the caller contract and only once.
+     * @param pid The pool ID of the staking pool.
+     */
     function unlink(uint256 pid) public override {
         if (msg.sender != _caller) revert BaseRewarder__InvalidCaller();
         if (pid != _pid) revert BaseRewarder__InvalidPid(pid);
@@ -32,10 +53,22 @@ contract MasterChefRewarder is BaseRewarder, IMasterChefRewarder {
         _isStopped = true;
     }
 
+    /**
+     * @dev Reverts as the MasterChefRewarder contract should be stopped by the unlink function.
+     */
     function stop() public pure override(IBaseRewarder, BaseRewarder) {
         revert MasterChefRewarder__UseUnlink();
     }
 
+    /**
+     * @dev Called by the caller contract to update the rewards for a given account.
+     * If the rewarder is not linked, the function will revert.
+     * @param account The account to update rewards for.
+     * @param pid The pool ID of the staking pool.
+     * @param oldBalance The old balance of the account.
+     * @param newBalance The new balance of the account.
+     * @param oldTotalSupply The old total supply of the staking pool.
+     */
     function onModify(address account, uint256 pid, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply)
         public
         override(BaseRewarder, IBaseRewarder)
@@ -45,6 +78,10 @@ contract MasterChefRewarder is BaseRewarder, IMasterChefRewarder {
         BaseRewarder.onModify(account, pid, oldBalance, newBalance, oldTotalSupply);
     }
 
+    /**
+     * @dev Returns the total supply of the staking pool.
+     * @return The total supply of the staking pool.
+     */
     function _getTotalSupply() internal view override returns (uint256) {
         return IMasterChef(_caller).getTotalDeposit(_pid);
     }

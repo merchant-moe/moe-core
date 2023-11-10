@@ -14,6 +14,11 @@ import {IMoeStaking} from "./interface/IMoeStaking.sol";
 import {IMasterChef} from "./interface/IMasterChef.sol";
 import {IVeMoe} from "./interface/IVeMoe.sol";
 
+/**
+ * @title VeMoe Contract
+ * @dev The VeMoe Contract allows users to vote on pool weights in the MasterChef contract.
+ * Protocols can create bribe contracts to incentivize users to vote on their pools.
+ */
 contract VeMoe is Ownable, IVeMoe {
     using Math for uint256;
     using Rewarder for Rewarder.Parameter;
@@ -37,19 +42,38 @@ contract VeMoe is Ownable, IVeMoe {
     mapping(address => User) private _users;
     mapping(IVeMoeRewarder => mapping(uint256 => uint256)) private _bribesTotalVotes;
 
+    /**
+     * @dev Constructor for VeMoe contract.
+     * @param moeStaking The MOE Staking contract.
+     * @param masterChef The MasterChef contract.
+     * @param initialOwner The initial owner of the contract.
+     */
     constructor(IMoeStaking moeStaking, IMasterChef masterChef, address initialOwner) Ownable(initialOwner) {
         _moeStaking = moeStaking;
         _masterChef = masterChef;
     }
 
+    /**
+     * @dev Returns the MOE Staking contract.
+     * @return The MOE Staking contract.
+     */
     function getMoeStaking() external view override returns (IMoeStaking) {
         return _moeStaking;
     }
 
+    /**
+     * @dev Returns the MasterChef contract.
+     * @return The MasterChef contract.
+     */
     function getMasterChef() external view override returns (IMasterChef) {
         return _masterChef;
     }
 
+    /**
+     * @dev Returns the total veMOE of the specified account.
+     * @param account The address of the account.
+     * @return veMoe The total veMOE of the account.
+     */
     function balanceOf(address account) external view override returns (uint256 veMoe) {
         User storage user = _users[account];
 
@@ -61,46 +85,104 @@ contract VeMoe is Ownable, IVeMoe {
         (veMoe,) = _getVeMoe(user, balance, balance, userVested);
     }
 
+    /**
+     * @dev Returns veMoePerSecond and maxVeMoePerMoe parameters.
+     * @return veMoePerSecond The veMOE per second.
+     * @return maxVeMoePerMoe The maximum veMOE per MOE.
+     */
     function getVeMoeParameters() external view override returns (uint256 veMoePerSecond, uint256 maxVeMoePerMoe) {
         return (_veMoePerSecond, _maxVeMoePerMoe);
     }
 
+    /**
+     * @dev Returns the total votes of a pool.
+     * @param pid The pool ID.
+     * @return The total votes of the pool.
+     */
     function getVotes(uint256 pid) external view override returns (uint256) {
         return _votes.getAmountOf(pid);
     }
 
+    /**
+     * @dev Returns the total votes of all pools.
+     * @return The total votes of all pools.
+     */
     function getTotalVotes() external view override returns (uint256) {
         return _votes.getTotalAmount();
     }
 
+    /**
+     * @dev Returns the total votes of a pool for a bribe contract.
+     * @param bribe The bribe contract.
+     * @param pid The pool ID.
+     * @return The total votes of the pool for the bribe contract.
+     */
     function getBribesTotalVotes(IVeMoeRewarder bribe, uint256 pid) external view override returns (uint256) {
         return _bribesTotalVotes[bribe][pid];
     }
 
+    /**
+     * @dev Returns the bribes contract of a pool for an account.
+     * Will return address(0) if the account has not set a bribes contract for the pool.
+     * @param account The address of the account.
+     * @param pid The pool ID.
+     * @return The bribes contract of the pool for the account.
+     */
     function getBribesOf(address account, uint256 pid) external view override returns (IVeMoeRewarder) {
         return _users[account].bribes[pid];
     }
 
+    /**
+     * @dev Returns the votes of an account for a pool.
+     * @param account The address of the account.
+     * @param pid The pool ID.
+     * @return The votes of the account for the pool.
+     */
     function getVotesOf(address account, uint256 pid) external view override returns (uint256) {
         return _users[account].votes.getAmountOf(pid);
     }
 
+    /**
+     * @dev Returns the total votes of an account for all pools.
+     * @param account The address of the account.
+     * @return The total votes of the account for all pools.
+     */
     function getTotalVotesOf(address account) external view override returns (uint256) {
         return _users[account].votes.getTotalAmount();
     }
 
+    /**
+     * @dev Returns the top pool IDs.
+     * @return The top pool IDs.
+     */
     function getTopPoolIds() external view override returns (uint256[] memory) {
         return _topPids.values();
     }
 
+    /**
+     * @dev Returns whether a pool ID is in the top pool IDs.
+     * @param pid The pool ID.
+     * @return Whether the pool ID is in the top pool IDs.
+     */
     function isInTopPoolIds(uint256 pid) external view override returns (bool) {
         return _topPids.contains(pid);
     }
 
+    /**
+     * @dev Returns all the top pool IDs.
+     * @return The top pool IDs.
+     */
     function getTopPidsTotalVotes() external view override returns (uint256) {
         return _topPidsTotalVotes;
     }
 
+    /**
+     * @dev Returns the pending rewards for an account for each pool in the pids list.
+     * @param account The address of the account.
+     * @param pids The list of pool IDs.
+     * @return tokens The list of tokens.
+     * @return pendingRewards The list of pending rewards.
+     */
     function getPendingRewards(address account, uint256[] calldata pids)
         external
         view
@@ -128,11 +210,12 @@ contract VeMoe is Ownable, IVeMoe {
         }
     }
 
+    /**
+     * @dev Claims the pending rewards in bribe contracts for each pool in the pids list.
+     * @param pids The list of pool IDs.
+     */
     function claim(uint256[] calldata pids) external override {
-        uint256 balance = _moeStaking.getDeposit(msg.sender);
         User storage user = _users[msg.sender];
-
-        _claim(msg.sender, balance, balance);
 
         for (uint256 i; i < pids.length; ++i) {
             uint256 pid = pids[i];
@@ -148,6 +231,12 @@ contract VeMoe is Ownable, IVeMoe {
         }
     }
 
+    /**
+     * @dev Votes for the pools in the pids list.
+     * Will update the top pool IDs in the MasterChef contract.
+     * @param pids The list of pool IDs.
+     * @param deltaAmounts The list of delta amounts.
+     */
     function vote(uint256[] calldata pids, int256[] calldata deltaAmounts) external override {
         if (pids.length != deltaAmounts.length) revert VeMoe__InvalidLength();
 
@@ -194,6 +283,11 @@ contract VeMoe is Ownable, IVeMoe {
         emit Vote(msg.sender, pids, deltaAmounts);
     }
 
+    /**
+     * @dev Sets the bribes contract for each pool in the pids list.
+     * @param pids The list of pool IDs.
+     * @param bribes The list of bribes contracts.
+     */
     function setBribes(uint256[] calldata pids, IVeMoeRewarder[] calldata bribes) external override {
         if (pids.length != bribes.length) revert VeMoe__InvalidLength();
 
@@ -223,6 +317,7 @@ contract VeMoe is Ownable, IVeMoe {
                 _bribesTotalVotes[newBribe][pid] = newBribesTotalVotes + userVotes;
             }
 
+            // Done after updating _bribesTotalVotes to avoid reentrancy attack
             if (address(oldBribe) != address(0)) oldBribe.onModify(msg.sender, pid, userVotes, 0, oldBribesTotalVotes);
             if (address(newBribe) != address(0)) newBribe.onModify(msg.sender, pid, 0, userVotes, newBribesTotalVotes);
         }
@@ -230,6 +325,10 @@ contract VeMoe is Ownable, IVeMoe {
         emit BribesSet(msg.sender, pids, bribes);
     }
 
+    /**
+     * @dev Emergency function to unset the bribes contract for each pool in the pids list, forfeiting the rewards.
+     * @param pids The list of pool IDs.
+     */
     function emergencyUnsetBribes(uint256[] calldata pids) external override {
         User storage user = _users[msg.sender];
 
@@ -249,12 +348,22 @@ contract VeMoe is Ownable, IVeMoe {
         emit BribesSet(msg.sender, pids, new IVeMoeRewarder[](pids.length));
     }
 
+    /**
+     * @dev Called by the caller contract to update the veMOE of an account.
+     * @param account The account to update.
+     * @param oldBalance The old balance of the account.
+     * @param newBalance The new balance of the account.
+     */
     function onModify(address account, uint256 oldBalance, uint256 newBalance, uint256, uint256) external override {
         if (msg.sender != address(_moeStaking)) revert VeMoe__InvalidCaller();
 
         _claim(account, oldBalance, newBalance);
     }
 
+    /**
+     * @dev Sets the top pool IDs.
+     * @param pids The list of pool IDs.
+     */
     function setTopPoolIds(uint256[] calldata pids) external override onlyOwner {
         uint256 length = pids.length;
 
@@ -265,8 +374,8 @@ contract VeMoe is Ownable, IVeMoe {
         if (oldIds.length > 0) {
             _masterChef.updateAll(oldIds);
 
-            for (uint256 i; i < oldIds.length; ++i) {
-                _topPids.remove(oldIds[i]);
+            for (uint256 i = oldIds.length; i > 0;) {
+                _topPids.remove(oldIds[--i]);
             }
         }
 
@@ -288,6 +397,10 @@ contract VeMoe is Ownable, IVeMoe {
         emit TopPoolIdsSet(pids);
     }
 
+    /**
+     * @dev Sets the veMOE per second.
+     * @param veMoePerSecond The veMOE per second.
+     */
     function setVeMoePerSecond(uint256 veMoePerSecond) external override onlyOwner {
         _veRewarder.updateAccDebtPerShare(Constants.PRECISION, _veRewarder.getTotalRewards(_veMoePerSecond));
 
@@ -296,6 +409,10 @@ contract VeMoe is Ownable, IVeMoe {
         emit VeMoePerSecondSet(veMoePerSecond);
     }
 
+    /**
+     * @dev Sets the maximum veMOE per MOE.
+     * @param maxVeMoePerMoe The maximum veMOE per MOE.
+     */
     function setMaxVeMoePerMoe(uint256 maxVeMoePerMoe) external override onlyOwner {
         if (maxVeMoePerMoe < _maxVeMoePerMoe) revert VeMoe__OnlyIncreaseMaxVeMoePerMoe();
 
@@ -304,6 +421,12 @@ contract VeMoe is Ownable, IVeMoe {
         emit MaxVeMoePerMoeSet(maxVeMoePerMoe);
     }
 
+    /**
+     * @dev Claims the pending veMOE of an account.
+     * @param account The account to claim veMOE for.
+     * @param oldBalance The old balance of the account.
+     * @param newBalance The new balance of the account.
+     */
     function _claim(address account, uint256 oldBalance, uint256 newBalance) private {
         User storage user = _users[account];
 
@@ -317,6 +440,15 @@ contract VeMoe is Ownable, IVeMoe {
         emit Claim(account, deltaVeMoe);
     }
 
+    /**
+     * @dev Returns the veMOE of an account.
+     * @param user The user to check.
+     * @param oldBalance The old balance of the account.
+     * @param newBalance The new balance of the account.
+     * @param userVested The vested veMOE of the account.
+     * @return newVeMoe The new veMOE of the account.
+     * @return deltaVeMoe The delta veMOE of the account.
+     */
     function _getVeMoe(User storage user, uint256 oldBalance, uint256 newBalance, uint256 userVested)
         private
         view

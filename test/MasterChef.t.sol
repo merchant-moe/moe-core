@@ -47,8 +47,8 @@ contract MasterChefTest is Test {
         vm.label(address(rewardToken0), "rewardToken0");
         vm.label(address(masterChef), "masterChef");
 
-        masterChef.add(tokenA, block.timestamp, IMasterChefRewarder(address(0)));
-        masterChef.add(tokenB, block.timestamp, IMasterChefRewarder(address(0)));
+        masterChef.add(tokenA, IMasterChefRewarder(address(0)));
+        masterChef.add(tokenB, IMasterChefRewarder(address(0)));
 
         deal(address(tokenA), address(alice), 1e18);
         deal(address(tokenB), address(alice), 2e18);
@@ -229,11 +229,11 @@ contract MasterChefTest is Test {
     }
 
     function test_Add() public {
-        masterChef.add(tokenA, block.timestamp, IMasterChefRewarder(address(0)));
+        masterChef.add(tokenA, IMasterChefRewarder(address(0)));
 
         MasterChefRewarder rewarder = new MasterChefRewarder(rewardToken0, address(masterChef), 3, address(this));
 
-        masterChef.add(tokenA, block.timestamp, IMasterChefRewarder(address(rewarder)));
+        masterChef.add(tokenA, IMasterChefRewarder(address(rewarder)));
 
         assertEq(address(masterChef.getExtraRewarder(3)), address(rewarder), "test_Add::1");
 
@@ -258,12 +258,9 @@ contract MasterChefTest is Test {
 
         assertEq(address(masterChef.getExtraRewarder(2)), address(0), "test_Add::4");
 
-        vm.expectRevert(IMasterChef.MasterChef__InvalidStartTimestamp.selector);
-        masterChef.add(tokenA, block.timestamp - 1, IMasterChefRewarder(address(0)));
-
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
         vm.prank(alice);
-        masterChef.add(tokenA, block.timestamp, IMasterChefRewarder(address(0)));
+        masterChef.add(tokenA, IMasterChefRewarder(address(0)));
     }
 
     function test_EmergencyWithdrawal() public {
@@ -328,7 +325,7 @@ contract MasterChefTest is Test {
         assertEq(masterChef.getTreasuryShare(), 0.1e18, "test_TreasuryShare::1");
         assertEq(masterChef.getTreasury(), address(this), "test_TreasuryShare::2");
 
-        masterChef.add(tokenA, block.timestamp, IMasterChefRewarder(address(0)));
+        masterChef.add(tokenA, IMasterChefRewarder(address(0)));
         masterChef.setMoePerSecond(1e18);
 
         vm.startPrank(alice);
@@ -361,7 +358,7 @@ contract MasterChefTest is Test {
         MasterChefRewarder rewarder1 = new MasterChefRewarder(rewardToken1, address(masterChef), 1, address(this));
 
         vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InvalidPid.selector, 2));
-        masterChef.add(tokenA, block.timestamp, rewarder0);
+        masterChef.add(tokenA, rewarder0);
 
         MockERC20(address(rewardToken0)).mint(address(rewarder0), 100e18);
         rewarder0.setRewardPerSecond(1e18, 100);

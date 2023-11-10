@@ -8,8 +8,8 @@ interface IBaseRewarder {
     error BaseRewarder__InvalidCaller();
     error BaseRewarder__Stopped();
     error BaseRewarder__AlreadyStopped();
-    error BaseRewarder__NotNativeToken();
-    error BaseRewarder__InvalidToken();
+    error BaseRewarder__NotNativeRewarder();
+    error BaseRewarder__ZeroAmount();
     error BaseRewarder__InsufficientReward(uint256 remainingReward, uint256 expectedReward);
     error BaseRewarder__InvalidDuration();
     error BaseRewarder__InvalidPid(uint256 pid);

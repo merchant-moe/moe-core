@@ -245,6 +245,9 @@ contract MasterChefRewarderTest is Test {
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
         rewarder.sweep(tokenA, alice);
 
+        vm.expectRevert(IBaseRewarder.BaseRewarder__ZeroAmount.selector);
+        rewarder.sweep(tokenA, alice);
+
         MockERC20(address(tokenA)).mint(address(rewarder), 100e18);
 
         rewarder.sweep(tokenA, alice);
@@ -252,8 +255,16 @@ contract MasterChefRewarderTest is Test {
         assertEq(tokenA.balanceOf(alice), 100e18, "test_Sweep::1");
         assertEq(tokenA.balanceOf(address(rewarder)), 0, "test_Sweep::2");
 
-        vm.expectRevert(IBaseRewarder.BaseRewarder__InvalidToken.selector);
+        vm.expectRevert(IBaseRewarder.BaseRewarder__ZeroAmount.selector);
         rewarder.sweep(rewardToken, alice);
+
+        MockERC20(address(rewardToken)).mint(address(rewarder), 100e18);
+
+        rewarder.setRewardPerSecond(1e18, 99);
+        rewarder.sweep(rewardToken, alice);
+
+        assertEq(rewardToken.balanceOf(alice), 1e18, "test_Sweep::3");
+        assertEq(rewardToken.balanceOf(address(rewarder)), 99e18, "test_Sweep::4");
 
         vm.deal(address(rewarder), 1e18);
 
@@ -264,6 +275,16 @@ contract MasterChefRewarderTest is Test {
 
         assertEq(address(rewarder).balance, 0, "test_Sweep::3");
         assertEq(address(alice).balance, 1e18, "test_Sweep::4");
+
+        vm.startPrank(address(masterchef));
+        rewarder.link(0);
+        rewarder.unlink(0);
+        vm.stopPrank();
+
+        rewarder.sweep(rewardToken, alice);
+
+        assertEq(rewardToken.balanceOf(alice), 100e18, "test_Sweep::5");
+        assertEq(rewardToken.balanceOf(address(rewarder)), 0, "test_Sweep::6");
     }
 
     function test_Stop() public {

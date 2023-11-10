@@ -54,8 +54,8 @@ contract VeMoeTest is Test {
 
         assertEq(address(masterChef.getVeMoe()), address(veMoe), "setUp::1");
 
-        masterChef.add(token18d, block.timestamp, IMasterChefRewarder(address(0)));
-        masterChef.add(token6d, block.timestamp + 10, IMasterChefRewarder(address(0)));
+        masterChef.add(token18d, IMasterChefRewarder(address(0)));
+        masterChef.add(token6d, IMasterChefRewarder(address(0)));
 
         moe.mint(alice, 100e18);
         moe.mint(bob, 100e18);
@@ -157,7 +157,7 @@ contract VeMoeTest is Test {
         uint256[] memory pids = new uint256[](3);
 
         for (uint256 i; i < 8; ++i) {
-            masterChef.add(token18d, block.timestamp, IMasterChefRewarder(address(0)));
+            masterChef.add(token18d, IMasterChefRewarder(address(0)));
         }
 
         assertEq(masterChef.getNumberOfFarms(), 10, "test_SetTopPoolIds::1");
@@ -216,7 +216,7 @@ contract VeMoeTest is Test {
         veMoe.setTopPoolIds(pids);
 
         for (uint256 i; i < Constants.MAX_NUMBER_OF_FARMS; ++i) {
-            masterChef.add(token18d, block.timestamp, IMasterChefRewarder(address(0)));
+            masterChef.add(token18d, IMasterChefRewarder(address(0)));
         }
 
         uint256[] memory topPids = new uint256[](Constants.MAX_NUMBER_OF_FARMS);
