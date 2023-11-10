@@ -16,7 +16,6 @@ interface IVeMoe {
     error VeMoe__CannotUnstakeWithVotes();
     error VeMoe__NoBribeForPid(uint256 pid);
     error VeMoe__TooManyPoolIds();
-    error VeMoe__RewardAlreadyAdded();
     error VeMoe__VeMoeOverflow();
     error VeMoe__InvalidPid(uint256 pid);
     error VeMoe__DuplicatePoolId(uint256 pid);
@@ -37,8 +36,6 @@ interface IVeMoe {
     event BribesSet(address indexed account, uint256[] pids, IVeMoeRewarder[] bribes);
 
     event Claim(address indexed account, int256 deltaVeMoe);
-
-    event RewardAdded(address indexed token);
 
     event TopPoolIdsSet(uint256[] topPoolIds);
 

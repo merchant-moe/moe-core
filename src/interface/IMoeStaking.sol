@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-import {IBaseRewarder} from "./IBaseRewarder.sol";
-import {Amounts} from "../library/Amounts.sol";
-import {Rewarder} from "../library/Rewarder.sol";
-
 interface IMoeStaking {
     event PositionModified(address indexed account, int256 deltaAmount);
 

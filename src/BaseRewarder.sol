@@ -4,18 +4,14 @@ pragma solidity ^0.8.13;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {IMasterChef} from "./interface/IMasterChef.sol";
-import {IMoe} from "./interface/IMoe.sol";
 import {Math} from "./library/Math.sol";
 import {Rewarder} from "./library/Rewarder.sol";
-import {Amounts} from "./library/Amounts.sol";
 import {IBaseRewarder} from "./interface/IBaseRewarder.sol";
 
 abstract contract BaseRewarder is Ownable, IBaseRewarder {
     using SafeERC20 for IERC20;
     using Math for uint256;
     using Rewarder for Rewarder.Parameter;
-    using Amounts for Amounts.Parameter;
 
     IERC20 internal immutable _token;
     address internal immutable _caller;

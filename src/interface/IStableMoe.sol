@@ -9,7 +9,6 @@ import {IMoeStaking} from "../interface/IMoeStaking.sol";
 interface IStableMoe {
     error StableMoe__UnauthorizedCaller();
     error StableMoe__RewardAlreadyAdded(IERC20 reward);
-    error StableMoe__RewardNotAdded(IERC20 reward);
     error StableMoe__RewardAlreadyRemoved(IERC20 reward);
     error StableMoe__ActiveReward(IERC20 reward);
     error StableMoe__NativeTransferFailed();

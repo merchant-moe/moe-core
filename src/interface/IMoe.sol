@@ -8,6 +8,8 @@ interface IMoe is IERC20 {
     error Moe__InvalidInitialSupply();
 
     function getMinter() external view returns (address);
+
     function getMaxSupply() external view returns (uint256);
+
     function mint(address account, uint256 amount) external returns (uint256);
 }
