@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import "../src/StableMoe.sol";
 import "../src/MoeStaking.sol";
@@ -34,10 +35,18 @@ contract StableMoeTest is Test {
 
         uint256 nonce = vm.getNonce(address(this));
 
-        address stakingAddress = computeCreateAddress(address(this), nonce + 1);
+        address stakingAddress = computeCreateAddress(address(this), nonce);
+        address sMoeAddress = computeCreateAddress(address(this), nonce + 2);
 
-        sMoe = new StableMoe(IMoeStaking(stakingAddress), address(this));
-        staking = new MoeStaking(IERC20(moe), IVeMoe(veMoe), IStableMoe(sMoe));
+        staking = new MoeStaking(IERC20(moe), IVeMoe(veMoe), IStableMoe(sMoeAddress));
+        sMoe = new StableMoe(IMoeStaking(stakingAddress));
+
+        TransparentUpgradeableProxy proxy =
+        new TransparentUpgradeableProxy(address(sMoe), address(this), abi.encodeWithSelector(StableMoe.initialize.selector, address(this)));
+
+        sMoe = StableMoe(payable(address(proxy)));
+
+        assertEq(address(staking.getSMoe()), address(sMoe), "setUp::1");
 
         moe.mint(alice, 100e18);
         moe.mint(bob, 100e18);

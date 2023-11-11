@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import "../src/MoeStaking.sol";
 import "../src/Moe.sol";
@@ -26,6 +27,10 @@ contract MoeStakingTest is Test {
         sMoe = address(new MockNoRevert());
 
         staking = new MoeStaking(IERC20(moe), IVeMoe(veMoe), IStableMoe(sMoe));
+
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(staking), address(this), "");
+
+        staking = MoeStaking(address(proxy));
     }
 
     function test_GetParameters() public {

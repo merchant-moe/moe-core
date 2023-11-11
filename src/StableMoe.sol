@@ -2,8 +2,12 @@
 pragma solidity ^0.8.13;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {
+    Ownable2StepUpgradeable,
+    OwnableUpgradeable,
+    Initializable
+} from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 
 import {Math} from "./library/Math.sol";
 import {Rewarder} from "./library/Rewarder.sol";
@@ -16,7 +20,7 @@ import {Constants} from "./library/Constants.sol";
  * @dev The StableMoe Contract allows users to claim rewards from the volume of the DEX.
  * The protocol fees will be swapped to the reward tokens and distributed to MOE stakers.
  */
-contract StableMoe is Ownable, IStableMoe {
+contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
     using SafeERC20 for IERC20;
     using Math for uint256;
     using Rewarder for Rewarder.Parameter;
@@ -32,10 +36,19 @@ contract StableMoe is Ownable, IStableMoe {
     /**
      * @dev Constructor for StableMoe contract.
      * @param moeStaking The MOE Staking contract.
+     */
+    constructor(IMoeStaking moeStaking) {
+        _disableInitializers();
+
+        _moeStaking = moeStaking;
+    }
+
+    /**
+     * @dev Initializes the StableMoe contract.
      * @param initialOwner The initial owner of the contract.
      */
-    constructor(IMoeStaking moeStaking, address initialOwner) Ownable(initialOwner) {
-        _moeStaking = moeStaking;
+    function initialize(address initialOwner) external initializer {
+        __Ownable_init(initialOwner);
     }
 
     /**

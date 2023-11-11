@@ -3,6 +3,8 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
 import "../src/MasterChef.sol";
 import "../src/Moe.sol";
 import "./mocks/MockVeMoe.sol";
@@ -34,11 +36,16 @@ contract MasterChefTest is Test {
 
         uint256 nonce = vm.getNonce(address(this));
 
-        address masterChefAddress = computeCreateAddress(address(this), nonce + 1);
+        address masterChefAddress = computeCreateAddress(address(this), nonce + 2);
 
         moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
 
-        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), address(this), 0, address(this));
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), 0);
+
+        TransparentUpgradeableProxy proxy =
+        new TransparentUpgradeableProxy(address(masterChef), address(this), abi.encodeWithSelector(MasterChef.initialize.selector, address(this), address(this)));
+
+        masterChef = MasterChef(address(proxy));
 
         vm.label(address(moe), "moe");
         vm.label(address(veMoe), "veMoe");
@@ -158,7 +165,7 @@ contract MasterChefTest is Test {
         assertEq(masterChef.getLastUpdateTimestamp(0), block.timestamp, "test_SetMoePerSecond::2");
         assertEq(masterChef.getLastUpdateTimestamp(1), block.timestamp, "test_SetMoePerSecond::3");
 
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, alice));
         vm.prank(alice);
         masterChef.setMoePerSecond(moePerSecond);
     }
@@ -258,7 +265,7 @@ contract MasterChefTest is Test {
 
         assertEq(address(masterChef.getExtraRewarder(2)), address(0), "test_Add::4");
 
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, alice));
         vm.prank(alice);
         masterChef.add(tokenA, IMasterChefRewarder(address(0)));
     }
@@ -317,10 +324,15 @@ contract MasterChefTest is Test {
         veMoe.setTopPoolIds(new uint256[](1));
 
         uint256 nonce = vm.getNonce(address(this));
-        address masterChefAddress = computeCreateAddress(address(this), nonce + 1);
+        address masterChefAddress = computeCreateAddress(address(this), nonce + 2);
 
         moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
-        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), address(this), 0.1e18, address(this));
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), 0.1e18);
+
+        TransparentUpgradeableProxy proxy =
+        new TransparentUpgradeableProxy(address(masterChef), address(this), abi.encodeWithSelector(MasterChef.initialize.selector, address(this), address(this)));
+
+        masterChef = MasterChef(address(proxy));
 
         assertEq(masterChef.getTreasuryShare(), 0.1e18, "test_TreasuryShare::1");
         assertEq(masterChef.getTreasury(), address(this), "test_TreasuryShare::2");
@@ -349,8 +361,8 @@ contract MasterChefTest is Test {
         assertEq(masterChef.getTreasuryShare(), 0.1e18, "test_TreasuryShare::5");
         assertEq(masterChef.getTreasury(), address(1), "test_TreasuryShare::6");
 
-        vm.expectRevert();
-        new MasterChef(moe, IVeMoe(address(veMoe)), address(this), 1e18 + 1, address(this));
+        vm.expectRevert(IMasterChef.MasterChef__InvalidTreasuryShare.selector);
+        new MasterChef(moe, IVeMoe(address(veMoe)), 1e18 + 1);
     }
 
     function test_ExtraRewarder() public {

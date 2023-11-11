@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import "../src/VeMoe.sol";
 import "../src/MoeStaking.sol";
@@ -41,12 +42,21 @@ contract VeMoeTest is Test {
         uint256 nonce = vm.getNonce(address(this));
 
         address stakingAddress = computeCreateAddress(address(this), nonce);
-        address masterChefAddress = computeCreateAddress(address(this), nonce + 1);
-        address veMoeAddress = computeCreateAddress(address(this), nonce + 2);
+        address masterChefAddress = computeCreateAddress(address(this), nonce + 3);
+        address veMoeAddress = computeCreateAddress(address(this), nonce + 4);
 
         staking = new MoeStaking(moe, IVeMoe(veMoeAddress), IStableMoe(sMoe));
-        masterChef = new MasterChef(moe, IVeMoe(veMoeAddress), address(this), 0, address(this));
-        veMoe = new VeMoe(IMoeStaking(stakingAddress), IMasterChef(masterChefAddress), 100e18, address(this));
+        masterChef = new MasterChef(moe, IVeMoe(veMoeAddress), 0);
+        veMoe = new VeMoe(IMoeStaking(stakingAddress), IMasterChef(masterChefAddress), 100e18);
+
+        TransparentUpgradeableProxy masterChefProxy =
+        new TransparentUpgradeableProxy(address(masterChef), address(this), abi.encodeWithSelector(MasterChef.initialize.selector, address(this), address(this)));
+
+        TransparentUpgradeableProxy veMoeProxy =
+        new TransparentUpgradeableProxy(address(veMoe), address(this), abi.encodeWithSelector(VeMoe.initialize.selector, address(this)));
+
+        veMoe = VeMoe(address(veMoeProxy));
+        masterChef = MasterChef(address(masterChefProxy));
 
         bribes0 = new VeMoeRewarder(token18d, address(veMoe), 0, address(this));
         bribes0Bis = new VeMoeRewarder(token18d, address(veMoe), 0, address(this));
@@ -160,7 +170,7 @@ contract VeMoeTest is Test {
         pids[1] = 7;
         pids[2] = 1;
 
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, alice));
         vm.prank(alice);
         veMoe.setTopPoolIds(pids);
 

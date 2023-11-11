@@ -2,8 +2,12 @@
 pragma solidity ^0.8.13;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {
+    Ownable2StepUpgradeable,
+    OwnableUpgradeable,
+    Initializable
+} from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 
 import {Math} from "./library/Math.sol";
 import {Rewarder} from "./library/Rewarder.sol";
@@ -19,7 +23,7 @@ import {IVeMoe} from "./interface/IVeMoe.sol";
  * @dev The VeMoe Contract allows users to vote on pool weights in the MasterChef contract.
  * Protocols can create bribe contracts to incentivize users to vote on their pools.
  */
-contract VeMoe is Ownable, IVeMoe {
+contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
     using Math for uint256;
     using Rewarder for Rewarder.Parameter;
     using Amounts for Amounts.Parameter;
@@ -46,14 +50,21 @@ contract VeMoe is Ownable, IVeMoe {
      * @param moeStaking The MOE Staking contract.
      * @param masterChef The MasterChef contract.
      * @param maxVeMoePerMoe The maximum veMOE per MOE.
-     * @param initialOwner The initial owner of the contract.
      */
-    constructor(IMoeStaking moeStaking, IMasterChef masterChef, uint256 maxVeMoePerMoe, address initialOwner)
-        Ownable(initialOwner)
-    {
+    constructor(IMoeStaking moeStaking, IMasterChef masterChef, uint256 maxVeMoePerMoe) {
+        _disableInitializers();
+
         _moeStaking = moeStaking;
         _masterChef = masterChef;
         _maxVeMoePerMoe = maxVeMoePerMoe;
+    }
+
+    /**
+     * @dev Initializes the contract.
+     * @param initialOwner The initial owner of the contract.
+     */
+    function initialize(address initialOwner) external initializer {
+        __Ownable_init(initialOwner);
     }
 
     /**

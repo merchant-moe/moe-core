@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {
+    Ownable2StepUpgradeable,
+    OwnableUpgradeable,
+    Initializable
+} from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 
 import {Math} from "./library/Math.sol";
 import {Rewarder} from "./library/Rewarder.sol";
@@ -21,7 +25,7 @@ import {IMasterChefRewarder} from "./interface/IMasterChefRewarder.sol";
  * The weight of each pool is determined by the amount of votes in the VeMOE contract and by the top pool ids.
  * On top of the MOE rewards, the MasterChef can also distribute extra rewards in other tokens using extra rewarders.
  */
-contract MasterChef is Ownable, IMasterChef {
+contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     using SafeERC20 for IERC20;
     using Math for uint256;
     using Rewarder for Rewarder.Parameter;
@@ -40,18 +44,25 @@ contract MasterChef is Ownable, IMasterChef {
      * @dev Constructor for the MasterChef contract.
      * @param moe The address of the MOE token.
      * @param veMoe The address of the VeMOE contract.
-     * @param treasury The address of the treasury.
      * @param treasuryShare The share of the rewards that will be sent to the treasury.
-     * @param initialOwner The initial owner of the contract.
      */
-    constructor(IMoe moe, IVeMoe veMoe, address treasury, uint256 treasuryShare, address initialOwner)
-        Ownable(initialOwner)
-    {
-        assert(treasuryShare <= Constants.PRECISION);
+    constructor(IMoe moe, IVeMoe veMoe, uint256 treasuryShare) {
+        _disableInitializers();
+
+        if (treasuryShare > Constants.PRECISION) revert MasterChef__InvalidTreasuryShare();
 
         _moe = moe;
         _veMoe = veMoe;
         _treasuryShare = treasuryShare;
+    }
+
+    /**
+     * @dev Initializes the MasterChef contract.
+     * @param initialOwner The initial owner of the contract.
+     * @param treasury The initial treasury.
+     */
+    function initialize(address initialOwner, address treasury) external initializer {
+        __Ownable_init(initialOwner);
 
         _setTreasury(treasury);
     }

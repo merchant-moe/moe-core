@@ -12,6 +12,7 @@ import {Amounts} from "../library/Amounts.sol";
 interface IMasterChef {
     error MasterChef__InvalidPid(uint256 pid);
     error MasterChef__InvalidTreasury();
+    error MasterChef__InvalidTreasuryShare();
 
     struct Farm {
         Amounts.Parameter amounts;
