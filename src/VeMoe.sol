@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -84,6 +84,14 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
     }
 
     /**
+     * @dev Returns the maximum veMOE per MOE.
+     * @return The maximum veMOE per MOE.
+     */
+    function getMaxVeMoePerMoe() external view override returns (uint256) {
+        return _maxVeMoePerMoe;
+    }
+
+    /**
      * @dev Returns the total veMOE of the specified account.
      * @param account The address of the account.
      * @return veMoe The total veMOE of the account.
@@ -100,17 +108,11 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
     }
 
     /**
-     * @dev Returns veMoePerSecondPerMoe and maxVeMoePerMoe parameters.
-     * @return veMoePerSecondPerMoe The veMOE per second.
-     * @return maxVeMoePerMoe The maximum veMOE per MOE.
+     * @dev Returns the veMoePerSecondPerMoe
+     * @return The veMoePerSecondPerMoe
      */
-    function getVeMoeParameters()
-        external
-        view
-        override
-        returns (uint256 veMoePerSecondPerMoe, uint256 maxVeMoePerMoe)
-    {
-        return (_veMoePerSecondPerMoe, _maxVeMoePerMoe);
+    function getVeMoePerSecondPerMoe() external view override returns (uint256) {
+        return _veMoePerSecondPerMoe;
     }
 
     /**

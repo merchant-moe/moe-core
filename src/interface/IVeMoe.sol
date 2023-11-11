@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -54,6 +54,8 @@ interface IVeMoe {
 
     function getMasterChef() external view returns (IMasterChef);
 
+    function getMaxVeMoePerMoe() external view returns (uint256);
+
     function getMoeStaking() external view returns (IMoeStaking);
 
     function getPendingRewards(address account, uint256[] calldata pids)
@@ -69,7 +71,7 @@ interface IVeMoe {
 
     function getTotalVotesOf(address account) external view returns (uint256);
 
-    function getVeMoeParameters() external view returns (uint256 veMoePerSecondPerMoe, uint256 maxVeMoePerMoe);
+    function getVeMoePerSecondPerMoe() external view returns (uint256);
 
     function getVotes(uint256 pid) external view returns (uint256);
 

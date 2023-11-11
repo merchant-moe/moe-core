@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
@@ -83,31 +83,27 @@ contract VeMoeTest is Test {
     }
 
     function test_SetVeMoePerSecondPerMoe() public {
-        (uint256 veMoePerSecondPerMoe, uint256 maxVeMoePerMoe) = veMoe.getVeMoeParameters();
+        uint256 veMoePerSecondPerMoe = veMoe.getVeMoePerSecondPerMoe();
 
-        assertEq(veMoePerSecondPerMoe, 0, "test_SetVeMoeParameters::1");
-        assertEq(maxVeMoePerMoe, 100e18, "test_SetVeMoeParameters::2");
+        assertEq(veMoePerSecondPerMoe, 0, "test_SetVeMoePerSecondPerMoe::1");
 
         veMoe.setVeMoePerSecondPerMoe(1);
 
-        (veMoePerSecondPerMoe, maxVeMoePerMoe) = veMoe.getVeMoeParameters();
+        veMoePerSecondPerMoe = veMoe.getVeMoePerSecondPerMoe();
 
-        assertEq(veMoePerSecondPerMoe, 1, "test_SetVeMoeParameters::3");
-        assertEq(maxVeMoePerMoe, 100e18, "test_SetVeMoeParameters::4");
+        assertEq(veMoePerSecondPerMoe, 1, "test_SetVeMoePerSecondPerMoe::2");
 
         veMoe.setVeMoePerSecondPerMoe(3);
 
-        (veMoePerSecondPerMoe, maxVeMoePerMoe) = veMoe.getVeMoeParameters();
+        veMoePerSecondPerMoe = veMoe.getVeMoePerSecondPerMoe();
 
-        assertEq(veMoePerSecondPerMoe, 3, "test_SetVeMoeParameters::5");
-        assertEq(maxVeMoePerMoe, 100e18, "test_SetVeMoeParameters::6");
+        assertEq(veMoePerSecondPerMoe, 3, "test_SetVeMoePerSecondPerMoe::3");
 
         veMoe.setVeMoePerSecondPerMoe(0);
 
-        (veMoePerSecondPerMoe, maxVeMoePerMoe) = veMoe.getVeMoeParameters();
+        veMoePerSecondPerMoe = veMoe.getVeMoePerSecondPerMoe();
 
-        assertEq(veMoePerSecondPerMoe, 0, "test_SetVeMoeParameters::7");
-        assertEq(maxVeMoePerMoe, 100e18, "test_SetVeMoeParameters::8");
+        assertEq(veMoePerSecondPerMoe, 0, "test_SetVeMoePerSecondPerMoe::4");
     }
 
     function test_OnModifyAndClaim() public {
