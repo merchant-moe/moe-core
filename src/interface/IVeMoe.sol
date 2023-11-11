@@ -19,7 +19,6 @@ interface IVeMoe {
     error VeMoe__VeMoeOverflow();
     error VeMoe__InvalidPid(uint256 pid);
     error VeMoe__DuplicatePoolId(uint256 pid);
-    error VeMoe__OnlyIncreaseMaxVeMoePerMoe();
 
     struct User {
         uint256 veMoe;
@@ -41,9 +40,7 @@ interface IVeMoe {
 
     event Vote(address account, uint256[] pids, int256[] deltaVeAmounts);
 
-    event VeMoePerSecondSet(uint256 veMoePerSecond);
-
-    event MaxVeMoePerMoeSet(uint256 maxVeMoePerMoe);
+    event VeMoePerSecondPerMoeSet(uint256 veMoePerSecondPerMoe);
 
     function balanceOf(address account) external view returns (uint256 veMoe);
 
@@ -72,7 +69,7 @@ interface IVeMoe {
 
     function getTotalVotesOf(address account) external view returns (uint256);
 
-    function getVeMoeParameters() external view returns (uint256 veMoePerSecond, uint256 maxVeMoePerMoe);
+    function getVeMoeParameters() external view returns (uint256 veMoePerSecondPerMoe, uint256 maxVeMoePerMoe);
 
     function getVotes(uint256 pid) external view returns (uint256);
 
@@ -85,11 +82,9 @@ interface IVeMoe {
 
     function setBribes(uint256[] memory pids, IVeMoeRewarder[] memory bribes) external;
 
-    function setMaxVeMoePerMoe(uint256 maxVeMoePerMoe) external;
-
     function setTopPoolIds(uint256[] memory pids) external;
 
-    function setVeMoePerSecond(uint256 veMoePerSecond) external;
+    function setVeMoePerSecondPerMoe(uint256 veMoePerSecondPerMoe) external;
 
     function vote(uint256[] memory pids, int256[] memory deltaAmounts) external;
 }

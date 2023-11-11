@@ -27,13 +27,12 @@ contract VeMoe is Ownable, IVeMoe {
 
     IMoeStaking private immutable _moeStaking;
     IMasterChef private immutable _masterChef;
+    uint256 private immutable _maxVeMoePerMoe;
 
     uint256 private _topPidsTotalVotes;
     EnumerableSet.UintSet private _topPids;
 
-    uint256 private _veMoePerSecond;
-    uint256 private _maxVeMoePerMoe;
-
+    uint256 private _veMoePerSecondPerMoe;
     Rewarder.Parameter private _veRewarder;
 
     // pid to Vote
@@ -46,11 +45,15 @@ contract VeMoe is Ownable, IVeMoe {
      * @dev Constructor for VeMoe contract.
      * @param moeStaking The MOE Staking contract.
      * @param masterChef The MasterChef contract.
+     * @param maxVeMoePerMoe The maximum veMOE per MOE.
      * @param initialOwner The initial owner of the contract.
      */
-    constructor(IMoeStaking moeStaking, IMasterChef masterChef, address initialOwner) Ownable(initialOwner) {
+    constructor(IMoeStaking moeStaking, IMasterChef masterChef, uint256 maxVeMoePerMoe, address initialOwner)
+        Ownable(initialOwner)
+    {
         _moeStaking = moeStaking;
         _masterChef = masterChef;
+        _maxVeMoePerMoe = maxVeMoePerMoe;
     }
 
     /**
@@ -79,19 +82,24 @@ contract VeMoe is Ownable, IVeMoe {
 
         uint256 balance = _moeStaking.getDeposit(account);
 
-        uint256 totalVested = _veRewarder.getTotalRewards(_veMoePerSecond);
+        uint256 totalVested = _veRewarder.getTotalRewards(_veMoePerSecondPerMoe);
         uint256 userVested = _veRewarder.getPendingReward(account, balance, Constants.PRECISION, totalVested);
 
         (veMoe,) = _getVeMoe(user, balance, balance, userVested);
     }
 
     /**
-     * @dev Returns veMoePerSecond and maxVeMoePerMoe parameters.
-     * @return veMoePerSecond The veMOE per second.
+     * @dev Returns veMoePerSecondPerMoe and maxVeMoePerMoe parameters.
+     * @return veMoePerSecondPerMoe The veMOE per second.
      * @return maxVeMoePerMoe The maximum veMOE per MOE.
      */
-    function getVeMoeParameters() external view override returns (uint256 veMoePerSecond, uint256 maxVeMoePerMoe) {
-        return (_veMoePerSecond, _maxVeMoePerMoe);
+    function getVeMoeParameters()
+        external
+        view
+        override
+        returns (uint256 veMoePerSecondPerMoe, uint256 maxVeMoePerMoe)
+    {
+        return (_veMoePerSecondPerMoe, _maxVeMoePerMoe);
     }
 
     /**
@@ -399,26 +407,14 @@ contract VeMoe is Ownable, IVeMoe {
 
     /**
      * @dev Sets the veMOE per second.
-     * @param veMoePerSecond The veMOE per second.
+     * @param veMoePerSecondPerMoe The veMOE per second.
      */
-    function setVeMoePerSecond(uint256 veMoePerSecond) external override onlyOwner {
-        _veRewarder.updateAccDebtPerShare(Constants.PRECISION, _veRewarder.getTotalRewards(_veMoePerSecond));
+    function setVeMoePerSecondPerMoe(uint256 veMoePerSecondPerMoe) external override onlyOwner {
+        _veRewarder.updateAccDebtPerShare(Constants.PRECISION, _veRewarder.getTotalRewards(_veMoePerSecondPerMoe));
 
-        _veMoePerSecond = veMoePerSecond;
+        _veMoePerSecondPerMoe = veMoePerSecondPerMoe;
 
-        emit VeMoePerSecondSet(veMoePerSecond);
-    }
-
-    /**
-     * @dev Sets the maximum veMOE per MOE.
-     * @param maxVeMoePerMoe The maximum veMOE per MOE.
-     */
-    function setMaxVeMoePerMoe(uint256 maxVeMoePerMoe) external override onlyOwner {
-        if (maxVeMoePerMoe < _maxVeMoePerMoe) revert VeMoe__OnlyIncreaseMaxVeMoePerMoe();
-
-        _maxVeMoePerMoe = maxVeMoePerMoe;
-
-        emit MaxVeMoePerMoeSet(maxVeMoePerMoe);
+        emit VeMoePerSecondPerMoeSet(veMoePerSecondPerMoe);
     }
 
     /**
@@ -430,7 +426,7 @@ contract VeMoe is Ownable, IVeMoe {
     function _claim(address account, uint256 oldBalance, uint256 newBalance) private {
         User storage user = _users[account];
 
-        uint256 totalVested = _veRewarder.getTotalRewards(_veMoePerSecond);
+        uint256 totalVested = _veRewarder.getTotalRewards(_veMoePerSecondPerMoe);
         uint256 userVested = _veRewarder.update(account, oldBalance, newBalance, Constants.PRECISION, totalVested);
 
         (uint256 newVeMoe, int256 deltaVeMoe) = _getVeMoe(user, oldBalance, newBalance, userVested);

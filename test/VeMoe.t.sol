@@ -46,7 +46,7 @@ contract VeMoeTest is Test {
 
         staking = new MoeStaking(moe, IVeMoe(veMoeAddress), IStableMoe(sMoe));
         masterChef = new MasterChef(moe, IVeMoe(veMoeAddress), address(this), 0, address(this));
-        veMoe = new VeMoe(IMoeStaking(stakingAddress), IMasterChef(masterChefAddress), address(this));
+        veMoe = new VeMoe(IMoeStaking(stakingAddress), IMasterChef(masterChefAddress), 100e18, address(this));
 
         bribes0 = new VeMoeRewarder(token18d, address(veMoe), 0, address(this));
         bribes0Bis = new VeMoeRewarder(token18d, address(veMoe), 0, address(this));
@@ -72,42 +72,36 @@ contract VeMoeTest is Test {
         assertEq(address(veMoe.getMasterChef()), address(masterChef), "test_GetParameters::2");
     }
 
-    function test_SetVeMoeParameters() public {
-        (uint256 veMoePerSecond, uint256 maxVeMoePerMoe) = veMoe.getVeMoeParameters();
+    function test_SetVeMoePerSecondPerMoe() public {
+        (uint256 veMoePerSecondPerMoe, uint256 maxVeMoePerMoe) = veMoe.getVeMoeParameters();
 
-        assertEq(veMoePerSecond, 0, "test_SetVeMoeParameters::1");
-        assertEq(maxVeMoePerMoe, 0, "test_SetVeMoeParameters::2");
+        assertEq(veMoePerSecondPerMoe, 0, "test_SetVeMoeParameters::1");
+        assertEq(maxVeMoePerMoe, 100e18, "test_SetVeMoeParameters::2");
 
-        veMoe.setVeMoePerSecond(1);
-        veMoe.setMaxVeMoePerMoe(2);
+        veMoe.setVeMoePerSecondPerMoe(1);
 
-        (veMoePerSecond, maxVeMoePerMoe) = veMoe.getVeMoeParameters();
+        (veMoePerSecondPerMoe, maxVeMoePerMoe) = veMoe.getVeMoeParameters();
 
-        assertEq(veMoePerSecond, 1, "test_SetVeMoeParameters::3");
-        assertEq(maxVeMoePerMoe, 2, "test_SetVeMoeParameters::4");
+        assertEq(veMoePerSecondPerMoe, 1, "test_SetVeMoeParameters::3");
+        assertEq(maxVeMoePerMoe, 100e18, "test_SetVeMoeParameters::4");
 
-        veMoe.setVeMoePerSecond(3);
-        veMoe.setMaxVeMoePerMoe(4);
+        veMoe.setVeMoePerSecondPerMoe(3);
 
-        (veMoePerSecond, maxVeMoePerMoe) = veMoe.getVeMoeParameters();
+        (veMoePerSecondPerMoe, maxVeMoePerMoe) = veMoe.getVeMoeParameters();
 
-        assertEq(veMoePerSecond, 3, "test_SetVeMoeParameters::5");
-        assertEq(maxVeMoePerMoe, 4, "test_SetVeMoeParameters::6");
+        assertEq(veMoePerSecondPerMoe, 3, "test_SetVeMoeParameters::5");
+        assertEq(maxVeMoePerMoe, 100e18, "test_SetVeMoeParameters::6");
 
-        veMoe.setVeMoePerSecond(0);
+        veMoe.setVeMoePerSecondPerMoe(0);
 
-        vm.expectRevert(IVeMoe.VeMoe__OnlyIncreaseMaxVeMoePerMoe.selector);
-        veMoe.setMaxVeMoePerMoe(0);
+        (veMoePerSecondPerMoe, maxVeMoePerMoe) = veMoe.getVeMoeParameters();
 
-        (veMoePerSecond, maxVeMoePerMoe) = veMoe.getVeMoeParameters();
-
-        assertEq(veMoePerSecond, 0, "test_SetVeMoeParameters::7");
-        assertEq(maxVeMoePerMoe, 4, "test_SetVeMoeParameters::8");
+        assertEq(veMoePerSecondPerMoe, 0, "test_SetVeMoeParameters::7");
+        assertEq(maxVeMoePerMoe, 100e18, "test_SetVeMoeParameters::8");
     }
 
     function test_OnModifyAndClaim() public {
-        veMoe.setVeMoePerSecond(1e18);
-        veMoe.setMaxVeMoePerMoe(100e18);
+        veMoe.setVeMoePerSecondPerMoe(1e18);
 
         vm.prank(alice);
         staking.stake(1e18);
@@ -131,7 +125,7 @@ contract VeMoeTest is Test {
 
         vm.warp(block.timestamp + 25);
 
-        veMoe.setVeMoePerSecond(1e18);
+        veMoe.setVeMoePerSecondPerMoe(1e18);
 
         assertEq(veMoe.balanceOf(alice), 75e18, "test_OnModifyAndClaim::7");
         assertEq(veMoe.balanceOf(bob), 675e18, "test_OnModifyAndClaim::8");
@@ -236,8 +230,7 @@ contract VeMoeTest is Test {
     }
 
     function test_Vote() external {
-        veMoe.setVeMoePerSecond(1e18);
-        veMoe.setMaxVeMoePerMoe(100e18);
+        veMoe.setVeMoePerSecondPerMoe(1e18);
 
         vm.prank(alice);
         staking.stake(1e18);
@@ -321,8 +314,7 @@ contract VeMoeTest is Test {
     }
 
     function test_VoteOnTopPids() external {
-        veMoe.setVeMoePerSecond(1e18);
-        veMoe.setMaxVeMoePerMoe(100e18);
+        veMoe.setVeMoePerSecondPerMoe(1e18);
 
         vm.prank(alice);
         staking.stake(1e18);
@@ -430,8 +422,7 @@ contract VeMoeTest is Test {
     }
 
     function test_SetBribes() external {
-        veMoe.setVeMoePerSecond(1e18);
-        veMoe.setMaxVeMoePerMoe(100e18);
+        veMoe.setVeMoePerSecondPerMoe(1e18);
 
         vm.prank(alice);
         staking.stake(1e18);
@@ -527,8 +518,7 @@ contract VeMoeTest is Test {
     }
 
     function test_EmergencyUnsetBribes() external {
-        veMoe.setVeMoePerSecond(1e18);
-        veMoe.setMaxVeMoePerMoe(100e18);
+        veMoe.setVeMoePerSecondPerMoe(1e18);
 
         vm.prank(alice);
         staking.stake(1e18);
@@ -610,8 +600,7 @@ contract VeMoeTest is Test {
     }
 
     function test_ClaimBribesRewards() external {
-        veMoe.setVeMoePerSecond(1e18);
-        veMoe.setMaxVeMoePerMoe(100e18);
+        veMoe.setVeMoePerSecondPerMoe(1e18);
 
         vm.prank(alice);
         staking.stake(1e18);
