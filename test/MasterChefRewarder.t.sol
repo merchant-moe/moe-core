@@ -273,8 +273,8 @@ contract MasterChefRewarderTest is Test {
 
         rewarder.sweep(IERC20(address(0)), alice);
 
-        assertEq(address(rewarder).balance, 0, "test_Sweep::3");
-        assertEq(address(alice).balance, 1e18, "test_Sweep::4");
+        assertEq(address(rewarder).balance, 0, "test_Sweep::5");
+        assertEq(address(alice).balance, 1e18, "test_Sweep::6");
 
         vm.startPrank(address(masterchef));
         rewarder.link(0);
@@ -283,8 +283,8 @@ contract MasterChefRewarderTest is Test {
 
         rewarder.sweep(rewardToken, alice);
 
-        assertEq(rewardToken.balanceOf(alice), 100e18, "test_Sweep::5");
-        assertEq(rewardToken.balanceOf(address(rewarder)), 0, "test_Sweep::6");
+        assertEq(rewardToken.balanceOf(alice), 100e18, "test_Sweep::7");
+        assertEq(rewardToken.balanceOf(address(rewarder)), 0, "test_Sweep::8");
     }
 
     function test_Stop() public {
