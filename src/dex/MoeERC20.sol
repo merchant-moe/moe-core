@@ -1,7 +1,7 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.20;
 
-import "../interface/IMoeERC20.sol";
+import {IMoeERC20} from "./interfaces/IMoeERC20.sol";
 
 contract MoeERC20 is IMoeERC20 {
     string public constant override name = "Moe LP Token";

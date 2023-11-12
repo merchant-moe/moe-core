@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.20;
 
 import {IMoeERC20} from "./IMoeERC20.sol";
@@ -30,4 +30,7 @@ interface IMoePair is IMoeERC20 {
     function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external;
     function skim(address to) external;
     function sync() external;
+    function sweep(address token, address recipient, uint256 amount) external;
+
+    function initialize() external;
 }

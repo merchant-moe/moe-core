@@ -1,23 +1,23 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Clone} from "@tj-dexv2/src/libraries/Clone.sol";
 
-import "./MoeERC20.sol";
-import "../interface/IMoePair.sol";
-import "../interface/IMoeFactory.sol";
-import "../interface/IMoeCallee.sol";
+import {MoeERC20} from "./MoeERC20.sol";
+import {IMoePair} from "./interfaces/IMoePair.sol";
+import {IMoeFactory} from "./interfaces/IMoeFactory.sol";
+import {IMoeCallee} from "./interfaces/IMoeCallee.sol";
 
-contract MoePair is IMoePair, MoeERC20 {
+contract MoePair is IMoePair, MoeERC20, Clone {
     using SafeERC20 for IERC20;
 
     uint256 public constant override MINIMUM_LIQUIDITY = 10 ** 3;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes("transfer(address,uint256)")));
 
     address public immutable override factory;
-    IERC20 public immutable override token0;
-    IERC20 public immutable override token1;
 
     uint112 private reserve0; // uses single storage slot, accessible via getReserves
     uint112 private reserve1; // uses single storage slot, accessible via getReserves
@@ -27,7 +27,7 @@ contract MoePair is IMoePair, MoeERC20 {
     uint256 public override price1CumulativeLast;
     uint256 public override kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
 
-    uint256 private unlocked = 1;
+    uint256 private unlocked;
 
     modifier lock() {
         require(unlocked == 1, "Moe: LOCKED");
@@ -47,10 +47,31 @@ contract MoePair is IMoePair, MoeERC20 {
         _blockTimestampLast = blockTimestampLast;
     }
 
-    constructor(IERC20 _token0, IERC20 _token1) {
+    constructor() {
         factory = msg.sender;
-        token0 = _token0;
-        token1 = _token1;
+    }
+
+    function initialize() external override {
+        require(unlocked == 0);
+        unlocked = 1;
+    }
+
+    // returns the token0 address
+    function token0() public pure override returns (address) {
+        return address(_token0());
+    }
+
+    // returns the token1 address
+    function token1() public pure override returns (address) {
+        return address(_token1());
+    }
+
+    function _token0() internal pure returns (IERC20) {
+        return IERC20(_getArgAddress(0));
+    }
+
+    function _token1() internal pure returns (IERC20) {
+        return IERC20(_getArgAddress(20));
     }
 
     // update reserves and, on the first call per block, price accumulators
@@ -72,7 +93,9 @@ contract MoePair is IMoePair, MoeERC20 {
     }
 
     // if fee is on, send protocol fee equivalent to 1/6th of the growth in sqrt(k)
-    function _sendFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
+    function _sendFee() private returns (bool feeOn, uint112 _reserve0, uint112 _reserve1) {
+        (_reserve0, _reserve1,) = getReserves();
+
         address feeTo = IMoeFactory(factory).feeTo();
         feeOn = feeTo != address(0);
         uint256 _kLast = kLast; // gas savings
@@ -81,15 +104,24 @@ contract MoePair is IMoePair, MoeERC20 {
                 uint256 rootK = Math.sqrt(uint256(_reserve0) * _reserve1);
                 uint256 rootKLast = Math.sqrt(_kLast);
                 if (rootK > rootKLast) {
-                    uint256 numerator = totalSupply * (rootK - rootKLast);
+                    uint256 _totalSupply = totalSupply; // gas savings, never zero if kLast>0
+                    uint256 numerator = _totalSupply * (rootK - rootKLast);
                     uint256 denominator = rootK * 5 + rootKLast;
                     uint256 liquidity = numerator / denominator;
                     if (liquidity > 0) {
-                        uint256 amount0 = _reserve0 * liquidity / totalSupply;
-                        uint256 amount1 = _reserve1 * liquidity / totalSupply;
+                        // burn the liquidity
+                        _totalSupply += liquidity;
+                        uint256 amount0 = _reserve0 * liquidity / _totalSupply;
+                        uint256 amount1 = _reserve1 * liquidity / _totalSupply;
 
-                        if (amount0 > 0) token0.safeTransfer(feeTo, amount0);
-                        if (amount1 > 0) token1.safeTransfer(feeTo, amount1);
+                        if (amount0 > 0) {
+                            _reserve0 -= uint112(amount0);
+                            _token0().safeTransfer(feeTo, amount0);
+                        }
+                        if (amount1 > 0) {
+                            _reserve1 -= uint112(amount1);
+                            _token1().safeTransfer(feeTo, amount1);
+                        }
                     }
                 }
             }
@@ -100,13 +132,12 @@ contract MoePair is IMoePair, MoeERC20 {
 
     // this low-level function should be called from a contract which performs important safety checks
     function mint(address to) external override lock returns (uint256 liquidity) {
-        (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
-        uint256 balance0 = token0.balanceOf(address(this));
-        uint256 balance1 = token1.balanceOf(address(this));
+        (bool feeOn, uint112 _reserve0, uint112 _reserve1) = _sendFee(); // gas savings
+        uint256 balance0 = _token0().balanceOf(address(this));
+        uint256 balance1 = _token1().balanceOf(address(this));
         uint256 amount0 = balance0 - _reserve0;
         uint256 amount1 = balance1 - _reserve1;
 
-        bool feeOn = _sendFee(_reserve0, _reserve1);
         uint256 _totalSupply = totalSupply; // gas savings
         if (_totalSupply == 0) {
             liquidity = Math.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
@@ -124,23 +155,23 @@ contract MoePair is IMoePair, MoeERC20 {
 
     // this low-level function should be called from a contract which performs important safety checks
     function burn(address to) external override lock returns (uint256 amount0, uint256 amount1) {
-        (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
-        IERC20 _token0 = token0; // gas savings
-        IERC20 _token1 = token1; // gas savings
-        uint256 balance0 = _token0.balanceOf(address(this));
-        uint256 balance1 = _token1.balanceOf(address(this));
+        // (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
+        (bool feeOn, uint112 _reserve0, uint112 _reserve1) = _sendFee();
+        IERC20 token0_ = _token0(); // gas savings
+        IERC20 token1_ = _token1(); // gas savings
+        uint256 balance0 = token0_.balanceOf(address(this));
+        uint256 balance1 = token1_.balanceOf(address(this));
         uint256 liquidity = balanceOf[address(this)];
 
-        bool feeOn = _sendFee(_reserve0, _reserve1);
-        uint256 _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _sendFee
+        uint256 _totalSupply = totalSupply; // gas savings
         amount0 = liquidity * balance0 / _totalSupply; // using balances ensures pro-rata distribution
         amount1 = liquidity * balance1 / _totalSupply; // using balances ensures pro-rata distribution
         require(amount0 > 0 && amount1 > 0, "Moe: INSUFFICIENT_LIQUIDITY_BURNED");
         _burn(address(this), liquidity);
-        _token0.safeTransfer(to, amount0);
-        _token1.safeTransfer(to, amount1);
-        balance0 = _token0.balanceOf(address(this));
-        balance1 = _token1.balanceOf(address(this));
+        token0_.safeTransfer(to, amount0);
+        token1_.safeTransfer(to, amount1);
+        balance0 = token0_.balanceOf(address(this));
+        balance1 = token1_.balanceOf(address(this));
 
         _update(balance0, balance1, _reserve0, _reserve1);
         if (feeOn) kLast = uint256(reserve0) * reserve1; // reserve0 and reserve1 are up-to-date
@@ -157,14 +188,14 @@ contract MoePair is IMoePair, MoeERC20 {
         uint256 balance1;
         {
             // scope for _token{0,1}, avoids stack too deep errors
-            IERC20 _token0 = token0;
-            IERC20 _token1 = token1;
-            require(to != _token0 && to != _token1, "Moe: INVALID_TO");
-            if (amount0Out > 0) _token0.safeTransfer(to, amount0Out); // optimistically transfer tokens
-            if (amount1Out > 0) _token1.safeTransfer(to, amount1Out); // optimistically transfer tokens
+            IERC20 token0_ = _token0();
+            IERC20 token1_ = _token1();
+            require(to != address(token0_) && to != address(token1_), "Moe: INVALID_TO");
+            if (amount0Out > 0) token0_.safeTransfer(to, amount0Out); // optimistically transfer tokens
+            if (amount1Out > 0) token1_.safeTransfer(to, amount1Out); // optimistically transfer tokens
             if (data.length > 0) IMoeCallee(to).moeCall(msg.sender, amount0Out, amount1Out, data);
-            balance0 = _token0.balanceOf(address(this));
-            balance1 = _token1.balanceOf(address(this));
+            balance0 = token0_.balanceOf(address(this));
+            balance1 = token1_.balanceOf(address(this));
         }
         uint256 amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
         uint256 amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
@@ -182,14 +213,21 @@ contract MoePair is IMoePair, MoeERC20 {
 
     // force balances to match reserves
     function skim(address to) external override lock {
-        IERC20 _token0 = token0; // gas savings
-        IERC20 _token1 = token1; // gas savings
-        _token0.safeTransfer(to, _token0.balanceOf(address(this)) - reserve0);
-        _token1.safeTransfer(to, _token1.balanceOf(address(this)) - reserve1);
+        IERC20 token0_ = _token0(); // gas savings
+        IERC20 token1_ = _token1(); // gas savings
+        token0_.safeTransfer(to, token0_.balanceOf(address(this)) - reserve0);
+        token1_.safeTransfer(to, token1_.balanceOf(address(this)) - reserve1);
     }
 
     // force reserves to match balances
     function sync() external override lock {
-        _update(token0.balanceOf(address(this)), token1.balanceOf(address(this)), reserve0, reserve1);
+        _update(_token0().balanceOf(address(this)), _token1().balanceOf(address(this)), reserve0, reserve1);
+    }
+
+    // sweep tokens sent by mistake
+    function sweep(address token, address recipient, uint256 amount) external override {
+        require(msg.sender == Ownable(factory).owner(), "Moe: FORBIDDEN");
+        require(token != address(_token0()) && token != address(_token1()), "Moe: INVALID_TOKEN");
+        IERC20(token).safeTransfer(recipient, amount);
     }
 }
