@@ -7,3 +7,6 @@
 [submodule "lib/openzeppelin-contracts-upgradeable"]
 	path = lib/openzeppelin-contracts-upgradeable
 	url = https://github.com/openzeppelin/openzeppelin-contracts-upgradeable
+[submodule "lib/dexv2"]
+	path = lib/dexv2
+	url = https://github.com/traderjoe-xyz/dexv2
