@@ -41,4 +41,10 @@ library Parameters {
 
     // VeMoe
     uint256 internal constant maxVeMoePerMoe = 0;
+
+    // Factory
+    address internal constant feeTo = address(6);
+
+    // Router
+    address internal constant wNative = address(7);
 }
