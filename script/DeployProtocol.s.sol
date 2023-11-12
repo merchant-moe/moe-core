@@ -3,6 +3,8 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
 
+import "@openzeppelin/contracts/finance/VestingWallet.sol";
+
 import "./Parameters.sol";
 import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
 import "../src/transparent/ProxyAdmin2Step.sol";
@@ -24,7 +26,13 @@ contract DeployProtocolScript is Script {
 
     function run()
         public
-        returns (ProxyAdmin2Step proxyAdmin, Moe moe, Addresses memory proxies, Addresses memory implementations)
+        returns (
+            ProxyAdmin2Step proxyAdmin,
+            Moe moe,
+            VestingWallet[] memory vestingWallets,
+            Addresses memory proxies,
+            Addresses memory implementations
+        )
     {
         // add the custom chain
         setChain(
@@ -45,10 +53,18 @@ contract DeployProtocolScript is Script {
         implementations = _computeAddresses(deployer);
         proxies = _computeAddresses(deployer);
 
+        require(
+            Parameters.liquidityMiningPercent + Parameters.treasuryPercent + Parameters.stakingPercent
+                + Parameters.seedPercent + Parameters.futureFundingPercent + Parameters.teamPercent
+                + Parameters.airdropPercent == 1e18,
+            "run::0"
+        );
+
         // Deploy ProxyAdmin
 
+        vm.startBroadcast(pk);
+
         {
-            vm.broadcast(pk);
             proxyAdmin = new ProxyAdmin2Step(Parameters.multisig);
 
             require(proxyAdminAddress == address(proxyAdmin), "run::1");
@@ -57,8 +73,12 @@ contract DeployProtocolScript is Script {
         // Deploy MOE
 
         {
-            vm.broadcast(pk);
-            moe = new Moe(proxies.masterChef, Parameters.initialSupply, Parameters.maxSupply);
+            uint256 initialShare = Parameters.stakingPercent + Parameters.seedPercent + Parameters.futureFundingPercent
+                + Parameters.teamPercent + Parameters.airdropPercent;
+
+            uint256 initialSupply = initialShare * Parameters.maxSupply / 1e18;
+
+            moe = new Moe(proxies.masterChef, initialSupply, Parameters.maxSupply);
 
             require(moeAddress == address(moe), "run::2");
         }
@@ -66,14 +86,15 @@ contract DeployProtocolScript is Script {
         // Deploy Implementations
 
         {
-            vm.broadcast(pk);
-            MasterChef masterChefImplementation =
-                new MasterChef(IMoe(moeAddress), IVeMoe(proxies.veMoe), Parameters.treasuryShare);
+            MasterChef masterChefImplementation = new MasterChef(
+                IMoe(moeAddress),
+                IVeMoe(proxies.veMoe),
+                Parameters.treasuryPercent * 1e18 / (Parameters.treasuryPercent + Parameters.liquidityMiningPercent)
+            );
 
             require(implementations.masterChef == address(masterChefImplementation), "run::3");
         }
         {
-            vm.broadcast(pk);
             MoeStaking moeStakingImplementation =
                 new MoeStaking(IMoe(moeAddress), IVeMoe(proxies.veMoe), IStableMoe(proxies.sMoe));
 
@@ -81,7 +102,6 @@ contract DeployProtocolScript is Script {
         }
 
         {
-            vm.broadcast(pk);
             VeMoe veMoeImplementation = new VeMoe(
             IMoeStaking(proxies.moeStaking), IMasterChef(proxies.masterChef), Parameters.maxVeMoePerMoe
         );
@@ -90,7 +110,6 @@ contract DeployProtocolScript is Script {
         }
 
         {
-            vm.broadcast(pk);
             StableMoe sMoeImplementation = new StableMoe(IMoeStaking(proxies.moeStaking));
 
             require(implementations.sMoe == address(sMoeImplementation), "run::6");
@@ -99,7 +118,6 @@ contract DeployProtocolScript is Script {
         // Deploy Proxies
 
         {
-            vm.broadcast(pk);
             TransparentUpgradeableProxy2Step masterChefProxy = new TransparentUpgradeableProxy2Step(
                 implementations.masterChef,
                 proxyAdmin,
@@ -110,7 +128,6 @@ contract DeployProtocolScript is Script {
         }
 
         {
-            vm.broadcast(pk);
             TransparentUpgradeableProxy2Step moeStakingProxy = new TransparentUpgradeableProxy2Step(
                 implementations.moeStaking,
                 proxyAdmin,
@@ -120,7 +137,6 @@ contract DeployProtocolScript is Script {
             require(proxies.moeStaking == address(moeStakingProxy), "run::8");
         }
         {
-            vm.broadcast(pk);
             TransparentUpgradeableProxy2Step veMoeProxy = new TransparentUpgradeableProxy2Step(
                 implementations.veMoe,
                 proxyAdmin,
@@ -131,7 +147,6 @@ contract DeployProtocolScript is Script {
         }
 
         {
-            vm.broadcast(pk);
             TransparentUpgradeableProxy2Step sMoeProxy = new TransparentUpgradeableProxy2Step(
                 implementations.sMoe,
                 proxyAdmin,
@@ -140,6 +155,34 @@ contract DeployProtocolScript is Script {
 
             require(proxies.sMoe == address(sMoeProxy), "run::10");
         }
+
+        vestingWallets = new VestingWallet[](3);
+
+        vestingWallets[0] = new VestingWallet(
+            Parameters.seedAddress,
+            Parameters.start + Parameters.seedCliff,
+            Parameters.seedDuration
+        );
+
+        vestingWallets[1] = new VestingWallet(
+            Parameters.futureFundingAddress,
+            Parameters.start + Parameters.futureFundingCliff,
+            Parameters.futureFundingDuration
+        );
+
+        vestingWallets[2] = new VestingWallet(
+            Parameters.teamAddress,
+            Parameters.start + Parameters.teamCliff,
+            Parameters.teamDuration
+        );
+
+        moe.transfer(address(vestingWallets[0]), Parameters.seedPercent * Parameters.maxSupply / 1e18);
+        moe.transfer(address(vestingWallets[1]), Parameters.futureFundingPercent * Parameters.maxSupply / 1e18);
+        moe.transfer(address(vestingWallets[2]), Parameters.teamPercent * Parameters.maxSupply / 1e18);
+
+        moe.transfer(Parameters.treasury, moe.balanceOf(deployer));
+
+        vm.stopBroadcast();
     }
 
     function _computeAddresses(address deployer) internal returns (Addresses memory addresses) {
