@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import "../script/DeployProtocol.s.sol";
+import "../script/0_DeployProtocol.s.sol";
 
 contract DeployProtocolTest is Test {
     function test_Deploy() public {

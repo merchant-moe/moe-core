@@ -57,7 +57,7 @@ contract DeployProtocolScript is Script {
             Parameters.liquidityMiningPercent + Parameters.treasuryPercent + Parameters.stakingPercent
                 + Parameters.seedPercent + Parameters.futureFundingPercent + Parameters.teamPercent
                 + Parameters.airdropPercent == 1e18,
-            "run::0"
+            "run::1"
         );
 
         // Deploy ProxyAdmin
@@ -67,7 +67,7 @@ contract DeployProtocolScript is Script {
         {
             proxyAdmin = new ProxyAdmin2Step(Parameters.multisig);
 
-            require(proxyAdminAddress == address(proxyAdmin), "run::1");
+            require(proxyAdminAddress == address(proxyAdmin), "run::2");
         }
 
         // Deploy MOE
@@ -80,7 +80,7 @@ contract DeployProtocolScript is Script {
 
             moe = new Moe(proxies.masterChef, initialSupply, Parameters.maxSupply);
 
-            require(moeAddress == address(moe), "run::2");
+            require(moeAddress == address(moe), "run::3");
         }
 
         // Deploy Implementations
@@ -92,13 +92,13 @@ contract DeployProtocolScript is Script {
                 Parameters.treasuryPercent * 1e18 / (Parameters.treasuryPercent + Parameters.liquidityMiningPercent)
             );
 
-            require(implementations.masterChef == address(masterChefImplementation), "run::3");
+            require(implementations.masterChef == address(masterChefImplementation), "run::4");
         }
         {
             MoeStaking moeStakingImplementation =
                 new MoeStaking(IMoe(moeAddress), IVeMoe(proxies.veMoe), IStableMoe(proxies.sMoe));
 
-            require(implementations.moeStaking == address(moeStakingImplementation), "run::4");
+            require(implementations.moeStaking == address(moeStakingImplementation), "run::5");
         }
 
         {
@@ -106,13 +106,13 @@ contract DeployProtocolScript is Script {
             IMoeStaking(proxies.moeStaking), IMasterChef(proxies.masterChef), Parameters.maxVeMoePerMoe
         );
 
-            require(implementations.veMoe == address(veMoeImplementation), "run::5");
+            require(implementations.veMoe == address(veMoeImplementation), "run::6");
         }
 
         {
             StableMoe sMoeImplementation = new StableMoe(IMoeStaking(proxies.moeStaking));
 
-            require(implementations.sMoe == address(sMoeImplementation), "run::6");
+            require(implementations.sMoe == address(sMoeImplementation), "run::7");
         }
 
         // Deploy Proxies
@@ -124,7 +124,7 @@ contract DeployProtocolScript is Script {
                 abi.encodeWithSelector(MasterChef.initialize.selector, Parameters.multisig, Parameters.treasury)
             );
 
-            require(proxies.masterChef == address(masterChefProxy), "run::7");
+            require(proxies.masterChef == address(masterChefProxy), "run::8");
         }
 
         {
@@ -134,7 +134,7 @@ contract DeployProtocolScript is Script {
                 ""
             );
 
-            require(proxies.moeStaking == address(moeStakingProxy), "run::8");
+            require(proxies.moeStaking == address(moeStakingProxy), "run::9");
         }
         {
             TransparentUpgradeableProxy2Step veMoeProxy = new TransparentUpgradeableProxy2Step(
@@ -143,7 +143,7 @@ contract DeployProtocolScript is Script {
                 abi.encodeWithSelector(VeMoe.initialize.selector, Parameters.multisig)
             );
 
-            require(proxies.veMoe == address(veMoeProxy), "run::9");
+            require(proxies.veMoe == address(veMoeProxy), "run::10");
         }
 
         {
@@ -153,7 +153,7 @@ contract DeployProtocolScript is Script {
                 abi.encodeWithSelector(StableMoe.initialize.selector, Parameters.multisig)
             );
 
-            require(proxies.sMoe == address(sMoeProxy), "run::10");
+            require(proxies.sMoe == address(sMoeProxy), "run::11");
         }
 
         vestingWallets = new VestingWallet[](3);
