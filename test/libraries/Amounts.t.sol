@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import "../../src/library/Amounts.sol";
+import "../../src/libraries/Amounts.sol";
 
 contract AmountsTest is Test {
     Amounts.Parameter amounts;

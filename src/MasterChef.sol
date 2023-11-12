@@ -8,14 +8,14 @@ import {
     Initializable
 } from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 
-import {Math} from "./library/Math.sol";
-import {Rewarder} from "./library/Rewarder.sol";
-import {Constants} from "./library/Constants.sol";
-import {Amounts} from "./library/Amounts.sol";
-import {IMoe} from "./interface/IMoe.sol";
-import {IVeMoe} from "./interface/IVeMoe.sol";
-import {IMasterChef} from "./interface/IMasterChef.sol";
-import {IMasterChefRewarder} from "./interface/IMasterChefRewarder.sol";
+import {Math} from "./libraries/Math.sol";
+import {Rewarder} from "./libraries/Rewarder.sol";
+import {Constants} from "./libraries/Constants.sol";
+import {Amounts} from "./libraries/Amounts.sol";
+import {IMoe} from "./interfaces/IMoe.sol";
+import {IVeMoe} from "./interfaces/IVeMoe.sol";
+import {IMasterChef} from "./interfaces/IMasterChef.sol";
+import {IMasterChefRewarder} from "./interfaces/IMasterChefRewarder.sol";
 
 /**
  * @title Master Chef Contract

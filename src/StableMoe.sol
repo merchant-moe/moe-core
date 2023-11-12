@@ -9,11 +9,11 @@ import {
     Initializable
 } from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 
-import {Math} from "./library/Math.sol";
-import {Rewarder} from "./library/Rewarder.sol";
-import {IMoeStaking} from "./interface/IMoeStaking.sol";
-import {IStableMoe} from "./interface/IStableMoe.sol";
-import {Constants} from "./library/Constants.sol";
+import {Math} from "./libraries/Math.sol";
+import {Rewarder} from "./libraries/Rewarder.sol";
+import {IMoeStaking} from "./interfaces/IMoeStaking.sol";
+import {IStableMoe} from "./interfaces/IStableMoe.sol";
+import {Constants} from "./libraries/Constants.sol";
 
 /**
  * @title StableMoe Contract

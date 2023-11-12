@@ -9,14 +9,14 @@ import {
     Initializable
 } from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 
-import {Math} from "./library/Math.sol";
-import {Rewarder} from "./library/Rewarder.sol";
-import {Amounts} from "./library/Amounts.sol";
-import {Constants} from "./library/Constants.sol";
-import {IVeMoeRewarder} from "./interface/IVeMoeRewarder.sol";
-import {IMoeStaking} from "./interface/IMoeStaking.sol";
-import {IMasterChef} from "./interface/IMasterChef.sol";
-import {IVeMoe} from "./interface/IVeMoe.sol";
+import {Math} from "./libraries/Math.sol";
+import {Rewarder} from "./libraries/Rewarder.sol";
+import {Amounts} from "./libraries/Amounts.sol";
+import {Constants} from "./libraries/Constants.sol";
+import {IVeMoeRewarder} from "./interfaces/IVeMoeRewarder.sol";
+import {IMoeStaking} from "./interfaces/IMoeStaking.sol";
+import {IMasterChef} from "./interfaces/IMasterChef.sol";
+import {IVeMoe} from "./interfaces/IVeMoe.sol";
 
 /**
  * @title VeMoe Contract

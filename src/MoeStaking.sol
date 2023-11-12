@@ -3,11 +3,11 @@ pragma solidity ^0.8.20;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {Math} from "./library/Math.sol";
-import {Amounts} from "./library/Amounts.sol";
-import {IMoeStaking} from "./interface/IMoeStaking.sol";
-import {IVeMoe} from "./interface/IVeMoe.sol";
-import {IStableMoe} from "./interface/IStableMoe.sol";
+import {Math} from "./libraries/Math.sol";
+import {Amounts} from "./libraries/Amounts.sol";
+import {IMoeStaking} from "./interfaces/IMoeStaking.sol";
+import {IVeMoe} from "./interfaces/IVeMoe.sol";
+import {IStableMoe} from "./interfaces/IStableMoe.sol";
 
 /**
  * @title Moe Staking Contract

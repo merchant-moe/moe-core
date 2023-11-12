@@ -10,7 +10,7 @@ import "../src/VeMoe.sol";
 import "../src/MoeStaking.sol";
 import "../src/Moe.sol";
 import "../src/MasterChef.sol";
-import "../src/VeMoeRewarder.sol";
+import "../src/rewarders/VeMoeRewarder.sol";
 import "./mocks/MockNoRevert.sol";
 import "./mocks/MockERC20.sol";
 

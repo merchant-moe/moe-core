@@ -4,9 +4,9 @@ pragma solidity ^0.8.20;
 import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {Math} from "./library/Math.sol";
-import {Rewarder} from "./library/Rewarder.sol";
-import {IBaseRewarder} from "./interface/IBaseRewarder.sol";
+import {Math} from "../libraries/Math.sol";
+import {Rewarder} from "../libraries/Rewarder.sol";
+import {IBaseRewarder} from "../interfaces/IBaseRewarder.sol";
 
 /**
  * @title Base Rewarder Contract

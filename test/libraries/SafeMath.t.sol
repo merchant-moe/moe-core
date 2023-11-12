@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import "../../src/library/Math.sol";
+import "../../src/libraries/Math.sol";
 
 contract MathTest is Test {
     function test_fuzz_AddDelta(uint256 x, int256 delta) public returns (uint256 y) {

@@ -6,8 +6,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IVeMoeRewarder} from "./IVeMoeRewarder.sol";
 import {IMoeStaking} from "./IMoeStaking.sol";
 import {IMasterChef} from "./IMasterChef.sol";
-import {Amounts} from "../library/Amounts.sol";
-import {Rewarder} from "../library/Rewarder.sol";
+import {Amounts} from "../libraries/Amounts.sol";
+import {Rewarder} from "../libraries/Rewarder.sol";
 
 interface IVeMoe {
     error VeMoe__InvalidLength();

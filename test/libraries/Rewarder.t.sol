@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import "../../src/library/Rewarder.sol";
+import "../../src/libraries/Rewarder.sol";
 
 contract RewarderTest is Test {
     Amounts.Parameter amounts;

@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {Rewarder} from "../library/Rewarder.sol";
-import {IMoeStaking} from "../interface/IMoeStaking.sol";
+import {Rewarder} from "../libraries/Rewarder.sol";
+import {IMoeStaking} from "../interfaces/IMoeStaking.sol";
 
 interface IStableMoe {
     error StableMoe__UnauthorizedCaller();

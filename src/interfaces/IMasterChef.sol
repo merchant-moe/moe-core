@@ -6,8 +6,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IMasterChefRewarder} from "./IMasterChefRewarder.sol";
 import {IMoe} from "./IMoe.sol";
 import {IVeMoe} from "./IVeMoe.sol";
-import {Rewarder} from "../library/Rewarder.sol";
-import {Amounts} from "../library/Amounts.sol";
+import {Rewarder} from "../libraries/Rewarder.sol";
+import {Amounts} from "../libraries/Amounts.sol";
 
 interface IMasterChef {
     error MasterChef__InvalidPid(uint256 pid);

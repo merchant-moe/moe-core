@@ -9,7 +9,7 @@ import "../src/MasterChef.sol";
 import "../src/Moe.sol";
 import "./mocks/MockVeMoe.sol";
 import "./mocks/MockERC20.sol";
-import "../src/MasterChefRewarder.sol";
+import "../src/rewarders/MasterChefRewarder.sol";
 
 contract MasterChefTest is Test {
     MasterChef masterChef;

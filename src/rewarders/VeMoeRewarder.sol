@@ -3,9 +3,9 @@ pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {IVeMoe} from "./interface/IVeMoe.sol";
+import {IVeMoe} from "../interfaces/IVeMoe.sol";
+import {IVeMoeRewarder} from "../interfaces/IVeMoeRewarder.sol";
 import {BaseRewarder} from "./BaseRewarder.sol";
-import {IVeMoeRewarder} from "./interface/IVeMoeRewarder.sol";
 
 /**
  * @title VeMoe Rewarder Contract
