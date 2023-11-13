@@ -49,6 +49,8 @@ contract MoePair is IMoePair, MoeERC20, Clone {
 
     constructor() {
         factory = msg.sender;
+
+        unlocked = type(uint256).max;
     }
 
     function initialize() external override {

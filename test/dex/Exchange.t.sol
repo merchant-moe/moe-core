@@ -25,9 +25,7 @@ contract ExchangeTest is Test {
         token9d = new MockERC20("token9d", "9", 9);
         token6d = new MockERC20("token6d", "6", 6);
 
-        factory = new MoeFactory(address(this));
-
-        factory.setFeeTo(treasury);
+        factory = new MoeFactory(treasury, address(this));
 
         vm.label(address(token18d), "token18d");
         vm.label(address(token9d), "token9d");

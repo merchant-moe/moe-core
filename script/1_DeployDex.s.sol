@@ -10,7 +10,7 @@ import "../src/dex/MoeFactory.sol";
 import "../src/dex/MoePair.sol";
 import "../src/dex/MoeRouter.sol";
 
-contract DeployProtocolScript is Script {
+contract DeployDexScript is Script {
     function run() public returns (MoeFactory moeFactory, address moePairImplentation, MoeRouter router) {
         // add the custom chain
         setChain(
@@ -24,14 +24,12 @@ contract DeployProtocolScript is Script {
 
         vm.startBroadcast(pk);
 
-        moeFactory = new MoeFactory(Parameters.multisig);
-
-        moeFactory.setFeeTo(Parameters.feeTo);
-
-        moePairImplentation = address(new MoePair());
+        moeFactory = new MoeFactory(Parameters.feeTo, Parameters.multisig);
 
         router = new MoeRouter(address(moeFactory), Parameters.wNative);
 
         vm.stopBroadcast();
+
+        moePairImplentation = moeFactory.implementation();
     }
 }

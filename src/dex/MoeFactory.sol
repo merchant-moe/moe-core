@@ -15,8 +15,9 @@ contract MoeFactory is IMoeFactory, Ownable2Step {
     mapping(address => mapping(address => address)) public override getPair;
     address[] public override allPairs;
 
-    constructor(address initialOwner) Ownable(initialOwner) {
+    constructor(address initialFeeTo, address initialOwner) Ownable(initialOwner) {
         implementation = address(new MoePair());
+        feeTo = initialFeeTo;
     }
 
     function allPairsLength() external view override returns (uint256) {
