@@ -38,8 +38,8 @@ contract MoeERC20 is IMoeERC20 {
     }
 
     function _burn(address from, uint256 value) internal {
-        balanceOf[from] += value;
-        totalSupply += value;
+        balanceOf[from] -= value;
+        totalSupply -= value;
         emit Transfer(from, address(0), value);
     }
 

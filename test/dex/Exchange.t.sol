@@ -99,6 +99,8 @@ contract ExchangeTest is Test {
 
         MoePair(pair18_9).mint(alice);
 
+        assertEq(MoePair(pair18_9).balanceOf(alice), MoePair(pair18_9).totalSupply() - 1e3, "test_Swap::2");
+
         uint256 amount1In = 1e18;
 
         MockERC20(address(token18d)).mint(pair18_9, amount1In);
@@ -110,8 +112,8 @@ contract ExchangeTest is Test {
 
         MoePair(pair18_9).swap(amount0Out, 0, bob, "");
 
-        assertEq(token9d.balanceOf(pair18_9), reserve0 - amount0Out, "test_Swap::2");
-        assertEq(token18d.balanceOf(pair18_9), reserve1 + amount1In, "test_Swap::3");
+        assertEq(token9d.balanceOf(pair18_9), reserve0 - amount0Out, "test_Swap::3");
+        assertEq(token18d.balanceOf(pair18_9), reserve1 + amount1In, "test_Swap::4");
 
         uint256 amount0In = (amount0Out * 1.003e18 - 1) / 1e18 + 1;
 
@@ -126,8 +128,8 @@ contract ExchangeTest is Test {
 
         MoePair(pair18_9).swap(0, amount1Out, bob, "");
 
-        assertEq(token9d.balanceOf(pair18_9), reserve0After + amount0In, "test_Swap::4");
-        assertEq(token18d.balanceOf(pair18_9), reserve1After - amount1Out, "test_Swap::5");
+        assertEq(token9d.balanceOf(pair18_9), reserve0After + amount0In, "test_Swap::5");
+        assertEq(token18d.balanceOf(pair18_9), reserve1After - amount1Out, "test_Swap::6");
 
         uint256 balance = MoePair(pair18_9).balanceOf(alice);
 
@@ -135,10 +137,13 @@ contract ExchangeTest is Test {
         MoePair(pair18_9).transfer(pair18_9, balance);
         MoePair(pair18_9).burn(alice);
 
-        assertGt(token9d.balanceOf(treasury), 0, "test_Swap::6");
-        assertGt(token18d.balanceOf(treasury), 0, "test_Swap::7");
+        assertEq(MoePair(pair18_9).balanceOf(alice), 0, "test_Swap::7");
+        assertEq(MoePair(pair18_9).totalSupply(), 1e3, "test_Swap::8");
 
-        assertGt(token9d.balanceOf(alice), reserve0, "test_Swap::8");
-        assertGt(token18d.balanceOf(alice), reserve1, "test_Swap::9");
+        assertGt(token9d.balanceOf(treasury), 0, "test_Swap::9");
+        assertGt(token18d.balanceOf(treasury), 0, "test_Swap::10");
+
+        assertGt(token9d.balanceOf(alice), reserve0, "test_Swap::11");
+        assertGt(token18d.balanceOf(alice), reserve1, "test_Swap::12");
     }
 }
