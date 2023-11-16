@@ -68,6 +68,15 @@ The dex contracts are a fork of [Uniswap v2](https://github.com/Uniswap/v2-core)
 - pairs are deployed as immutable clones instead of redeploying the entire pair. This will greatly reduce the gas cost of creating pairs.
 - instead of minting protocol fees as LP tokens, they are directly sent to the feeTo address. This will reduce the gas cost of SMoe conversion and increase the rewards by summing the fees from all pairs.
 
+## Order of operations
+
+1. Fill and verify the [parameters](./script/parameters.json).
+2. Deploy the Moe protocol contracts using the [protocol script](./script/0_DeployProtocol.s.sol).
+3. Deploy the dex contracts using the [dex script](./script/1_DeployDex.sol).
+4. Creates the pools and farms.
+5. Set the `veMoePerSecPerMoe` on the `VeMoe` contract to start the veMOE distribution.
+6. Once there is some votes on the top pools, set the `moePerSec` on the `MasterChef` contract to start the MOE distribution.
+
 ## Foundry
 
 This repository uses Foundry. The documentation can be found [here](https://book.getfoundry.sh/).
