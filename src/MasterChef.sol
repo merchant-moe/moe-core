@@ -262,6 +262,14 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     }
 
     /**
+     * @dev Updates all the farms in the pids list.
+     * @param pids The pool IDs to update.
+     */
+    function updateAll(uint256[] calldata pids) external override {
+        _updateAll(pids);
+    }
+
+    /**
      * @dev Sets the MOE per second.
      * It will update all the farms that are in the top pool IDs.
      * @param moePerSecond The new MOE per second.
@@ -309,14 +317,6 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      */
     function setTreasury(address treasury) external override onlyOwner {
         _setTreasury(treasury);
-    }
-
-    /**
-     * @dev Updates all the farms in the pids list.
-     * @param pids The pool IDs to update.
-     */
-    function updateAll(uint256[] calldata pids) external override {
-        _updateAll(pids);
     }
 
     /**
