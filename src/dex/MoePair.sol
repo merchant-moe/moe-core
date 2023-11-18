@@ -37,6 +37,16 @@ contract MoePair is IMoePair, MoeERC20, Clone {
         unlocked = 1;
     }
 
+    // returns the token0 address
+    function token0() public pure override returns (address) {
+        return address(_token0());
+    }
+
+    // returns the token1 address
+    function token1() public pure override returns (address) {
+        return address(_token1());
+    }
+
     function getReserves()
         public
         view
@@ -60,21 +70,11 @@ contract MoePair is IMoePair, MoeERC20, Clone {
         unlocked = 1;
     }
 
-    // returns the token0 address
-    function token0() public pure override returns (address) {
-        return address(_token0());
-    }
-
-    // returns the token1 address
-    function token1() public pure override returns (address) {
-        return address(_token1());
-    }
-
-    function _token0() internal pure returns (IERC20) {
+    function _token0() private pure returns (IERC20) {
         return IERC20(_getArgAddress(0));
     }
 
-    function _token1() internal pure returns (IERC20) {
+    function _token1() private pure returns (IERC20) {
         return IERC20(_getArgAddress(20));
     }
 
