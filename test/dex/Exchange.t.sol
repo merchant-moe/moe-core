@@ -39,7 +39,14 @@ contract ExchangeTest is Test {
         vm.prank(address(factory));
         address pair = address(new MoePair());
 
-        assertEq(keccak256(factory.implementation().code), keccak256(pair.code), "test_Initialize::3");
+        bytes memory pairCode = pair.code;
+        address factoryImpl = factory.implementation();
+
+        assembly {
+            mstore(add(add(pairCode, 0x20), 0x32c), factoryImpl)
+        }
+
+        assertEq(keccak256(factoryImpl.code), keccak256(pairCode), "test_Initialize::3");
     }
 
     function test_CreatePair() public {
@@ -56,34 +63,37 @@ contract ExchangeTest is Test {
 
         assertEq(MoePair(pair18_9).token0(), address(token0), "test_CreatePair::5");
         assertEq(MoePair(pair18_9).token1(), address(token1), "test_CreatePair::6");
+        assertEq(MoePair(pair18_9).implementation(), factory.implementation(), "test_CreatePair::7");
 
         address pair18_6 = factory.createPair(address(token18d), address(token6d));
 
-        assertEq(factory.getPair(address(token18d), address(token6d)), pair18_6, "test_CreatePair::7");
-        assertEq(factory.getPair(address(token6d), address(token18d)), pair18_6, "test_CreatePair::8");
-        assertEq(factory.allPairs(1), pair18_6, "test_CreatePair::9");
-        assertEq(factory.allPairsLength(), 2, "test_CreatePair::10");
+        assertEq(factory.getPair(address(token18d), address(token6d)), pair18_6, "test_CreatePair::8");
+        assertEq(factory.getPair(address(token6d), address(token18d)), pair18_6, "test_CreatePair::9");
+        assertEq(factory.allPairs(1), pair18_6, "test_CreatePair::10");
+        assertEq(factory.allPairsLength(), 2, "test_CreatePair::11");
 
         (token0, token1) = address(token18d) < address(token6d)
             ? (address(token18d), address(token6d))
             : (address(token6d), address(token18d));
 
-        assertEq(MoePair(pair18_6).token0(), address(token0), "test_CreatePair::11");
-        assertEq(MoePair(pair18_6).token1(), address(token1), "test_CreatePair::12");
+        assertEq(MoePair(pair18_6).token0(), address(token0), "test_CreatePair::12");
+        assertEq(MoePair(pair18_6).token1(), address(token1), "test_CreatePair::13");
+        assertEq(MoePair(pair18_6).implementation(), factory.implementation(), "test_CreatePair::14");
 
         address pair9_6 = factory.createPair(address(token9d), address(token6d));
 
-        assertEq(factory.getPair(address(token9d), address(token6d)), pair9_6, "test_CreatePair::13");
-        assertEq(factory.getPair(address(token6d), address(token9d)), pair9_6, "test_CreatePair::14");
-        assertEq(factory.allPairs(2), pair9_6, "test_CreatePair::15");
-        assertEq(factory.allPairsLength(), 3, "test_CreatePair::16");
+        assertEq(factory.getPair(address(token9d), address(token6d)), pair9_6, "test_CreatePair::15");
+        assertEq(factory.getPair(address(token6d), address(token9d)), pair9_6, "test_CreatePair::16");
+        assertEq(factory.allPairs(2), pair9_6, "test_CreatePair::17");
+        assertEq(factory.allPairsLength(), 3, "test_CreatePair::18");
 
         (token0, token1) = address(token9d) < address(token6d)
             ? (address(token9d), address(token6d))
             : (address(token6d), address(token9d));
 
-        assertEq(MoePair(pair9_6).token0(), address(token0), "test_CreatePair::17");
-        assertEq(MoePair(pair9_6).token1(), address(token1), "test_CreatePair::18");
+        assertEq(MoePair(pair9_6).token0(), address(token0), "test_CreatePair::19");
+        assertEq(MoePair(pair9_6).token1(), address(token1), "test_CreatePair::20");
+        assertEq(MoePair(pair9_6).implementation(), factory.implementation(), "test_CreatePair::21");
     }
 
     function test_Swap() public {

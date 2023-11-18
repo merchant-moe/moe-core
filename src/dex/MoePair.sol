@@ -18,6 +18,7 @@ contract MoePair is IMoePair, MoeERC20, Clone {
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes("transfer(address,uint256)")));
 
     address public immutable override factory;
+    address public immutable override implementation;
 
     uint112 private reserve0; // uses single storage slot, accessible via getReserves
     uint112 private reserve1; // uses single storage slot, accessible via getReserves
@@ -49,6 +50,7 @@ contract MoePair is IMoePair, MoeERC20, Clone {
 
     constructor() {
         factory = msg.sender;
+        implementation = address(this);
 
         unlocked = type(uint256).max;
     }
