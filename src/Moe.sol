@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20Permit, ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
 import {IMoe} from "./interfaces/IMoe.sol";
 
@@ -9,7 +9,7 @@ import {IMoe} from "./interfaces/IMoe.sol";
  * @title Moe Token Contract
  * @dev This contract implements the ERC20 standard and provides additional functionality for the Moe Token.
  */
-contract Moe is ERC20, IMoe {
+contract Moe is ERC20Permit, IMoe {
     address private immutable _minter;
     uint256 private immutable _maxSupply;
 
@@ -19,7 +19,10 @@ contract Moe is ERC20, IMoe {
      * @param initialSupply The initial supply of tokens to be minted.
      * @param maxSupply The maximum supply of tokens that can be minted.
      */
-    constructor(address minter, uint256 initialSupply, uint256 maxSupply) ERC20("Moe Token", "MOE") {
+    constructor(address minter, uint256 initialSupply, uint256 maxSupply)
+        ERC20Permit("Moe Token")
+        ERC20("Moe Token", "MOE")
+    {
         if (initialSupply > maxSupply) revert Moe__InvalidInitialSupply();
 
         _minter = minter;
