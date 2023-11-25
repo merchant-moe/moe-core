@@ -204,10 +204,10 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      * @param pid The pool ID.
      * @return The MOE per second for the pool ID.
      */
-    function getMoePerSecondForPid(uint256 pid) external view returns (uint256) {
+    function getMoePerSecondForPid(uint256 pid) external view override returns (uint256) {
         if (!_veMoe.isInTopPoolIds(pid)) return 0;
 
-        uint256 totalVotes = _veMoe.getTotalVotes();
+        uint256 totalVotes = _veMoe.getTopPidsTotalVotes();
 
         return totalVotes == 0 ? 0 : _moePerSecond * _veMoe.getVotes(pid) / totalVotes;
     }
@@ -330,7 +330,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     function _getRewardForPid(Rewarder.Parameter storage rewarder, uint256 pid) private view returns (uint256) {
         if (!_veMoe.isInTopPoolIds(pid)) return 0;
 
-        return _getRewardForPid(pid, rewarder.getTotalRewards(_moePerSecond), _veMoe.getTotalVotes());
+        return _getRewardForPid(pid, rewarder.getTotalRewards(_moePerSecond), _veMoe.getTopPidsTotalVotes());
     }
 
     /**

@@ -54,6 +54,8 @@ interface IMasterChef {
 
     function getMoePerSecond() external view returns (uint256);
 
+    function getMoePerSecondForPid(uint256 pid) external view returns (uint256);
+
     function getNumberOfFarms() external view returns (uint256);
 
     function getToken(uint256 pid) external view returns (IERC20);
