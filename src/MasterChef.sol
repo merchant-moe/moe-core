@@ -383,9 +383,11 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
             Rewarder.Parameter storage rewarder = farm.rewarder;
 
             uint256 totalRewards = rewarder.getTotalRewards(moePerSecond);
-            rewarder.updateAccDebtPerShare(
-                farm.amounts.getTotalAmount(), _getRewardForPid(pid, totalRewards, totalVotes)
-            );
+
+            uint256 totalMoeRewardForPid = _getRewardForPid(pid, totalRewards, totalVotes);
+            uint256 moeRewardForPid = _mintMoe(totalMoeRewardForPid);
+
+            rewarder.updateAccDebtPerShare(farm.amounts.getTotalAmount(), moeRewardForPid);
         }
     }
 
@@ -403,16 +405,9 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
         (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply,) = farm.amounts.update(account, deltaAmount);
 
         uint256 totalMoeRewardForPid = _getRewardForPid(rewarder, pid);
+        uint256 moeRewardForPid = _mintMoe(totalMoeRewardForPid);
 
-        if (totalMoeRewardForPid > 0) {
-            uint256 treasuryAmount = totalMoeRewardForPid * _treasuryShare / Constants.PRECISION;
-            totalMoeRewardForPid -= treasuryAmount;
-
-            _moe.mint(_treasury, treasuryAmount);
-            totalMoeRewardForPid = _moe.mint(address(this), totalMoeRewardForPid);
-        }
-
-        uint256 moeReward = rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalMoeRewardForPid);
+        uint256 moeReward = rewarder.update(account, oldBalance, newBalance, oldTotalSupply, moeRewardForPid);
 
         if (moeReward > 0) IERC20(_moe).safeTransfer(account, moeReward);
 
@@ -433,5 +428,20 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
         _treasury = treasury;
 
         emit TreasurySet(treasury);
+    }
+
+    /**
+     * @dev Mints MOE tokens to the treasury and to this contract.
+     * @param amount The amount of MOE tokens to mint.
+     * @return liquidityMiningAmount The amount of MOE tokens minted for liquidity mining.
+     */
+    function _mintMoe(uint256 amount) private returns (uint256 liquidityMiningAmount) {
+        if (amount == 0) return 0;
+
+        uint256 treasuryAmount = amount * _treasuryShare / Constants.PRECISION;
+        liquidityMiningAmount = amount - treasuryAmount;
+
+        _moe.mint(_treasury, treasuryAmount);
+        _moe.mint(address(this), liquidityMiningAmount);
     }
 }
