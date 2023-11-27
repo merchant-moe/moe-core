@@ -33,9 +33,15 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
 
     IMoe private immutable _moe;
     IVeMoe private immutable _veMoe;
+
     uint256 private immutable _treasuryShare;
+    uint256 private immutable _futureFundingShare;
+    uint256 private immutable _teamShare;
 
     address private _treasury;
+    address private _futureFunding;
+    address private _team;
+
     uint96 private _moePerSecond;
 
     Farm[] private _farms;
@@ -45,26 +51,38 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      * @param moe The address of the MOE token.
      * @param veMoe The address of the VeMOE contract.
      * @param treasuryShare The share of the rewards that will be sent to the treasury.
+     * @param futureFundingShare The share of the rewards that will be sent to the future funding.
+     * @param teamShare The share of the rewards that will be sent to the team.
      */
-    constructor(IMoe moe, IVeMoe veMoe, uint256 treasuryShare) {
+    constructor(IMoe moe, IVeMoe veMoe, uint256 treasuryShare, uint256 futureFundingShare, uint256 teamShare) {
         _disableInitializers();
 
-        if (treasuryShare > Constants.PRECISION) revert MasterChef__InvalidTreasuryShare();
+        if (treasuryShare + futureFundingShare + teamShare > Constants.PRECISION) revert MasterChef__InvalidShares();
 
         _moe = moe;
         _veMoe = veMoe;
+
         _treasuryShare = treasuryShare;
+        _futureFundingShare = futureFundingShare;
+        _teamShare = teamShare;
     }
 
     /**
      * @dev Initializes the MasterChef contract.
      * @param initialOwner The initial owner of the contract.
      * @param treasury The initial treasury.
+     * @param futureFunding The initial future funding vesting contract.
+     * @param team The initial team vesting contract.
      */
-    function initialize(address initialOwner, address treasury) external initializer {
+    function initialize(address initialOwner, address treasury, address futureFunding, address team)
+        external
+        initializer
+    {
         __Ownable_init(initialOwner);
 
         _setTreasury(treasury);
+        _setFutureFunding(futureFunding);
+        _setTeam(team);
     }
 
     /**
@@ -92,11 +110,43 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     }
 
     /**
+     * @dev Returns the address of the future funding vesting contract.
+     * @return The address of the future funding.
+     */
+    function getFutureFunding() external view override returns (address) {
+        return _futureFunding;
+    }
+
+    /**
+     * @dev Returns the address of the team vesting contract.
+     * @return The address of the team.
+     */
+    function getTeam() external view override returns (address) {
+        return _team;
+    }
+
+    /**
      * @dev Returns the share of the rewards that will be sent to the treasury.
      * @return The share of the rewards that will be sent to the treasury.
      */
     function getTreasuryShare() external view override returns (uint256) {
         return _treasuryShare;
+    }
+
+    /**
+     * @dev Returns the share of the rewards that will be sent to the future funding.
+     * @return The share of the rewards that will be sent to the future funding.
+     */
+    function getFutureFundingShare() external view override returns (uint256) {
+        return _futureFundingShare;
+    }
+
+    /**
+     * @dev Returns the share of the rewards that will be sent to the team.
+     * @return The share of the rewards that will be sent to the team.
+     */
+    function getTeamShare() external view override returns (uint256) {
+        return _teamShare;
     }
 
     /**
@@ -153,8 +203,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
 
             {
                 uint256 totalMoeRewardForPid = _getRewardForPid(rewarder, pid);
-                uint256 moeRewardForPid =
-                    totalMoeRewardForPid - totalMoeRewardForPid * _treasuryShare / Constants.PRECISION;
+                (,,, uint256 moeRewardForPid) = _calculateAmounts(totalMoeRewardForPid);
 
                 moeRewards[i] = rewarder.getPendingReward(farm.amounts, account, moeRewardForPid);
             }
@@ -326,6 +375,22 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     }
 
     /**
+     * @dev Sets the future funding vesting contract.
+     * @param futureFunding The new future funding vesting contract.
+     */
+    function setFutureFunding(address futureFunding) external override onlyOwner {
+        _setFutureFunding(futureFunding);
+    }
+
+    /**
+     * @dev Sets the team vesting contract.
+     * @param team The new team vesting contract.
+     */
+    function setTeam(address team) external override onlyOwner {
+        _setTeam(team);
+    }
+
+    /**
      * @dev Returns the reward for a given pool ID.
      * If the pool ID is not in the top pool IDs, it will return 0.
      * Else, it will return the reward multiplied by the proportion of votes for this pool ID.
@@ -429,7 +494,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      * @param treasury The new treasury.
      */
     function _setTreasury(address treasury) private {
-        if (treasury == address(0)) revert MasterChef__InvalidTreasury();
+        if (treasury == address(0)) revert MasterChef__ZeroAddress();
 
         _treasury = treasury;
 
@@ -437,17 +502,59 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     }
 
     /**
+     * @dev Sets the future funding vesting contract.
+     * @param futureFunding The new future funding vesting contract.
+     */
+    function _setFutureFunding(address futureFunding) private {
+        if (futureFunding == address(0)) revert MasterChef__ZeroAddress();
+
+        _futureFunding = futureFunding;
+
+        emit FutureFundingSet(futureFunding);
+    }
+
+    /**
+     * @dev Sets the team vesting contract.
+     * @param team The new team vesting contract.
+     */
+    function _setTeam(address team) private {
+        if (team == address(0)) revert MasterChef__ZeroAddress();
+
+        _team = team;
+
+        emit TeamSet(team);
+    }
+
+    /**
      * @dev Mints MOE tokens to the treasury and to this contract.
      * @param amount The amount of MOE tokens to mint.
-     * @return liquidityMiningAmount The amount of MOE tokens minted for liquidity mining.
+     * @return  The amount of MOE tokens minted for liquidity mining.
      */
-    function _mintMoe(uint256 amount) private returns (uint256 liquidityMiningAmount) {
+    function _mintMoe(uint256 amount) private returns (uint256) {
         if (amount == 0) return 0;
 
-        uint256 treasuryAmount = amount * _treasuryShare / Constants.PRECISION;
-        liquidityMiningAmount = amount - treasuryAmount;
+        (uint256 treasuryAmount, uint256 futureFundingAmount, uint256 teamAmount, uint256 liquidityMiningAmount) =
+            _calculateAmounts(amount);
 
         _moe.mint(_treasury, treasuryAmount);
+        _moe.mint(_futureFunding, futureFundingAmount);
+        _moe.mint(_team, teamAmount);
         _moe.mint(address(this), liquidityMiningAmount);
+
+        return liquidityMiningAmount;
+    }
+
+    /**
+     * @dev Calculates the amounts of MOE tokens to mint for each recipient.
+     * @param amount The amount of MOE tokens to mint.
+     * @return The amounts of MOE tokens to mint for each recipient.
+     */
+    function _calculateAmounts(uint256 amount) private view returns (uint256, uint256, uint256, uint256) {
+        uint256 treasuryAmount = amount * _treasuryShare / Constants.PRECISION;
+        uint256 futureFundingAmount = amount * _futureFundingShare / Constants.PRECISION;
+        uint256 teamAmount = amount * _teamShare / Constants.PRECISION;
+        uint256 liquidityMiningAmount = amount - treasuryAmount - futureFundingAmount - teamAmount;
+
+        return (treasuryAmount, futureFundingAmount, teamAmount, liquidityMiningAmount);
     }
 }

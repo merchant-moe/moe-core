@@ -46,11 +46,11 @@ contract VeMoeTest is Test {
         address veMoeAddress = computeCreateAddress(address(this), nonce + 4);
 
         staking = new MoeStaking(moe, IVeMoe(veMoeAddress), IStableMoe(sMoe));
-        masterChef = new MasterChef(moe, IVeMoe(veMoeAddress), 0);
+        masterChef = new MasterChef(moe, IVeMoe(veMoeAddress), 0, 0, 0);
         veMoe = new VeMoe(IMoeStaking(stakingAddress), IMasterChef(masterChefAddress), 100e18);
 
         TransparentUpgradeableProxy masterChefProxy =
-        new TransparentUpgradeableProxy(address(masterChef), address(this), abi.encodeWithSelector(MasterChef.initialize.selector, address(this), address(this)));
+        new TransparentUpgradeableProxy(address(masterChef), address(this), abi.encodeWithSelector(MasterChef.initialize.selector, address(this), address(this), address(this), address(this)));
 
         TransparentUpgradeableProxy veMoeProxy =
         new TransparentUpgradeableProxy(address(veMoe), address(this), abi.encodeWithSelector(VeMoe.initialize.selector, address(this)));

@@ -40,10 +40,10 @@ contract MasterChefTest is Test {
 
         moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
 
-        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), 0);
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), 0, 0, 0);
 
         TransparentUpgradeableProxy proxy =
-        new TransparentUpgradeableProxy(address(masterChef), address(this), abi.encodeWithSelector(MasterChef.initialize.selector, address(this), address(this)));
+        new TransparentUpgradeableProxy(address(masterChef), address(this), abi.encodeWithSelector(MasterChef.initialize.selector, address(this), address(this), address(this), address(this)));
 
         masterChef = MasterChef(address(proxy));
 
@@ -323,19 +323,29 @@ contract MasterChefTest is Test {
         veMoe.setVotes(0, 1e18);
         veMoe.setTopPoolIds(new uint256[](1));
 
+        address treasury = makeAddr("treasury");
+        address futureFunding = makeAddr("futureFunding");
+        address team = makeAddr("team");
+
         uint256 nonce = vm.getNonce(address(this));
         address masterChefAddress = computeCreateAddress(address(this), nonce + 2);
 
         moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
-        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), 0.1e18);
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), 0.05e18, 0.1e18, 0.15e18);
 
         TransparentUpgradeableProxy proxy =
-        new TransparentUpgradeableProxy(address(masterChef), address(this), abi.encodeWithSelector(MasterChef.initialize.selector, address(this), address(this)));
+        new TransparentUpgradeableProxy(address(masterChef), address(this), abi.encodeWithSelector(MasterChef.initialize.selector, address(this), treasury, futureFunding, team));
 
         masterChef = MasterChef(address(proxy));
 
-        assertEq(masterChef.getTreasuryShare(), 0.1e18, "test_TreasuryShare::1");
-        assertEq(masterChef.getTreasury(), address(this), "test_TreasuryShare::2");
+        assertEq(masterChef.getTreasury(), treasury, "test_TreasuryShare::1");
+        assertEq(masterChef.getTreasuryShare(), 0.05e18, "test_TreasuryShare::2");
+
+        assertEq(masterChef.getFutureFunding(), futureFunding, "test_TreasuryShare::3");
+        assertEq(masterChef.getFutureFundingShare(), 0.1e18, "test_TreasuryShare::4");
+
+        assertEq(masterChef.getTeam(), team, "test_TreasuryShare::5");
+        assertEq(masterChef.getTeamShare(), 0.15e18, "test_TreasuryShare::6");
 
         masterChef.add(tokenA, IMasterChefRewarder(address(0)));
         masterChef.setMoePerSecond(1e18);
@@ -350,40 +360,67 @@ contract MasterChefTest is Test {
         (uint256[] memory moeRewards, IERC20[] memory extraTokens, uint256[] memory extraRewards) =
             masterChef.getPendingRewards(alice, new uint256[](1));
 
-        assertEq(moeRewards.length, 1, "test_TreasuryShare::3");
-        assertEq(extraTokens.length, 1, "test_TreasuryShare::4");
-        assertEq(extraRewards.length, 1, "test_TreasuryShare::5");
-        assertEq(moeRewards[0], 9e18, "test_TreasuryShare::6");
-        assertEq(address(extraTokens[0]), address(0), "test_TreasuryShare::7");
-        assertEq(extraRewards[0], 0, "test_TreasuryShare::8");
+        assertEq(moeRewards.length, 1, "test_TreasuryShare::7");
+        assertEq(extraTokens.length, 1, "test_TreasuryShare::8");
+        assertEq(extraRewards.length, 1, "test_TreasuryShare::9");
+        assertEq(moeRewards[0], 7e18, "test_TreasuryShare::10");
+        assertEq(address(extraTokens[0]), address(0), "test_TreasuryShare::11");
+        assertEq(extraRewards[0], 0, "test_TreasuryShare::12");
 
         masterChef.updateAll(new uint256[](1));
 
         (moeRewards, extraTokens, extraRewards) = masterChef.getPendingRewards(alice, new uint256[](1));
 
-        assertEq(moeRewards.length, 1, "test_TreasuryShare::9");
-        assertEq(extraTokens.length, 1, "test_TreasuryShare::10");
-        assertEq(extraRewards.length, 1, "test_TreasuryShare::11");
-        assertEq(moeRewards[0], 9e18, "test_TreasuryShare::12");
-        assertEq(address(extraTokens[0]), address(0), "test_TreasuryShare::13");
-        assertEq(extraRewards[0], 0, "test_TreasuryShare::14");
+        assertEq(moeRewards.length, 1, "test_TreasuryShare::13");
+        assertEq(extraTokens.length, 1, "test_TreasuryShare::14");
+        assertEq(extraRewards.length, 1, "test_TreasuryShare::15");
+        assertEq(moeRewards[0], 7e18, "test_TreasuryShare::16");
+        assertEq(address(extraTokens[0]), address(0), "test_TreasuryShare::17");
+        assertEq(extraRewards[0], 0, "test_TreasuryShare::18");
+        assertEq(moe.balanceOf(address(alice)), 0, "test_TreasuryShare::19");
+        assertEq(moe.balanceOf(address(treasury)), 0.5e18, "test_TreasuryShare::20");
+        assertEq(moe.balanceOf(address(futureFunding)), 1e18, "test_TreasuryShare::21");
+        assertEq(moe.balanceOf(address(team)), 1.5e18, "test_TreasuryShare::22");
 
         vm.prank(alice);
         masterChef.claim(new uint256[](1));
 
-        assertEq(moe.balanceOf(address(this)), 1e18, "test_TreasuryShare::15");
-        assertEq(moe.balanceOf(address(alice)), 9e18, "test_TreasuryShare::16");
+        assertEq(moe.balanceOf(address(alice)), 7e18, "test_TreasuryShare::23");
+        assertEq(moe.balanceOf(address(treasury)), 0.5e18, "test_TreasuryShare::24");
+        assertEq(moe.balanceOf(address(futureFunding)), 1e18, "test_TreasuryShare::25");
+        assertEq(moe.balanceOf(address(team)), 1.5e18, "test_TreasuryShare::26");
 
-        vm.expectRevert(IMasterChef.MasterChef__InvalidTreasury.selector);
+        vm.expectRevert(IMasterChef.MasterChef__ZeroAddress.selector);
         masterChef.setTreasury(address(0));
 
         masterChef.setTreasury(address(1));
 
-        assertEq(masterChef.getTreasuryShare(), 0.1e18, "test_TreasuryShare::17");
-        assertEq(masterChef.getTreasury(), address(1), "test_TreasuryShare::18");
+        assertEq(masterChef.getTreasuryShare(), 0.05e18, "test_TreasuryShare::27");
+        assertEq(masterChef.getTreasury(), address(1), "test_TreasuryShare::28");
 
-        vm.expectRevert(IMasterChef.MasterChef__InvalidTreasuryShare.selector);
-        new MasterChef(moe, IVeMoe(address(veMoe)), 1e18 + 1);
+        vm.expectRevert(IMasterChef.MasterChef__ZeroAddress.selector);
+        masterChef.setFutureFunding(address(0));
+
+        masterChef.setFutureFunding(address(2));
+
+        assertEq(masterChef.getFutureFundingShare(), 0.1e18, "test_TreasuryShare::29");
+        assertEq(masterChef.getFutureFunding(), address(2), "test_TreasuryShare::30");
+
+        vm.expectRevert(IMasterChef.MasterChef__ZeroAddress.selector);
+        masterChef.setTeam(address(0));
+
+        masterChef.setTeam(address(3));
+
+        assertEq(masterChef.getTeamShare(), 0.15e18, "test_TreasuryShare::31");
+        assertEq(masterChef.getTeam(), address(3), "test_TreasuryShare::32");
+
+        vm.expectRevert(IMasterChef.MasterChef__InvalidShares.selector);
+        new MasterChef(moe, IVeMoe(address(veMoe)), 1e18 + 1, 0, 0);
+
+        vm.expectRevert(IMasterChef.MasterChef__InvalidShares.selector);
+        new MasterChef(moe, IVeMoe(address(veMoe)), uint256(1e18) / 3 + 1, uint256(1e18) / 3, uint256(1e18) / 3 + 1);
+
+        new MasterChef(moe, IVeMoe(address(veMoe)), uint256(1e18) / 3 + 1, uint256(1e18) / 3, uint256(1e18) / 3);
     }
 
     function test_ExtraRewarder() public {

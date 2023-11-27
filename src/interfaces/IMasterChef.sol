@@ -11,8 +11,8 @@ import {Amounts} from "../libraries/Amounts.sol";
 
 interface IMasterChef {
     error MasterChef__InvalidPid(uint256 pid);
-    error MasterChef__InvalidTreasury();
-    error MasterChef__InvalidTreasuryShare();
+    error MasterChef__InvalidShares();
+    error MasterChef__ZeroAddress();
 
     struct Farm {
         Amounts.Parameter amounts;
@@ -30,6 +30,10 @@ interface IMasterChef {
     event ExtraRewarderSet(uint256 indexed pid, IMasterChefRewarder extraRewarder);
 
     event TreasurySet(address indexed treasury);
+
+    event FutureFundingSet(address indexed futureFunding);
+
+    event TeamSet(address indexed team);
 
     function add(IERC20 token, IMasterChefRewarder extraRewarder) external;
 
@@ -64,7 +68,15 @@ interface IMasterChef {
 
     function getTreasury() external view returns (address);
 
+    function getFutureFunding() external view returns (address);
+
+    function getTeam() external view returns (address);
+
     function getTreasuryShare() external view returns (uint256);
+
+    function getFutureFundingShare() external view returns (uint256);
+
+    function getTeamShare() external view returns (uint256);
 
     function getVeMoe() external view returns (IVeMoe);
 
@@ -73,6 +85,10 @@ interface IMasterChef {
     function setMoePerSecond(uint96 moePerSecond) external;
 
     function setTreasury(address treasury) external;
+
+    function setFutureFunding(address futureFunding) external;
+
+    function setTeam(address team) external;
 
     function updateAll(uint256[] calldata pids) external;
 
