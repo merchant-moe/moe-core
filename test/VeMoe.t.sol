@@ -595,7 +595,7 @@ contract VeMoeTest is Test {
         assertEq(address(veMoe.getBribesOf(alice, 0)), address(0), "test_EmergencyUnsetBribes::1");
         assertEq(veMoe.getVotesOf(alice, 0), 25e18, "test_EmergencyUnsetBribes::2");
         assertEq(
-            veMoe.getBribesTotalVotes(IVeMoeRewarder(address(badBribes)), 0), 400e18, "test_EmergencyUnsetBribes::2"
+            veMoe.getBribesTotalVotes(IVeMoeRewarder(address(badBribes)), 0), 400e18, "test_EmergencyUnsetBribes::3"
         );
 
         vm.prank(alice);
