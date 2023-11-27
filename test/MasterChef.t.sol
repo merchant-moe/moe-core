@@ -347,6 +347,27 @@ contract MasterChefTest is Test {
 
         vm.warp(block.timestamp + 10);
 
+        (uint256[] memory moeRewards, IERC20[] memory extraTokens, uint256[] memory extraRewards) =
+            masterChef.getPendingRewards(alice, new uint256[](1));
+
+        assertEq(moeRewards.length, 1, "test_TreasuryShare::3");
+        assertEq(extraTokens.length, 1, "test_TreasuryShare::4");
+        assertEq(extraRewards.length, 1, "test_TreasuryShare::5");
+        assertEq(moeRewards[0], 9e18, "test_TreasuryShare::6");
+        assertEq(address(extraTokens[0]), address(0), "test_TreasuryShare::7");
+        assertEq(extraRewards[0], 0, "test_TreasuryShare::8");
+
+        masterChef.updateAll(new uint256[](1));
+
+        (moeRewards, extraTokens, extraRewards) = masterChef.getPendingRewards(alice, new uint256[](1));
+
+        assertEq(moeRewards.length, 1, "test_TreasuryShare::3");
+        assertEq(extraTokens.length, 1, "test_TreasuryShare::4");
+        assertEq(extraRewards.length, 1, "test_TreasuryShare::5");
+        assertEq(moeRewards[0], 9e18, "test_TreasuryShare::6");
+        assertEq(address(extraTokens[0]), address(0), "test_TreasuryShare::7");
+        assertEq(extraRewards[0], 0, "test_TreasuryShare::8");
+
         vm.prank(alice);
         masterChef.claim(new uint256[](1));
 
