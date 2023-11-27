@@ -73,9 +73,10 @@ The dex contracts are a fork of [Uniswap v2](https://github.com/Uniswap/v2-core)
 1. Fill and verify the [parameters](./script/parameters.json).
 2. Deploy the Moe protocol contracts using the [protocol script](./script/0_DeployProtocol.s.sol).
 3. Deploy the dex contracts using the [dex script](./script/1_DeployDex.sol).
-4. Create default pools and farms.
-5. Set the `veMoePerSecPerMoe` on the `VeMoe` contract to start the veMOE distribution.
-6. Once there is some votes on the top pools, set the `moePerSec` on the `MasterChef` contract to start the MOE distribution.
+4. Set the beneficiary addresses on the different vesting contracts
+5. Create default pools and farms.
+6. Set the `veMoePerSecPerMoe` on the `VeMoe` contract to start the veMOE distribution.
+7. Once there is some votes on the top pools, set the `moePerSec` on the `MasterChef` contract to start the MOE distribution.
 
 ## Foundry
 
