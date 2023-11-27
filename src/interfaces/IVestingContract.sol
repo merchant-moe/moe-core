@@ -3,13 +3,15 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface IVestingWallet {
-    error VestingWallet__NotBeneficiary();
-    error VestingWallet__NotMasterChefOwner();
+interface IVestingContract {
+    error VestingContract__NotBeneficiary();
+    error VestingContract__NotMasterChefOwner();
 
     event BeneficiarySet(address beneficiary);
 
     event Released(address beneficiary, uint256 amount);
+
+    event Revoked();
 
     function masterChef() external view returns (address);
 
@@ -23,6 +25,8 @@ interface IVestingWallet {
 
     function beneficiary() external view returns (address);
 
+    function revoked() external view returns (bool);
+
     function released() external view returns (uint256);
 
     function releasable() external view returns (uint256);
@@ -32,4 +36,6 @@ interface IVestingWallet {
     function release() external;
 
     function setBeneficiary(address newBeneficiary) external;
+
+    function revoke() external;
 }
