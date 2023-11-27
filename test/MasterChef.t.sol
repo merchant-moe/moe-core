@@ -361,26 +361,26 @@ contract MasterChefTest is Test {
 
         (moeRewards, extraTokens, extraRewards) = masterChef.getPendingRewards(alice, new uint256[](1));
 
-        assertEq(moeRewards.length, 1, "test_TreasuryShare::3");
-        assertEq(extraTokens.length, 1, "test_TreasuryShare::4");
-        assertEq(extraRewards.length, 1, "test_TreasuryShare::5");
-        assertEq(moeRewards[0], 9e18, "test_TreasuryShare::6");
-        assertEq(address(extraTokens[0]), address(0), "test_TreasuryShare::7");
-        assertEq(extraRewards[0], 0, "test_TreasuryShare::8");
+        assertEq(moeRewards.length, 1, "test_TreasuryShare::9");
+        assertEq(extraTokens.length, 1, "test_TreasuryShare::10");
+        assertEq(extraRewards.length, 1, "test_TreasuryShare::11");
+        assertEq(moeRewards[0], 9e18, "test_TreasuryShare::12");
+        assertEq(address(extraTokens[0]), address(0), "test_TreasuryShare::13");
+        assertEq(extraRewards[0], 0, "test_TreasuryShare::14");
 
         vm.prank(alice);
         masterChef.claim(new uint256[](1));
 
-        assertEq(moe.balanceOf(address(this)), 1e18, "test_TreasuryShare::3");
-        assertEq(moe.balanceOf(address(alice)), 9e18, "test_TreasuryShare::4");
+        assertEq(moe.balanceOf(address(this)), 1e18, "test_TreasuryShare::15");
+        assertEq(moe.balanceOf(address(alice)), 9e18, "test_TreasuryShare::16");
 
         vm.expectRevert(IMasterChef.MasterChef__InvalidTreasury.selector);
         masterChef.setTreasury(address(0));
 
         masterChef.setTreasury(address(1));
 
-        assertEq(masterChef.getTreasuryShare(), 0.1e18, "test_TreasuryShare::5");
-        assertEq(masterChef.getTreasury(), address(1), "test_TreasuryShare::6");
+        assertEq(masterChef.getTreasuryShare(), 0.1e18, "test_TreasuryShare::17");
+        assertEq(masterChef.getTreasury(), address(1), "test_TreasuryShare::18");
 
         vm.expectRevert(IMasterChef.MasterChef__InvalidTreasuryShare.selector);
         new MasterChef(moe, IVeMoe(address(veMoe)), 1e18 + 1);
