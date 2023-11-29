@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Math} from "./Math.sol";
-
 import {Amounts} from "./Amounts.sol";
 import {Constants} from "./Constants.sol";
 
@@ -12,7 +10,6 @@ import {Constants} from "./Constants.sol";
  * It takes care about the reward debt and the accumulated debt per share.
  */
 library Rewarder {
-    using Math for uint256;
     using Amounts for Amounts.Parameter;
 
     struct Parameter {
