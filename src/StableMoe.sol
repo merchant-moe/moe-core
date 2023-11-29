@@ -24,14 +24,12 @@ contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
     using SafeERC20 for IERC20;
     using Math for uint256;
     using Rewarder for Rewarder.Parameter;
-    using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     IMoeStaking private immutable _moeStaking;
 
-    EnumerableSet.UintSet private _activeRewardIds;
-
-    mapping(IERC20 => uint256) private _rewardIds;
-    Reward[] private _rewards;
+    EnumerableSet.AddressSet private _activeRewards;
+    mapping(address => Reward) private _rewards;
 
     /**
      * @dev Constructor for StableMoe contract.
@@ -69,7 +67,7 @@ contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
      * @return The number of rewards tokens.
      */
     function getNumberOfRewards() external view returns (uint256) {
-        return _rewards.length;
+        return _activeRewards.length();
     }
 
     /**
@@ -77,22 +75,16 @@ contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
      * @param id The ID of the reward.
      * @return The reward token.
      */
-    function getRewardToken(uint256 id) external view returns (IERC20) {
-        return _rewards[id].token;
+    function getRewardToken(uint256 id) external view returns (address) {
+        return _activeRewards.at(id);
     }
 
     /**
      * @dev Returns the active rewards tokens.
      * @return tokens The active rewards tokens.
      */
-    function getActiveRewardTokens() external view returns (IERC20[] memory tokens) {
-        uint256 length = _activeRewardIds.length();
-
-        tokens = new IERC20[](length);
-
-        for (uint256 i; i < length; ++i) {
-            tokens[i] = _rewards[_activeRewardIds.at(i) - 1].token;
-        }
+    function getRewardTokens() external view returns (address[] memory tokens) {
+        return _activeRewards.values();
     }
 
     /**
@@ -106,7 +98,7 @@ contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
         view
         returns (IERC20[] memory tokens, uint256[] memory rewards)
     {
-        uint256 length = _activeRewardIds.length();
+        uint256 length = _activeRewards.length();
 
         tokens = new IERC20[](length);
         rewards = new uint256[](length);
@@ -115,11 +107,12 @@ contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
         uint256 balance = _moeStaking.getDeposit(account);
 
         for (uint256 i; i < length; ++i) {
-            Reward storage reward = _rewards[_activeRewardIds.at(i) - 1];
+            IERC20 token = IERC20(_activeRewards.at(i));
+            Reward storage reward = _rewards[address(token)];
 
-            uint256 totalRewards = _balanceOfThis(reward.token) - reward.reserve;
+            uint256 totalRewards = _balanceOfThis(token) - reward.reserve;
 
-            tokens[i] = reward.token;
+            tokens[i] = token;
             rewards[i] = reward.rewarder.getPendingReward(account, balance, totalSupply, totalRewards);
         }
     }
@@ -155,16 +148,10 @@ contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
      * @param reward The reward token to add.
      */
     function addReward(IERC20 reward) external onlyOwner {
-        if (_rewardIds[reward] != 0) revert StableMoe__RewardAlreadyAdded(reward);
-        if (_activeRewardIds.length() >= Constants.MAX_NUMBER_OF_REWARDS) revert StableMoe__TooManyActiveRewards();
-
-        Reward storage _reward = _rewards.push();
-        _reward.token = reward;
-
-        uint256 id = _rewards.length;
-
-        _activeRewardIds.add(id);
-        _rewardIds[reward] = id;
+        if (!_activeRewards.add(address(reward)) || _rewards[address(reward)].rewarder.accDebtPerShare != 0) {
+            revert StableMoe__RewardAlreadyAdded(reward);
+        }
+        if (_activeRewards.length() > Constants.MAX_NUMBER_OF_REWARDS) revert StableMoe__TooManyActiveRewards();
 
         emit AddReward(reward);
     }
@@ -174,9 +161,7 @@ contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
      * @param reward The reward token to remove.
      */
     function removeReward(IERC20 reward) external onlyOwner {
-        uint256 id = _rewardIds[reward];
-
-        if (!_activeRewardIds.remove(id)) revert StableMoe__RewardAlreadyRemoved(reward);
+        if (!_activeRewards.remove(address(reward))) revert StableMoe__RewardAlreadyRemoved(reward);
 
         emit RemoveReward(reward);
     }
@@ -188,9 +173,7 @@ contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
      * @param account The account to sweep the balance to.
      */
     function sweep(IERC20 token, address account) external onlyOwner {
-        uint256 id = _rewardIds[token];
-
-        if (_activeRewardIds.contains(id)) revert StableMoe__ActiveReward(token);
+        if (_activeRewards.contains(address(token))) revert StableMoe__ActiveReward(token);
 
         _safeTransferTo(token, account, _balanceOfThis(token));
 
@@ -217,9 +200,8 @@ contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
         uint256 length = _activeRewardIds.length();
 
         for (uint256 i; i < length; ++i) {
-            Reward storage reward = _rewards[_activeRewardIds.at(i) - 1];
-
-            IERC20 token = reward.token;
+            IERC20 token = IERC20(_activeRewards.at(i));
+            Reward storage reward = _rewards[address(token)];
 
             uint256 reserve = reward.reserve;
             uint256 balance = _balanceOfThis(token);
