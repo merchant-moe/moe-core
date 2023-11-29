@@ -16,7 +16,6 @@ library Rewarder {
     using Amounts for Amounts.Parameter;
 
     struct Parameter {
-        uint256 totalDeposit;
         uint256 lastUpdateTimestamp;
         uint256 accDebtPerShare;
         mapping(address => uint256) debt;
