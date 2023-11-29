@@ -16,7 +16,6 @@ interface IStableMoe {
 
     struct Reward {
         Rewarder.Parameter rewarder;
-        IERC20 token;
         uint256 reserve;
     }
 
@@ -32,9 +31,9 @@ interface IStableMoe {
 
     function getNumberOfRewards() external view returns (uint256);
 
-    function getRewardToken(uint256 id) external view returns (IERC20);
+    function getRewardToken(uint256 id) external view returns (address);
 
-    function getActiveRewardTokens() external view returns (IERC20[] memory);
+    function getRewardTokens() external view returns (address[] memory);
 
     function getPendingRewards(address account)
         external

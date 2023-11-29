@@ -64,7 +64,7 @@ contract StableMoeTest is Test {
 
     function test_AddReward() public {
         assertEq(sMoe.getNumberOfRewards(), 0, "test_AddReward::1");
-        assertEq(sMoe.getActiveRewardTokens().length, 0, "test_AddReward::2");
+        assertEq(sMoe.getRewardTokens().length, 0, "test_AddReward::2");
 
         (IERC20[] memory tokens, uint256[] memory rewards) = sMoe.getPendingRewards(address(this));
 
@@ -74,16 +74,16 @@ contract StableMoeTest is Test {
         sMoe.addReward(reward18d);
 
         assertEq(sMoe.getNumberOfRewards(), 1, "test_AddReward::5");
-        assertEq(sMoe.getActiveRewardTokens().length, 1, "test_AddReward::6");
+        assertEq(sMoe.getRewardTokens().length, 1, "test_AddReward::6");
         assertEq(address(sMoe.getRewardToken(0)), address(reward18d), "test_AddReward::7");
-        assertEq(address(sMoe.getActiveRewardTokens()[0]), address(reward18d), "test_AddReward::8");
+        assertEq(address(sMoe.getRewardTokens()[0]), address(reward18d), "test_AddReward::8");
 
         sMoe.addReward(reward6d);
 
         assertEq(sMoe.getNumberOfRewards(), 2, "test_AddReward::9");
-        assertEq(sMoe.getActiveRewardTokens().length, 2, "test_AddReward::10");
+        assertEq(sMoe.getRewardTokens().length, 2, "test_AddReward::10");
         assertEq(address(sMoe.getRewardToken(1)), address(reward6d), "test_AddReward::11");
-        assertEq(address(sMoe.getActiveRewardTokens()[1]), address(reward6d), "test_AddReward::12");
+        assertEq(address(sMoe.getRewardTokens()[1]), address(reward6d), "test_AddReward::12");
 
         vm.expectRevert(abi.encodeWithSelector(IStableMoe.StableMoe__RewardAlreadyAdded.selector, reward18d));
         sMoe.addReward(reward18d);
@@ -93,11 +93,18 @@ contract StableMoeTest is Test {
 
         sMoe.removeReward(reward18d);
 
-        assertEq(sMoe.getNumberOfRewards(), 2, "test_AddReward::13");
-        assertEq(sMoe.getActiveRewardTokens().length, 1, "test_AddReward::14");
-        assertEq(address(sMoe.getRewardToken(0)), address(reward18d), "test_AddReward::15");
-        assertEq(address(sMoe.getRewardToken(1)), address(reward6d), "test_AddReward::16");
-        assertEq(address(sMoe.getActiveRewardTokens()[0]), address(reward6d), "test_AddReward::17");
+        assertEq(sMoe.getNumberOfRewards(), 1, "test_AddReward::13");
+        assertEq(sMoe.getRewardTokens().length, 1, "test_AddReward::14");
+        assertEq(address(sMoe.getRewardToken(0)), address(reward6d), "test_AddReward::15");
+        assertEq(address(sMoe.getRewardTokens()[0]), address(reward6d), "test_AddReward::17");
+
+        sMoe.addReward(reward18d);
+
+        MockERC20(address(reward18d)).mint(address(sMoe), 1e18);
+        vm.prank(address(staking));
+        sMoe.onModify(alice, 1, 1, 1, 1);
+
+        sMoe.removeReward(reward18d);
 
         vm.expectRevert(abi.encodeWithSelector(IStableMoe.StableMoe__RewardAlreadyAdded.selector, reward18d));
         sMoe.addReward(reward18d);
