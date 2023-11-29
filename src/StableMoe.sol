@@ -197,7 +197,10 @@ contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
      * @param totalSupply The total supply.
      */
     function _claim(address account, uint256 oldBalance, uint256 newBalance, uint256 totalSupply) private {
-        uint256 length = _activeRewardIds.length();
+        uint256 length = _activeRewards.length();
+
+        IERC20[] memory tokens = new IERC20[](length);
+        uint256[] memory amounts = new uint256[](length);
 
         for (uint256 i; i < length; ++i) {
             IERC20 token = IERC20(_activeRewards.at(i));
@@ -210,11 +213,20 @@ contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
 
             uint256 rewards = reward.rewarder.update(account, oldBalance, newBalance, totalSupply, totalRewards);
 
+            tokens[i] = token;
+            amounts[i] = rewards;
+
             reward.reserve = balance - rewards;
+        }
 
-            _safeTransferTo(token, account, rewards);
+        // Sends tokens after having updated the rewards to avoid reentrancy.
+        for (uint256 i; i < length; ++i) {
+            IERC20 token = tokens[i];
+            uint256 amount = amounts[i];
 
-            emit Claim(account, token, rewards);
+            _safeTransferTo(token, account, amount);
+
+            emit Claim(account, token, amount);
         }
     }
 
