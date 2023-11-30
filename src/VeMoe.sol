@@ -478,8 +478,7 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
         }
 
         unchecked {
-            if (newVeMoe > uint256(type(int256).max)) revert VeMoe__VeMoeOverflow();
-            deltaVeMoe = int256(newVeMoe - oldVeMoe);
+            deltaVeMoe = newVeMoe.toInt256() - oldVeMoe.toInt256();
         }
     }
 }

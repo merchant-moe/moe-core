@@ -16,7 +16,6 @@ interface IVeMoe {
     error VeMoe__CannotUnstakeWithVotes();
     error VeMoe__NoBribeForPid(uint256 pid);
     error VeMoe__TooManyPoolIds();
-    error VeMoe__VeMoeOverflow();
     error VeMoe__InvalidPid(uint256 pid);
     error VeMoe__DuplicatePoolId(uint256 pid);
 

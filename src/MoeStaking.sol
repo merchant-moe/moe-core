@@ -84,7 +84,7 @@ contract MoeStaking is IMoeStaking {
      * @param amount The amount of MOE tokens to stake.
      */
     function stake(uint256 amount) external override {
-        _modify(msg.sender, int256(amount));
+        _modify(msg.sender, amount.toInt256());
 
         if (amount > 0) _moe.safeTransferFrom(msg.sender, address(this), amount);
     }
@@ -94,7 +94,7 @@ contract MoeStaking is IMoeStaking {
      * @param amount The amount of MOE tokens to unstake.
      */
     function unstake(uint256 amount) external override {
-        _modify(msg.sender, -int256(amount));
+        _modify(msg.sender, -amount.toInt256());
 
         if (amount > 0) _moe.safeTransfer(msg.sender, amount);
     }
