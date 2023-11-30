@@ -50,6 +50,14 @@ abstract contract BaseRewarder is Ownable2Step, IBaseRewarder {
     }
 
     /**
+     * @dev Returns the address of the token to be distributed as rewards.
+     * @return The address of the token to be distributed as rewards.
+     */
+    function getToken() public view virtual override returns (IERC20) {
+        return _token;
+    }
+
+    /**
      * @dev Returns the address of the contract that calls the onModify function.
      * @return The address of the caller contract.
      */

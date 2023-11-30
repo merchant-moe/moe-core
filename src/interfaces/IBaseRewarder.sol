@@ -19,6 +19,8 @@ interface IBaseRewarder {
 
     event RewardParameterUpdated(uint256 rewardPerSecond, uint256 startTimestamp, uint256 endTimestamp);
 
+    function getToken() external view returns (IERC20);
+
     function getCaller() external view returns (address);
 
     function getPid() external view returns (uint256);
