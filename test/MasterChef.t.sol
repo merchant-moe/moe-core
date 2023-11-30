@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
 
 import "../src/MasterChef.sol";
 import "../src/Moe.sol";
@@ -42,8 +42,11 @@ contract MasterChefTest is Test {
 
         masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), 0, 0, 0);
 
-        TransparentUpgradeableProxy proxy =
-        new TransparentUpgradeableProxy(address(masterChef), address(this), abi.encodeWithSelector(MasterChef.initialize.selector, address(this), address(this), address(this), address(this)));
+        TransparentUpgradeableProxy2Step proxy = new TransparentUpgradeableProxy2Step(
+            address(masterChef),
+            ProxyAdmin2Step(address(1)),
+            abi.encodeWithSelector(MasterChef.initialize.selector, address(this), address(this), address(this), address(this))
+        );
 
         masterChef = MasterChef(address(proxy));
 
@@ -333,8 +336,11 @@ contract MasterChefTest is Test {
         moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
         masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), 0.05e18, 0.1e18, 0.15e18);
 
-        TransparentUpgradeableProxy proxy =
-        new TransparentUpgradeableProxy(address(masterChef), address(this), abi.encodeWithSelector(MasterChef.initialize.selector, address(this), treasury, futureFunding, team));
+        TransparentUpgradeableProxy2Step proxy = new TransparentUpgradeableProxy2Step(
+            address(masterChef),
+            ProxyAdmin2Step(address(1)),
+            abi.encodeWithSelector(MasterChef.initialize.selector, address(this), treasury, futureFunding, team)
+        );
 
         masterChef = MasterChef(address(proxy));
 

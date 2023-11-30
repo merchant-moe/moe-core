@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
 
 import "../src/VeMoe.sol";
 import "../src/MoeStaking.sol";
@@ -49,11 +49,17 @@ contract VeMoeTest is Test {
         masterChef = new MasterChef(moe, IVeMoe(veMoeAddress), 0, 0, 0);
         veMoe = new VeMoe(IMoeStaking(stakingAddress), IMasterChef(masterChefAddress), 100e18);
 
-        TransparentUpgradeableProxy masterChefProxy =
-        new TransparentUpgradeableProxy(address(masterChef), address(this), abi.encodeWithSelector(MasterChef.initialize.selector, address(this), address(this), address(this), address(this)));
+        TransparentUpgradeableProxy2Step masterChefProxy = new TransparentUpgradeableProxy2Step(
+            address(masterChef),
+            ProxyAdmin2Step(address(1)),
+            abi.encodeWithSelector(MasterChef.initialize.selector, address(this), address(this), address(this), address(this))
+        );
 
-        TransparentUpgradeableProxy veMoeProxy =
-        new TransparentUpgradeableProxy(address(veMoe), address(this), abi.encodeWithSelector(VeMoe.initialize.selector, address(this)));
+        TransparentUpgradeableProxy2Step veMoeProxy = new TransparentUpgradeableProxy2Step(
+            address(veMoe),
+            ProxyAdmin2Step(address(1)),
+            abi.encodeWithSelector(VeMoe.initialize.selector, address(this))    
+        );
 
         veMoe = VeMoe(address(veMoeProxy));
         masterChef = MasterChef(address(masterChefProxy));

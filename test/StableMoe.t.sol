@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
 
 import "../src/StableMoe.sol";
 import "../src/MoeStaking.sol";
@@ -41,8 +41,11 @@ contract StableMoeTest is Test {
         staking = new MoeStaking(IERC20(moe), IVeMoe(veMoe), IStableMoe(sMoeAddress));
         sMoe = new StableMoe(IMoeStaking(stakingAddress));
 
-        TransparentUpgradeableProxy proxy =
-        new TransparentUpgradeableProxy(address(sMoe), address(this), abi.encodeWithSelector(StableMoe.initialize.selector, address(this)));
+        TransparentUpgradeableProxy2Step proxy = new TransparentUpgradeableProxy2Step(
+            address(sMoe),
+            ProxyAdmin2Step(address(1)),
+            abi.encodeWithSelector(StableMoe.initialize.selector, address(this))
+        );
 
         sMoe = StableMoe(payable(address(proxy)));
 
@@ -96,7 +99,7 @@ contract StableMoeTest is Test {
         assertEq(sMoe.getNumberOfRewards(), 1, "test_AddReward::13");
         assertEq(sMoe.getRewardTokens().length, 1, "test_AddReward::14");
         assertEq(address(sMoe.getRewardToken(0)), address(reward6d), "test_AddReward::15");
-        assertEq(address(sMoe.getRewardTokens()[0]), address(reward6d), "test_AddReward::17");
+        assertEq(address(sMoe.getRewardTokens()[0]), address(reward6d), "test_AddReward::16");
 
         sMoe.addReward(reward18d);
 
