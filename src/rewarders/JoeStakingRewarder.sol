@@ -21,19 +21,6 @@ contract JoeStakingRewarder is BaseRewarder, IJoeStakingRewarder {
     constructor(IERC20 token, address caller, address initialOwner) BaseRewarder(token, caller, 0, initialOwner) {}
 
     /**
-     * @dev Sets the reward parameters to airdrop tokens to stakers.
-     * @param amount The amount of tokens to be airdropped.
-     * @param timestamp The timestamp at which the airdrop will happen.
-     */
-    function setAidropParameters(uint256 amount, uint256 timestamp) external override onlyOwner {
-        if (timestamp < block.timestamp) revert BaseRewarder__InvalidStartTimestamp(timestamp);
-
-        uint256 totalSupply = _getTotalSupply();
-
-        _setRewardParameters(amount / totalSupply, timestamp, 1);
-    }
-
-    /**
      * @dev Returns the total supply of the staking pool.
      * @return The total supply of the staking pool.
      */

@@ -65,7 +65,18 @@ contract JoeStaking is IJoeStaking {
         return _amounts.getTotalAmount();
     }
 
-    function getPendingReward(address account) external view override returns (IERC20, uint256) {
+    /**
+     * @dev Returns the pending reward of an account.
+     * @param account The account to check.
+     * @return rewardToken The reward token.
+     * @return rewardAmount The pending reward of the account.
+     */
+    function getPendingReward(address account)
+        external
+        view
+        override
+        returns (IERC20 rewardToken, uint256 rewardAmount)
+    {
         return _rewarder.getPendingReward(account, _amounts.getAmountOf(account), _amounts.getTotalAmount());
     }
 
