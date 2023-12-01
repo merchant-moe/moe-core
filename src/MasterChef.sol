@@ -439,7 +439,6 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      * @param pids The pool IDs to update.
      */
     function _updateAll(uint256[] memory pids) private {
-        uint256 nbOfFarms = _farms.length;
         uint256 length = pids.length;
 
         uint256 totalVotes = _veMoe.getTopPidsTotalVotes();
