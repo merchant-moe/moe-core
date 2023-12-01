@@ -271,35 +271,9 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
 
         _claim(msg.sender, balance, balance);
 
-        uint256 userTotalVeMoe = user.veMoe;
-        uint256 topPidsTotalVotes = _topPidsTotalVotes;
-
         for (uint256 i; i < pids.length; ++i) {
-            int256 deltaAmount = deltaAmounts[i];
-            uint256 pid = pids[i];
-
-            if (pid >= numberOfFarm) revert VeMoe__InvalidPid(pid);
-
-            (uint256 userOldVotes, uint256 userNewVotes,, uint256 userNewTotalVotes) =
-                user.votes.update(pid, deltaAmount);
-
-            if (userNewTotalVotes > userTotalVeMoe) revert VeMoe__InsufficientVeMoe(userTotalVeMoe, userNewTotalVotes);
-
-            _votes.update(pid, deltaAmount);
-
-            if (_topPids.contains(pid)) topPidsTotalVotes = topPidsTotalVotes.addDelta(deltaAmount);
-
-            IVeMoeRewarder bribe = user.bribes[pid];
-
-            if (address(bribe) != address(0)) {
-                uint256 totalVotes = _bribesTotalVotes[bribe][pid];
-                _bribesTotalVotes[bribe][pid] = totalVotes.addDelta(deltaAmount);
-
-                bribe.onModify(msg.sender, pid, userOldVotes, userNewVotes, totalVotes);
-            }
+            _vote(user, pids[i], deltaAmounts[i], numberOfFarm);
         }
-
-        _topPidsTotalVotes = topPidsTotalVotes;
 
         emit Vote(msg.sender, pids, deltaAmounts);
     }
@@ -447,6 +421,35 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
         user.veMoe = newVeMoe;
 
         emit Claim(account, deltaVeMoe);
+    }
+
+    /**
+     * @dev Votes for a pool.
+     * @param user The storage pointer to the user.
+     * @param pid The pool ID.
+     * @param deltaAmount The delta amount to vote.
+     * @param numberOfFarm The number of farms in the MasterChef contract.
+     */
+    function _vote(User storage user, uint256 pid, int256 deltaAmount, uint256 numberOfFarm) private {
+        if (pid >= numberOfFarm) revert VeMoe__InvalidPid(pid);
+
+        (uint256 userOldVotes, uint256 userNewVotes,, uint256 userNewTotalVotes) = user.votes.update(pid, deltaAmount);
+
+        uint256 userTotalVeMoe = user.veMoe;
+        if (userNewTotalVotes > userTotalVeMoe) revert VeMoe__InsufficientVeMoe(userTotalVeMoe, userNewTotalVotes);
+
+        _votes.update(pid, deltaAmount);
+
+        if (_topPids.contains(pid)) _topPidsTotalVotes = _topPidsTotalVotes.addDelta(deltaAmount);
+
+        IVeMoeRewarder bribe = user.bribes[pid];
+
+        if (address(bribe) != address(0)) {
+            uint256 totalVotes = _bribesTotalVotes[bribe][pid];
+            _bribesTotalVotes[bribe][pid] = totalVotes.addDelta(deltaAmount);
+
+            bribe.onModify(msg.sender, pid, userOldVotes, userNewVotes, totalVotes);
+        }
     }
 
     /**
