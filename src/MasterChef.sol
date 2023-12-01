@@ -448,8 +448,6 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
         for (uint256 i; i < length; ++i) {
             uint256 pid = pids[i];
 
-            if (pid >= nbOfFarms) revert MasterChef__InvalidPid(pid);
-
             Farm storage farm = _farms[pid];
             Rewarder.Parameter storage rewarder = farm.rewarder;
 

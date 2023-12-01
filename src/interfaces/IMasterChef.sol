@@ -10,7 +10,6 @@ import {Rewarder} from "../libraries/Rewarder.sol";
 import {Amounts} from "../libraries/Amounts.sol";
 
 interface IMasterChef {
-    error MasterChef__InvalidPid(uint256 pid);
     error MasterChef__InvalidShares();
     error MasterChef__ZeroAddress();
 
