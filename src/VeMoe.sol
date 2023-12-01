@@ -364,6 +364,8 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
 
         if (length > Constants.MAX_NUMBER_OF_FARMS) revert VeMoe__TooManyPoolIds();
 
+        _masterChef.updateAll(pids);
+
         uint256[] memory oldIds = _topPids.values();
 
         if (oldIds.length > 0) {
@@ -374,13 +376,10 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
             }
         }
 
-        uint256 numberOfFarm = _masterChef.getNumberOfFarms();
-
         uint256 totalVotes;
         for (uint256 i; i < length; ++i) {
             uint256 pid = pids[i];
 
-            if (pid >= numberOfFarm) revert VeMoe__InvalidPid(pid);
             if (!_topPids.add(pid)) revert VeMoe__DuplicatePoolId(pid);
 
             uint256 votes = _votes.getAmountOf(pid);

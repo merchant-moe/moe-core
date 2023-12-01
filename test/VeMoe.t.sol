@@ -218,7 +218,7 @@ contract VeMoeTest is Test {
 
         pids[0] = 10;
 
-        vm.expectRevert(abi.encodeWithSelector(IVeMoe.VeMoe__InvalidPid.selector, 10));
+        vm.expectRevert();
         veMoe.setTopPoolIds(pids);
 
         for (uint256 i; i < Constants.MAX_NUMBER_OF_FARMS; ++i) {
