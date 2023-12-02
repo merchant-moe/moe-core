@@ -190,8 +190,8 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
     }
 
     /**
-     * @dev Returns all the top pool IDs.
-     * @return The top pool IDs.
+     * @dev Returns the total votes of the top pool IDs.
+     * @return The total votes of the top pool IDs.
      */
     function getTopPidsTotalVotes() external view override returns (uint256) {
         return _topPidsTotalVotes;
