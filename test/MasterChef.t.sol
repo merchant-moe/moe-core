@@ -86,11 +86,11 @@ contract MasterChefTest is Test {
     function test_SetUp() public {
         assertEq(address(masterChef.getMoe()), address(moe), "test_SetUp::1");
         assertEq(address(masterChef.getVeMoe()), address(veMoe), "test_SetUp::2");
-        assertEq(address(masterChef.getRewarderFactory()), address(factory), "test_SetUp::7");
-        assertEq(address(moe.getMinter()), address(masterChef), "test_SetUp::3");
-        assertEq(moe.getMaxSupply(), type(uint256).max, "test_SetUp::4");
-        assertEq(address(masterChef.getToken(0)), address(tokenA), "test_SetUp::5");
-        assertEq(address(masterChef.getToken(1)), address(tokenB), "test_SetUp::6");
+        assertEq(address(masterChef.getRewarderFactory()), address(factory), "test_SetUp::3");
+        assertEq(address(moe.getMinter()), address(masterChef), "test_SetUp::4");
+        assertEq(moe.getMaxSupply(), type(uint256).max, "test_SetUp::5");
+        assertEq(address(masterChef.getToken(0)), address(tokenA), "test_SetUp::6");
+        assertEq(address(masterChef.getToken(1)), address(tokenB), "test_SetUp::7");
     }
 
     function test_Deposit() public {

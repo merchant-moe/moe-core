@@ -156,7 +156,7 @@ contract JoeStakingTest is Test {
         vm.prank(alice);
         staking.claim();
 
-        assertEq(moe.balanceOf(address(alice)), 0, "test_Claim::1");
+        assertEq(moe.balanceOf(address(alice)), 0, "test_Claim::3");
 
         moe.mint(address(rewarder), 10e18);
 
@@ -166,18 +166,18 @@ contract JoeStakingTest is Test {
 
         (token, amount) = staking.getPendingReward(alice);
 
-        assertEq(address(token), address(moe), "test_Claim::3");
-        assertApproxEqAbs(amount, 0.2e18, 1, "test_Claim::4");
+        assertEq(address(token), address(moe), "test_Claim::4");
+        assertApproxEqAbs(amount, 0.2e18, 1, "test_Claim::5");
 
         vm.prank(alice);
         staking.claim();
 
-        assertApproxEqAbs(moe.balanceOf(address(alice)), 0.2e18, 1, "test_Claim::5");
+        assertApproxEqAbs(moe.balanceOf(address(alice)), 0.2e18, 1, "test_Claim::6");
 
         (token, amount) = staking.getPendingReward(bob);
 
-        assertEq(address(token), address(moe), "test_Claim::6");
-        assertApproxEqAbs(amount, 1.8e18, 1, "test_Claim::7");
+        assertEq(address(token), address(moe), "test_Claim::7");
+        assertApproxEqAbs(amount, 1.8e18, 1, "test_Claim::8");
 
         vm.warp(block.timestamp + 10);
 
