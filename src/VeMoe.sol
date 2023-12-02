@@ -247,7 +247,9 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
                 uint256 userVotes = user.votes.getAmountOf(pid);
                 uint256 totalVotes = _bribesTotalVotes[bribe][pid];
 
-                bribe.onModify(msg.sender, pid, userVotes, userVotes, totalVotes);
+                uint256 rewards = bribe.onModify(msg.sender, pid, userVotes, userVotes, totalVotes);
+
+                bribe.claim(msg.sender, rewards);
             }
         }
     }
@@ -312,9 +314,18 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
                 _bribesTotalVotes[newBribe][pid] = newBribesTotalVotes + userVotes;
             }
 
-            // Done after updating _bribesTotalVotes to avoid reentrancy attack
-            if (address(oldBribe) != address(0)) oldBribe.onModify(msg.sender, pid, userVotes, 0, oldBribesTotalVotes);
-            if (address(newBribe) != address(0)) newBribe.onModify(msg.sender, pid, 0, userVotes, newBribesTotalVotes);
+            // Done after updating _bribesTotalVotes to avoid reentrancy attack on total votes
+            uint256 newBribesRewards = (address(newBribe) != address(0))
+                ? newBribe.onModify(msg.sender, pid, 0, userVotes, newBribesTotalVotes)
+                : uint256(0);
+
+            uint256 oldBribesRewards = (address(oldBribe) != address(0))
+                ? oldBribe.onModify(msg.sender, pid, userVotes, 0, oldBribesTotalVotes)
+                : uint256(0);
+
+            // Done after updating bribes to avoid reentrancy attack on rewards
+            if (newBribesRewards > 0) newBribe.claim(msg.sender, newBribesRewards); // Should never be reached, but kept for consistency
+            if (oldBribesRewards > 0) oldBribe.claim(msg.sender, oldBribesRewards);
         }
 
         emit BribesSet(msg.sender, pids, bribes);
@@ -447,7 +458,9 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
             uint256 totalVotes = _bribesTotalVotes[bribe][pid];
             _bribesTotalVotes[bribe][pid] = totalVotes.addDelta(deltaAmount);
 
-            bribe.onModify(msg.sender, pid, userOldVotes, userNewVotes, totalVotes);
+            uint256 rewards = bribe.onModify(msg.sender, pid, userOldVotes, userNewVotes, totalVotes);
+
+            bribe.claim(msg.sender, rewards);
         }
     }
 

@@ -700,6 +700,67 @@ contract VeMoeTest is Test {
         assertEq(token18d.balanceOf(address(bob)), bribeRewards[0], "test_ClaimBribesRewards::23");
         assertEq(token6d.balanceOf(address(bob)), bribeRewards[1], "test_ClaimBribesRewards::24");
     }
+
+    function test_ReenterBribes() public {
+        MaliciousBribe maliciousBribe = new MaliciousBribe(veMoe);
+        moe.mint(address(maliciousBribe), 1e18);
+
+        veMoe.setVeMoePerSecondPerMoe(1e18);
+
+        MockERC20(address(token18d)).mint(address(bribes0), 100e18);
+        bribes0.setRewardPerSecond(1e18, 100);
+
+        vm.prank(alice);
+        staking.stake(1e18);
+
+        uint256[] memory pids = new uint256[](1);
+        int256[] memory deltaAmounts = new int256[](1);
+        IVeMoeRewarder[] memory bribes = new IVeMoeRewarder[](1);
+
+        vm.startPrank(address(maliciousBribe));
+        moe.approve(address(staking), type(uint256).max);
+        staking.stake(1e18);
+
+        vm.warp(block.timestamp + 50);
+
+        pids[0] = 0;
+        deltaAmounts[0] = 1e18;
+        bribes[0] = IVeMoeRewarder(address(maliciousBribe));
+
+        veMoe.vote(pids, deltaAmounts);
+        veMoe.setBribes(pids, bribes);
+
+        bribes[0] = bribes0;
+
+        veMoe.setBribes(pids, bribes);
+
+        vm.stopPrank();
+
+        assertEq(token18d.balanceOf(address(maliciousBribe)), 0, "test_ReenterBribes::1");
+        assertEq(token18d.balanceOf(address(bribes0)), 100e18, "test_ReenterBribes::2");
+    }
+}
+
+contract MaliciousBribe {
+    IVeMoe public veMoe;
+
+    constructor(IVeMoe _veMoe) {
+        veMoe = _veMoe;
+    }
+
+    function onModify(address, uint256 pid, uint256 oldBalance, uint256, uint256) external returns (uint256) {
+        if (oldBalance == 0) return 0;
+
+        uint256[] memory pids = new uint256[](1);
+        IVeMoeRewarder[] memory bribes = new IVeMoeRewarder[](1);
+
+        pids[0] = pid;
+        bribes[0] = IVeMoeRewarder(address(this));
+
+        veMoe.setBribes(pids, bribes);
+
+        return 0;
+    }
 }
 
 contract BadBribes {
@@ -711,5 +772,9 @@ contract BadBribes {
 
     fallback() external {
         if (shouldRevert) revert();
+        assembly {
+            mstore(0, 0)
+            return(0, 32)
+        }
     }
 }
