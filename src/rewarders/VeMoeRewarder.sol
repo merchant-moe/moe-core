@@ -24,6 +24,12 @@ contract VeMoeRewarder is BaseRewarder, IVeMoeRewarder {
         BaseRewarder(token, caller, pid, initialOwner)
     {}
 
+    function claim(address account, uint256 amount) public override {
+        if (msg.sender != _caller) revert BaseRewarder__InvalidCaller();
+
+        _claim(account, amount);
+    }
+
     /**
      * @dev Gets the total votes of this bribe contract.
      * @return The total votes of this bribe contract.

@@ -21,6 +21,25 @@ contract JoeStakingRewarder is BaseRewarder, IJoeStakingRewarder {
     constructor(IERC20 token, address caller, address initialOwner) BaseRewarder(token, caller, 0, initialOwner) {}
 
     /**
+     * @dev Called by the caller contract to update the rewards for a given account.
+     * @param account The account to update rewards for.
+     * @param pid The pool ID of the staking pool.
+     * @param oldBalance The old balance of the account.
+     * @param newBalance The new balance of the account.
+     * @param oldTotalSupply The old total supply of the staking pool.
+     * @return reward The amount of rewards sent to the account.
+     */
+    function onModify(address account, uint256 pid, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply)
+        public
+        override(BaseRewarder, IBaseRewarder)
+        returns (uint256 reward)
+    {
+        reward = BaseRewarder.onModify(account, pid, oldBalance, newBalance, oldTotalSupply);
+
+        _claim(account, reward);
+    }
+
+    /**
      * @dev Returns the total supply of the staking pool.
      * @return The total supply of the staking pool.
      */

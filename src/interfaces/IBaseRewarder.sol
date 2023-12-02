@@ -47,5 +47,6 @@ interface IBaseRewarder {
     function sweep(IERC20 token, address account) external;
 
     function onModify(address account, uint256 pid, uint256 oldBalance, uint256 newBalance, uint256 totalSupply)
-        external;
+        external
+        returns (uint256);
 }

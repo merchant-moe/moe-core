@@ -182,12 +182,13 @@ abstract contract BaseRewarder is Ownable2Step, IBaseRewarder {
         public
         virtual
         override
+        returns (uint256)
     {
         if (msg.sender != _caller) revert BaseRewarder__InvalidCaller();
         if (pid != _pid) revert BaseRewarder__InvalidPid(pid);
         if (_isStopped) revert BaseRewarder__Stopped();
 
-        _claim(account, oldBalance, newBalance, oldTotalSupply);
+        return _update(account, oldBalance, newBalance, oldTotalSupply);
     }
 
     /**
@@ -200,25 +201,37 @@ abstract contract BaseRewarder is Ownable2Step, IBaseRewarder {
     }
 
     /**
-     * @dev Claims the rewards for a given account.
+     * @dev Updates a given account and returns the rewards.
      * @param account The account to claim rewards for.
      * @param oldBalance The old balance of the account.
      * @param newBalance The new balance of the account.
      * @param oldTotalSupply The old total supply of the staking pool.
+     * @return rewards The rewards of the account.
      */
-    function _claim(address account, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply) internal virtual {
+    function _update(address account, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply)
+        internal
+        virtual
+        returns (uint256 rewards)
+    {
         uint256 totalUnclaimedRewards = _totalUnclaimedRewards;
         uint256 reserve = _reserve;
 
         uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
-        uint256 rewards = _rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalRewards);
+        rewards = _rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalRewards);
 
         _totalUnclaimedRewards = totalUnclaimedRewards + totalRewards - rewards;
         _reserve = reserve - rewards;
+    }
 
-        _safeTransferTo(_token, account, rewards);
+    /**
+     * @dev Claims tokens to the specified account.
+     * @param account The account to claim rewards for.
+     * @param amount The amount of tokens to claim.
+     */
+    function _claim(address account, uint256 amount) internal virtual {
+        _safeTransferTo(_token, account, amount);
 
-        emit Claim(account, _token, rewards);
+        emit Claim(account, _token, amount);
     }
 
     /**

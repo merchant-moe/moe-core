@@ -68,14 +68,18 @@ contract MasterChefRewarder is BaseRewarder, IMasterChefRewarder {
      * @param oldBalance The old balance of the account.
      * @param newBalance The new balance of the account.
      * @param oldTotalSupply The old total supply of the staking pool.
+     * @return reward The amount of rewards sent to the account.
      */
     function onModify(address account, uint256 pid, uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply)
         public
         override(BaseRewarder, IBaseRewarder)
+        returns (uint256 reward)
     {
         if (_status != Status.Linked) revert MasterChefRewarder__NotLinked();
 
-        BaseRewarder.onModify(account, pid, oldBalance, newBalance, oldTotalSupply);
+        reward = BaseRewarder.onModify(account, pid, oldBalance, newBalance, oldTotalSupply);
+
+        _claim(account, reward);
     }
 
     /**
