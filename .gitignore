@@ -1,6 +1,6 @@
 # Compiler files
 cache/
-out/
+out/**/*.json
 
 # Ignores development broadcast logs
 !/broadcast
@@ -12,3 +12,19 @@ docs/
 
 # Dotenv file
 .env
+
+# ABI files
+!out/MoePair.sol/MoePair.json
+!out/MoeFactory.sol/MoeFactory.json
+!out/MoeRouter.sol/MoeRouter.json
+!out/MoeQuoter.sol/MoeQuoter.json
+!out/MasterChefRewarder.sol/MasterChefRewarder.json
+!out/VeMoeRewarder.sol/VeMoeRewarder.json
+!out/JoeStakingRewarder.sol/JoeStakingRewarder.json
+!out/JoeStaking.sol/JoeStaking.json
+!out/MasterChef.sol/MasterChef.json
+!out/Moe.sol/Moe.json
+!out/MoeStaking.sol/MoeStaking.json
+!out/StableMoe.sol/StableMoe.json
+!out/VeMoe.sol/VeMoe.json
+!out/VestingContract.sol/VestingContract.json
