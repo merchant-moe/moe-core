@@ -15,15 +15,16 @@ import {BaseRewarder} from "./BaseRewarder.sol";
 contract VeMoeRewarder is BaseRewarder, IVeMoeRewarder {
     /**
      * @dev Constructor for VeMoeRewarder contract.
-     * @param token The token to be distributed as rewards.
      * @param caller The address of the contract that will call the onModify function.
-     * @param pid The pool ID of the staking pool.
-     * @param initialOwner The initial owner of the contract.
      */
-    constructor(IERC20 token, address caller, uint256 pid, address initialOwner)
-        BaseRewarder(token, caller, pid, initialOwner)
-    {}
+    constructor(address caller) BaseRewarder(caller) {}
 
+    /**
+     * @dev Claims rewards for an account.
+     * Only the caller contract can call this function.
+     * @param account The account to claim rewards for.
+     * @param amount The amount of rewards to claim.
+     */
     function claim(address account, uint256 amount) public override {
         if (msg.sender != _caller) revert BaseRewarder__InvalidCaller();
 
@@ -31,10 +32,26 @@ contract VeMoeRewarder is BaseRewarder, IVeMoeRewarder {
     }
 
     /**
+     * @dev Returns the address of the token to be distributed as rewards.
+     * @return The address of the token to be distributed as rewards.
+     */
+    function _token() internal pure override returns (IERC20) {
+        return IERC20(_getArgAddress(0));
+    }
+
+    /**
+     * @dev Returns the pool ID of the staking pool.
+     * @return The pool ID.
+     */
+    function _pid() internal pure override returns (uint256) {
+        return _getArgUint256(20);
+    }
+
+    /**
      * @dev Gets the total votes of this bribe contract.
      * @return The total votes of this bribe contract.
      */
     function _getTotalSupply() internal view override returns (uint256) {
-        return IVeMoe(_caller).getBribesTotalVotes(this, _pid);
+        return IVeMoe(_caller).getBribesTotalVotes(this, _pid());
     }
 }

@@ -6,11 +6,13 @@ import "forge-std/Test.sol";
 import "../src/interfaces/IMasterChef.sol";
 import "../src/rewarders/MasterChefRewarder.sol";
 import "../src/rewarders/BaseRewarder.sol";
+import "../src/rewarders/RewarderFactory.sol";
 import "./mocks/MockERC20.sol";
 
 contract MasterChefRewarderTest is Test {
     MasterChefRewarder rewarder;
     MockMasterChef masterchef;
+    RewarderFactory factory;
 
     IERC20 tokenA;
     IERC20 tokenB;
@@ -27,7 +29,10 @@ contract MasterChefRewarderTest is Test {
         rewardToken = IERC20(new MockERC20("Reward Token", "RT", 6));
         masterchef = new MockMasterChef();
 
-        rewarder = new MasterChefRewarder(rewardToken, address(masterchef), 0, address(this));
+        factory = new RewarderFactory(address(this));
+        factory.setMasterchefRewarderImplementation(new MasterChefRewarder(address(masterchef)));
+
+        rewarder = MasterChefRewarder(payable(address(factory.createMasterchefRewarder(rewardToken, 0))));
     }
 
     function test_GetRewarderParameter() public {
@@ -42,7 +47,7 @@ contract MasterChefRewarderTest is Test {
 
     function test_SendNative() public {
         MasterChefRewarder nativeRewarder =
-            new MasterChefRewarder(IERC20(address(0)), address(masterchef), 0, address(this));
+            MasterChefRewarder(payable(address(factory.createMasterchefRewarder(IERC20(address(0)), 0))));
 
         (bool s,) = address(nativeRewarder).call{value: 1}("");
 
@@ -242,7 +247,7 @@ contract MasterChefRewarderTest is Test {
 
     function test_Sweep() public {
         vm.prank(alice);
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, alice));
         rewarder.sweep(tokenA, alice);
 
         vm.expectRevert(IBaseRewarder.BaseRewarder__ZeroAmount.selector);
@@ -319,7 +324,7 @@ contract MasterChefRewarderTest is Test {
     }
 
     function test_SetRewarderParameters() public {
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, alice));
         vm.prank(alice);
         rewarder.setRewarderParameters(0, 0, 0);
 

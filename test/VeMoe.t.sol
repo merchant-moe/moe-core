@@ -11,6 +11,7 @@ import "../src/MoeStaking.sol";
 import "../src/Moe.sol";
 import "../src/MasterChef.sol";
 import "../src/rewarders/VeMoeRewarder.sol";
+import "../src/rewarders/RewarderFactory.sol";
 import "./mocks/MockNoRevert.sol";
 import "./mocks/MockERC20.sol";
 
@@ -19,6 +20,7 @@ contract VeMoeTest is Test {
     Moe moe;
     VeMoe veMoe;
     MasterChef masterChef;
+    RewarderFactory factory;
 
     IERC20 token18d;
     IERC20 token6d;
@@ -64,9 +66,12 @@ contract VeMoeTest is Test {
         veMoe = VeMoe(address(veMoeProxy));
         masterChef = MasterChef(address(masterChefProxy));
 
-        bribes0 = new VeMoeRewarder(token18d, address(veMoe), 0, address(this));
-        bribes0Bis = new VeMoeRewarder(token18d, address(veMoe), 0, address(this));
-        bribes1 = new VeMoeRewarder(token6d, address(veMoe), 1, address(this));
+        factory = new RewarderFactory(address(this));
+        factory.setVeMoeRewarderImplementation(new VeMoeRewarder(address(veMoe)));
+
+        bribes0 = VeMoeRewarder(payable(address(factory.createVeMoeRewarder(token18d, 0))));
+        bribes0Bis = VeMoeRewarder(payable(address(factory.createVeMoeRewarder(token18d, 0))));
+        bribes1 = VeMoeRewarder(payable(address(factory.createVeMoeRewarder(token6d, 1))));
 
         assertEq(address(masterChef.getVeMoe()), address(veMoe), "setUp::1");
 

@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {
+    Ownable2StepUpgradeable,
+    OwnableUpgradeable
+} from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Clone} from "@tj-dexv2/src/libraries/Clone.sol";
 
 import {Math} from "../libraries/Math.sol";
 import {Rewarder} from "../libraries/Rewarder.sol";
@@ -12,14 +16,12 @@ import {IBaseRewarder} from "../interfaces/IBaseRewarder.sol";
  * @title Base Rewarder Contract
  * @dev Base contract for reward distribution to stakers.
  */
-abstract contract BaseRewarder is Ownable2Step, IBaseRewarder {
+abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder {
     using SafeERC20 for IERC20;
     using Math for uint256;
     using Rewarder for Rewarder.Parameter;
 
-    IERC20 internal immutable _token;
     address internal immutable _caller;
-    uint256 internal immutable _pid;
 
     uint256 internal _rewardsPerSecond;
     uint256 internal _totalUnclaimedRewards;
@@ -31,22 +33,32 @@ abstract contract BaseRewarder is Ownable2Step, IBaseRewarder {
 
     /**
      * @dev Constructor for BaseRewarder contract.
-     * @param token The token to be distributed as rewards.
      * @param caller The address of the contract that will call the onModify function.
-     * @param pid The pool ID of the staking pool.
+     */
+    constructor(address caller) initializer {
+        _caller = caller;
+    }
+
+    /**
+     * @dev Initializes the BaseRewarder contract.
      * @param initialOwner The initial owner of the contract.
      */
-    constructor(IERC20 token, address caller, uint256 pid, address initialOwner) Ownable(initialOwner) {
-        _token = token;
-        _caller = caller;
-        _pid = pid;
+    function initialize(address initialOwner) public virtual override initializer {
+        __Ownable_init(initialOwner);
     }
 
     /**
      * @dev Allows the contract to receive native tokens only if the token is address(0).
      */
     receive() external payable {
-        if (address(_token) != address(0)) revert BaseRewarder__NotNativeRewarder();
+        _nativeReceived();
+    }
+
+    /**
+     * @dev Allows the contract to receive native tokens only if the token is address(0).
+     */
+    fallback() external payable {
+        _nativeReceived();
     }
 
     /**
@@ -54,7 +66,7 @@ abstract contract BaseRewarder is Ownable2Step, IBaseRewarder {
      * @return The address of the token to be distributed as rewards.
      */
     function getToken() public view virtual override returns (IERC20) {
-        return _token;
+        return _token();
     }
 
     /**
@@ -70,7 +82,7 @@ abstract contract BaseRewarder is Ownable2Step, IBaseRewarder {
      * @return The pool ID.
      */
     function getPid() public view virtual override returns (uint256) {
-        return _pid;
+        return _pid();
     }
 
     /**
@@ -87,7 +99,7 @@ abstract contract BaseRewarder is Ownable2Step, IBaseRewarder {
         override
         returns (IERC20 token, uint256 rewardPerSecond, uint256 lastUpdateTimestamp, uint256 endTimestamp)
     {
-        return (_token, _rewardsPerSecond, _rewarder.lastUpdateTimestamp, _endTimestamp);
+        return (_token(), _rewardsPerSecond, _rewarder.lastUpdateTimestamp, _endTimestamp);
     }
 
     /**
@@ -106,7 +118,7 @@ abstract contract BaseRewarder is Ownable2Step, IBaseRewarder {
     {
         uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
 
-        return (_token, _rewarder.getPendingReward(account, balance, totalSupply, totalRewards));
+        return (_token(), _rewarder.getPendingReward(account, balance, totalSupply, totalRewards));
     }
 
     /**
@@ -164,7 +176,7 @@ abstract contract BaseRewarder is Ownable2Step, IBaseRewarder {
     function sweep(IERC20 token, address account) public virtual override onlyOwner {
         uint256 balance = _balanceOfThis(token);
 
-        if (!_isStopped && token == _token) balance -= _reserve;
+        if (!_isStopped && token == _token()) balance -= _reserve;
         if (balance == 0) revert BaseRewarder__ZeroAmount();
 
         _safeTransferTo(token, account, balance);
@@ -185,7 +197,7 @@ abstract contract BaseRewarder is Ownable2Step, IBaseRewarder {
         returns (uint256)
     {
         if (msg.sender != _caller) revert BaseRewarder__InvalidCaller();
-        if (pid != _pid) revert BaseRewarder__InvalidPid(pid);
+        if (pid != _pid()) revert BaseRewarder__InvalidPid(pid);
         if (_isStopped) revert BaseRewarder__Stopped();
 
         return _update(account, oldBalance, newBalance, oldTotalSupply);
@@ -229,9 +241,11 @@ abstract contract BaseRewarder is Ownable2Step, IBaseRewarder {
      * @param amount The amount of tokens to claim.
      */
     function _claim(address account, uint256 amount) internal virtual {
-        _safeTransferTo(_token, account, amount);
+        IERC20 token = _token();
 
-        emit Claim(account, _token, amount);
+        _safeTransferTo(token, account, amount);
+
+        emit Claim(account, token, amount);
     }
 
     /**
@@ -271,7 +285,7 @@ abstract contract BaseRewarder is Ownable2Step, IBaseRewarder {
 
         totalUnclaimedRewards += totalRewards;
 
-        uint256 remainingReward = _balanceOfThis(_token) - totalUnclaimedRewards;
+        uint256 remainingReward = _balanceOfThis(_token()) - totalUnclaimedRewards;
         uint256 expectedReward = rewardPerSecond * expectedDuration;
 
         if (remainingReward < expectedReward) revert BaseRewarder__InsufficientReward(remainingReward, expectedReward);
@@ -291,6 +305,27 @@ abstract contract BaseRewarder is Ownable2Step, IBaseRewarder {
 
         emit RewardParameterUpdated(rewardPerSecond, startTimestamp, endTimestamp);
     }
+
+    /**
+     * @dev Reverts if the contract receives native tokens and the rewarder is not native.
+     */
+    function _nativeReceived() internal view virtual {
+        if (address(_token()) != address(0)) revert BaseRewarder__NotNativeRewarder();
+    }
+
+    /**
+     * @dev Returns the address of the token to be distributed as rewards.
+     * Must be implemented by child contracts.
+     * @return The address of the token to be distributed as rewards.
+     */
+    function _token() internal view virtual returns (IERC20);
+
+    /**
+     * @dev Returns the pool ID of the staking pool.
+     * Must be implemented by child contracts.
+     * @return The pool ID.
+     */
+    function _pid() internal view virtual returns (uint256);
 
     /**
      * @dev Returns the total supply of the staking pool.

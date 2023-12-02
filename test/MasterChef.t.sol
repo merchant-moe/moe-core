@@ -10,11 +10,13 @@ import "../src/Moe.sol";
 import "./mocks/MockVeMoe.sol";
 import "./mocks/MockERC20.sol";
 import "../src/rewarders/MasterChefRewarder.sol";
+import "../src/rewarders/RewarderFactory.sol";
 
 contract MasterChefTest is Test {
     MasterChef masterChef;
     IMoe moe;
     MockVeMoe veMoe;
+    RewarderFactory factory;
 
     IERC20 tokenA;
     IERC20 tokenB;
@@ -49,6 +51,9 @@ contract MasterChefTest is Test {
         );
 
         masterChef = MasterChef(address(proxy));
+
+        factory = new RewarderFactory(address(this));
+        factory.setMasterchefRewarderImplementation(new MasterChefRewarder(address(masterChef)));
 
         vm.label(address(moe), "moe");
         vm.label(address(veMoe), "veMoe");
@@ -241,14 +246,17 @@ contract MasterChefTest is Test {
     function test_Add() public {
         masterChef.add(tokenA, IMasterChefRewarder(address(0)));
 
-        MasterChefRewarder rewarder = new MasterChefRewarder(rewardToken0, address(masterChef), 3, address(this));
+        MasterChefRewarder rewarder =
+            MasterChefRewarder(payable(address(factory.createMasterchefRewarder(rewardToken0, 3))));
 
         masterChef.add(tokenA, IMasterChefRewarder(address(rewarder)));
 
         assertEq(address(masterChef.getExtraRewarder(3)), address(rewarder), "test_Add::1");
 
-        MasterChefRewarder rewarder1 = new MasterChefRewarder(rewardToken0, address(masterChef), 2, address(this));
-        MasterChefRewarder rewarder2 = new MasterChefRewarder(rewardToken0, address(masterChef), 2, address(this));
+        MasterChefRewarder rewarder1 =
+            MasterChefRewarder(payable(address(factory.createMasterchefRewarder(rewardToken0, 2))));
+        MasterChefRewarder rewarder2 =
+            MasterChefRewarder(payable(address(factory.createMasterchefRewarder(rewardToken0, 2))));
 
         masterChef.setExtraRewarder(2, IMasterChefRewarder(address(rewarder1)));
 
@@ -430,8 +438,10 @@ contract MasterChefTest is Test {
     }
 
     function test_ExtraRewarder() public {
-        MasterChefRewarder rewarder0 = new MasterChefRewarder(rewardToken0, address(masterChef), 0, address(this));
-        MasterChefRewarder rewarder1 = new MasterChefRewarder(rewardToken1, address(masterChef), 1, address(this));
+        MasterChefRewarder rewarder0 =
+            MasterChefRewarder(payable(address(factory.createMasterchefRewarder(rewardToken0, 0))));
+        MasterChefRewarder rewarder1 =
+            MasterChefRewarder(payable(address(factory.createMasterchefRewarder(rewardToken1, 1))));
 
         vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InvalidPid.selector, 2));
         masterChef.add(tokenA, rewarder0);

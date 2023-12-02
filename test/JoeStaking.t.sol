@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
 
 import "../src/JoeStaking.sol";
@@ -54,7 +55,10 @@ contract JoeStakingTest is Test {
         assertEq(address(rewarder.getToken()), address(moe), "test_GetParameters::3");
         assertEq(rewarder.getCaller(), address(staking), "test_GetParameters::4");
         assertEq(rewarder.getPid(), 0, "test_GetParameters::5");
-        assertEq(Ownable(address(rewarder)).owner(), address(this), "test_GetParameters::6");
+        assertEq(OwnableUpgradeable(address(rewarder)).owner(), address(this), "test_GetParameters::6");
+
+        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        rewarder.initialize(address(this));
     }
 
     function test_Stake() public {

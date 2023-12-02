@@ -37,6 +37,8 @@ interface IBaseRewarder {
 
     function isStopped() external view returns (bool);
 
+    function initialize(address initialOwner) external;
+
     function setRewardPerSecond(uint256 rewardPerSecond, uint256 expectedDuration) external;
 
     function setRewarderParameters(uint256 rewardPerSecond, uint256 startTimestamp, uint256 expectedDuration)

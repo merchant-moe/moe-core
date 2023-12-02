@@ -16,14 +16,9 @@ contract MasterChefRewarder is BaseRewarder, IMasterChefRewarder {
 
     /**
      * @dev Constructor for MasterChefRewarder contract.
-     * @param token The token to be distributed as rewards.
      * @param caller The address of the contract that will call the onModify function.
-     * @param pid The pool ID of the staking pool.
-     * @param initialOwner The initial owner of the contract.
      */
-    constructor(IERC20 token, address caller, uint256 pid, address initialOwner)
-        BaseRewarder(token, caller, pid, initialOwner)
-    {}
+    constructor(address caller) BaseRewarder(caller) {}
 
     /**
      * @dev Links the rewarder to the MasterChef contract.
@@ -33,7 +28,7 @@ contract MasterChefRewarder is BaseRewarder, IMasterChefRewarder {
     function link(uint256 pid) public override {
         if (msg.sender != _caller) revert BaseRewarder__InvalidCaller();
         if (_status != Status.Unlinked) revert MasterChefRewarder__AlreadyLinked();
-        if (pid != _pid) revert BaseRewarder__InvalidPid(pid);
+        if (pid != _pid()) revert BaseRewarder__InvalidPid(pid);
         if (_isStopped) revert BaseRewarder__Stopped();
 
         _status = Status.Linked;
@@ -46,7 +41,7 @@ contract MasterChefRewarder is BaseRewarder, IMasterChefRewarder {
      */
     function unlink(uint256 pid) public override {
         if (msg.sender != _caller) revert BaseRewarder__InvalidCaller();
-        if (pid != _pid) revert BaseRewarder__InvalidPid(pid);
+        if (pid != _pid()) revert BaseRewarder__InvalidPid(pid);
         if (_status != Status.Linked) revert MasterChefRewarder__NotLinked();
 
         _status = Status.Stopped;
@@ -83,10 +78,26 @@ contract MasterChefRewarder is BaseRewarder, IMasterChefRewarder {
     }
 
     /**
+     * @dev Returns the address of the token to be distributed as rewards.
+     * @return The address of the token to be distributed as rewards.
+     */
+    function _token() internal pure override returns (IERC20) {
+        return IERC20(_getArgAddress(0));
+    }
+
+    /**
+     * @dev Returns the pool ID of the staking pool.
+     * @return The pool ID.
+     */
+    function _pid() internal pure override returns (uint256) {
+        return _getArgUint256(20);
+    }
+
+    /**
      * @dev Returns the total supply of the staking pool.
      * @return The total supply of the staking pool.
      */
     function _getTotalSupply() internal view override returns (uint256) {
-        return IMasterChef(_caller).getTotalDeposit(_pid);
+        return IMasterChef(_caller).getTotalDeposit(_pid());
     }
 }
