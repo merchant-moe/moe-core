@@ -16,6 +16,7 @@ import {IMoe} from "./interfaces/IMoe.sol";
 import {IVeMoe} from "./interfaces/IVeMoe.sol";
 import {IMasterChef} from "./interfaces/IMasterChef.sol";
 import {IMasterChefRewarder} from "./interfaces/IMasterChefRewarder.sol";
+import {IRewarderFactory, IBaseRewarder} from "./interfaces/IRewarderFactory.sol";
 
 /**
  * @title Master Chef Contract
@@ -33,6 +34,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
 
     IMoe private immutable _moe;
     IVeMoe private immutable _veMoe;
+    IRewarderFactory private immutable _rewarderFactory;
 
     uint256 private immutable _treasuryShare;
     uint256 private immutable _futureFundingShare;
@@ -50,17 +52,26 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      * @dev Constructor for the MasterChef contract.
      * @param moe The address of the MOE token.
      * @param veMoe The address of the VeMOE contract.
+     * @param factory The address of the rewarder factory.
      * @param treasuryShare The share of the rewards that will be sent to the treasury.
      * @param futureFundingShare The share of the rewards that will be sent to the future funding.
      * @param teamShare The share of the rewards that will be sent to the team.
      */
-    constructor(IMoe moe, IVeMoe veMoe, uint256 treasuryShare, uint256 futureFundingShare, uint256 teamShare) {
+    constructor(
+        IMoe moe,
+        IVeMoe veMoe,
+        IRewarderFactory factory,
+        uint256 treasuryShare,
+        uint256 futureFundingShare,
+        uint256 teamShare
+    ) {
         _disableInitializers();
 
         if (treasuryShare + futureFundingShare + teamShare > Constants.PRECISION) revert MasterChef__InvalidShares();
 
         _moe = moe;
         _veMoe = veMoe;
+        _rewarderFactory = factory;
 
         _treasuryShare = treasuryShare;
         _futureFundingShare = futureFundingShare;
@@ -99,6 +110,14 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      */
     function getVeMoe() external view override returns (IVeMoe) {
         return _veMoe;
+    }
+
+    /**
+     * @dev Returns the address of the rewarder factory.
+     * @return The address of the rewarder factory.
+     */
+    function getRewarderFactory() external view override returns (IRewarderFactory) {
+        return _rewarderFactory;
     }
 
     /**
@@ -424,6 +443,13 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      * @param extraRewarder The new extra rewarder of the farm.
      */
     function _setExtraRewarder(uint256 pid, IMasterChefRewarder extraRewarder) private {
+        if (
+            address(extraRewarder) != address(0)
+                && !_rewarderFactory.isMasterchefRewarder(IBaseRewarder(payable(address(extraRewarder))))
+        ) {
+            revert MasterChef__NotMasterchefRewarder();
+        }
+
         IMasterChefRewarder oldExtraRewarder = _farms[pid].extraRewarder;
 
         if (address(oldExtraRewarder) != address(0)) oldExtraRewarder.unlink(pid);

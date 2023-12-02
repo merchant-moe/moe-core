@@ -39,10 +39,11 @@ contract MasterChefTest is Test {
         uint256 nonce = vm.getNonce(address(this));
 
         address masterChefAddress = computeCreateAddress(address(this), nonce + 2);
+        address factoryAddress = computeCreateAddress(address(this), nonce + 3);
 
         moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
 
-        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), 0, 0, 0);
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)),IRewarderFactory(factoryAddress), 0, 0, 0);
 
         TransparentUpgradeableProxy2Step proxy = new TransparentUpgradeableProxy2Step(
             address(masterChef),
@@ -85,6 +86,7 @@ contract MasterChefTest is Test {
     function test_SetUp() public {
         assertEq(address(masterChef.getMoe()), address(moe), "test_SetUp::1");
         assertEq(address(masterChef.getVeMoe()), address(veMoe), "test_SetUp::2");
+        assertEq(address(masterChef.getRewarderFactory()), address(factory), "test_SetUp::7");
         assertEq(address(moe.getMinter()), address(masterChef), "test_SetUp::3");
         assertEq(moe.getMaxSupply(), type(uint256).max, "test_SetUp::4");
         assertEq(address(masterChef.getToken(0)), address(tokenA), "test_SetUp::5");
@@ -342,7 +344,7 @@ contract MasterChefTest is Test {
         address masterChefAddress = computeCreateAddress(address(this), nonce + 2);
 
         moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
-        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), 0.05e18, 0.1e18, 0.15e18);
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), factory, 0.05e18, 0.1e18, 0.15e18);
 
         TransparentUpgradeableProxy2Step proxy = new TransparentUpgradeableProxy2Step(
             address(masterChef),
@@ -429,12 +431,12 @@ contract MasterChefTest is Test {
         assertEq(masterChef.getTeam(), address(3), "test_TreasuryShare::32");
 
         vm.expectRevert(IMasterChef.MasterChef__InvalidShares.selector);
-        new MasterChef(moe, IVeMoe(address(veMoe)), 1e18 + 1, 0, 0);
+        new MasterChef(moe, IVeMoe(address(veMoe)), factory, 1e18 + 1, 0, 0);
 
         vm.expectRevert(IMasterChef.MasterChef__InvalidShares.selector);
-        new MasterChef(moe, IVeMoe(address(veMoe)), uint256(1e18) / 3 + 1, uint256(1e18) / 3, uint256(1e18) / 3 + 1);
+        new MasterChef(moe, IVeMoe(address(veMoe)), factory, uint256(1e18) / 3 + 1, uint256(1e18) / 3, uint256(1e18) / 3 + 1);
 
-        new MasterChef(moe, IVeMoe(address(veMoe)), uint256(1e18) / 3 + 1, uint256(1e18) / 3, uint256(1e18) / 3);
+        new MasterChef(moe, IVeMoe(address(veMoe)), factory, uint256(1e18) / 3 + 1, uint256(1e18) / 3, uint256(1e18) / 3);
     }
 
     function test_ExtraRewarder() public {

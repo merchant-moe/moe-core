@@ -8,15 +8,17 @@ import {IMoeStaking} from "./IMoeStaking.sol";
 import {IMasterChef} from "./IMasterChef.sol";
 import {Amounts} from "../libraries/Amounts.sol";
 import {Rewarder} from "../libraries/Rewarder.sol";
+import {IRewarderFactory} from "./IRewarderFactory.sol";
 
 interface IVeMoe {
     error VeMoe__InvalidLength();
     error VeMoe__InsufficientVeMoe(uint256 totalVeMoe, uint256 requiredVeMoe);
     error VeMoe__InvalidCaller();
+    error VeMoe__InvalidBribeAddress();
+    error VeMoe__InvalidPid(uint256 pid);
     error VeMoe__CannotUnstakeWithVotes();
     error VeMoe__NoBribeForPid(uint256 pid);
     error VeMoe__TooManyPoolIds();
-    error VeMoe__InvalidPid(uint256 pid);
     error VeMoe__DuplicatePoolId(uint256 pid);
 
     struct User {
@@ -75,6 +77,8 @@ interface IVeMoe {
     function getVotes(uint256 pid) external view returns (uint256);
 
     function getVotesOf(address account, uint256 pid) external view returns (uint256);
+
+    function getRewarderFactory() external view returns (IRewarderFactory);
 
     function isInTopPoolIds(uint256 pid) external view returns (bool);
 

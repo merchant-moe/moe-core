@@ -17,6 +17,7 @@ import {IVeMoeRewarder} from "./interfaces/IVeMoeRewarder.sol";
 import {IMoeStaking} from "./interfaces/IMoeStaking.sol";
 import {IMasterChef} from "./interfaces/IMasterChef.sol";
 import {IVeMoe} from "./interfaces/IVeMoe.sol";
+import {IRewarderFactory} from "./interfaces/IRewarderFactory.sol";
 
 /**
  * @title VeMoe Contract
@@ -31,6 +32,7 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
 
     IMoeStaking private immutable _moeStaking;
     IMasterChef private immutable _masterChef;
+    IRewarderFactory private immutable _rewarderFactory;
     uint256 private immutable _maxVeMoePerMoe;
 
     uint256 private _topPidsTotalVotes;
@@ -49,13 +51,20 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
      * @dev Constructor for VeMoe contract.
      * @param moeStaking The MOE Staking contract.
      * @param masterChef The MasterChef contract.
+     * @param rewarderFactory The Rewarder Factory contract.
      * @param maxVeMoePerMoe The maximum veMOE per MOE.
      */
-    constructor(IMoeStaking moeStaking, IMasterChef masterChef, uint256 maxVeMoePerMoe) {
+    constructor(
+        IMoeStaking moeStaking,
+        IMasterChef masterChef,
+        IRewarderFactory rewarderFactory,
+        uint256 maxVeMoePerMoe
+    ) {
         _disableInitializers();
 
         _moeStaking = moeStaking;
         _masterChef = masterChef;
+        _rewarderFactory = rewarderFactory;
         _maxVeMoePerMoe = maxVeMoePerMoe;
     }
 
@@ -81,6 +90,14 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
      */
     function getMasterChef() external view override returns (IMasterChef) {
         return _masterChef;
+    }
+
+    /**
+     * @dev Returns the Rewarder Factory contract.
+     * @return The Rewarder Factory contract.
+     */
+    function getRewarderFactory() external view override returns (IRewarderFactory) {
+        return _rewarderFactory;
     }
 
     /**
@@ -297,6 +314,10 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
             IVeMoeRewarder oldBribe = user.bribes[pid];
 
             if (oldBribe == newBribe) continue;
+
+            if (address(newBribe) != address(0) && !_rewarderFactory.isVeMoeRewarder(newBribe)) {
+                revert VeMoe__InvalidBribeAddress();
+            }
 
             uint256 userVotes = user.votes.getAmountOf(pid);
 

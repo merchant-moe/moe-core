@@ -12,6 +12,7 @@ contract DeployProtocolTest is Test {
         (
             ProxyAdmin2Step proxyAdmin,
             Moe moe,
+            RewarderFactory rewarderFactory,
             DeployProtocolScript.Addresses memory proxies,
             DeployProtocolScript.Addresses memory implementations,
             DeployProtocolScript.Vestings memory vestings
@@ -41,6 +42,8 @@ contract DeployProtocolTest is Test {
                 + Parameters.stakingPercent * Parameters.maxSupply / 1e18,
             "test_DeployProtocol::7"
         );
+
+        assertEq(Ownable(address(rewarderFactory)).owner(), Parameters.multisig, "test_DeployProtocol::8");
 
         assertEq(VestingContract(vestings.seed1).masterChef(), proxies.masterChef, "test_DeployProtocol::8");
         assertEq(VestingContract(vestings.seed2).masterChef(), proxies.masterChef, "test_DeployProtocol::9");
@@ -78,6 +81,11 @@ contract DeployProtocolTest is Test {
 
         assertEq(address(MasterChef(proxies.masterChef).getMoe()), address(moe), "test_DeployProtocol::24");
         assertEq(address(MasterChef(proxies.masterChef).getVeMoe()), proxies.veMoe, "test_DeployProtocol::25");
+        assertEq(
+            address(MasterChef(proxies.masterChef).getRewarderFactory()),
+            address(rewarderFactory),
+            "test_DeployProtocol::26"
+        );
         assertEq(address(MasterChef(proxies.masterChef).getTreasury()), Parameters.treasury, "test_DeployProtocol::26");
         assertEq(MasterChef(proxies.masterChef).getFutureFunding(), vestings.futureFunding, "test_DeployProtocol::27");
         assertEq(MasterChef(proxies.masterChef).getTeam(), vestings.team, "test_DeployProtocol::28");
@@ -104,6 +112,9 @@ contract DeployProtocolTest is Test {
 
         assertEq(address(VeMoe(proxies.veMoe).getMoeStaking()), proxies.moeStaking, "test_DeployProtocol::36");
         assertEq(address(VeMoe(proxies.veMoe).getMasterChef()), proxies.masterChef, "test_DeployProtocol::37");
+        assertEq(
+            address(VeMoe(proxies.veMoe).getRewarderFactory()), address(rewarderFactory), "test_DeployProtocol::37"
+        );
         assertEq(VeMoe(proxies.veMoe).getMaxVeMoePerMoe(), Parameters.maxVeMoePerMoe, "test_DeployProtocol::38");
         assertEq(Ownable(proxies.veMoe).owner(), Parameters.multisig, "test_DeployProtocol::39");
 

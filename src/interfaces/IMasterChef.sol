@@ -8,10 +8,12 @@ import {IMoe} from "./IMoe.sol";
 import {IVeMoe} from "./IVeMoe.sol";
 import {Rewarder} from "../libraries/Rewarder.sol";
 import {Amounts} from "../libraries/Amounts.sol";
+import {IRewarderFactory} from "./IRewarderFactory.sol";
 
 interface IMasterChef {
     error MasterChef__InvalidShares();
     error MasterChef__ZeroAddress();
+    error MasterChef__NotMasterchefRewarder();
 
     struct Farm {
         Amounts.Parameter amounts;
@@ -76,6 +78,8 @@ interface IMasterChef {
     function getFutureFundingShare() external view returns (uint256);
 
     function getTeamShare() external view returns (uint256);
+
+    function getRewarderFactory() external view returns (IRewarderFactory);
 
     function getVeMoe() external view returns (IVeMoe);
 

@@ -46,10 +46,15 @@ contract VeMoeTest is Test {
         address stakingAddress = computeCreateAddress(address(this), nonce);
         address masterChefAddress = computeCreateAddress(address(this), nonce + 3);
         address veMoeAddress = computeCreateAddress(address(this), nonce + 4);
+        address factoryAddress = computeCreateAddress(address(this), nonce + 5);
 
         staking = new MoeStaking(moe, IVeMoe(veMoeAddress), IStableMoe(sMoe));
-        masterChef = new MasterChef(moe, IVeMoe(veMoeAddress), 0, 0, 0);
-        veMoe = new VeMoe(IMoeStaking(stakingAddress), IMasterChef(masterChefAddress), 100e18);
+        masterChef = new MasterChef(moe, IVeMoe(veMoeAddress), IRewarderFactory(factoryAddress), 0, 0, 0);
+        veMoe = new VeMoe(
+            IMoeStaking(stakingAddress),
+            IMasterChef(masterChefAddress),
+            IRewarderFactory(factoryAddress), 100e18
+        );
 
         TransparentUpgradeableProxy2Step masterChefProxy = new TransparentUpgradeableProxy2Step(
             address(masterChef),
@@ -91,6 +96,7 @@ contract VeMoeTest is Test {
     function test_GetParameters() public {
         assertEq(address(veMoe.getMoeStaking()), address(staking), "test_GetParameters::1");
         assertEq(address(veMoe.getMasterChef()), address(masterChef), "test_GetParameters::2");
+        assertEq(address(veMoe.getRewarderFactory()), address(factory), "test_GetParameters::3");
     }
 
     function test_SetVeMoePerSecondPerMoe() public {
@@ -575,6 +581,15 @@ contract VeMoeTest is Test {
         bribePid[0] = 0;
         bribes[0] = IVeMoeRewarder(address(badBribes));
 
+        vm.expectRevert(IVeMoe.VeMoe__InvalidBribeAddress.selector);
+        vm.prank(alice);
+        veMoe.setBribes(bribePid, bribes);
+
+        factory.setVeMoeRewarderImplementation(IBaseRewarder(address(badBribes)));
+        badBribes = BadBribes(address(factory.createVeMoeRewarder(token18d, 0)));
+
+        bribes[0] = IVeMoeRewarder(address(badBribes));
+
         vm.prank(alice);
         veMoe.setBribes(bribePid, bribes);
 
@@ -707,7 +722,10 @@ contract VeMoeTest is Test {
     }
 
     function test_ReenterBribes() public {
-        MaliciousBribe maliciousBribe = new MaliciousBribe(veMoe);
+        MaliciousBribe imp = new MaliciousBribe(veMoe);
+        factory.setVeMoeRewarderImplementation(IBaseRewarder(address(imp)));
+
+        IBaseRewarder maliciousBribe = factory.createVeMoeRewarder(IERC20(address(0)), 0);
         moe.mint(address(maliciousBribe), 1e18);
 
         veMoe.setVeMoePerSecondPerMoe(1e18);
@@ -747,7 +765,7 @@ contract VeMoeTest is Test {
 }
 
 contract MaliciousBribe {
-    IVeMoe public veMoe;
+    IVeMoe public immutable veMoe;
 
     constructor(IVeMoe _veMoe) {
         veMoe = _veMoe;
@@ -766,6 +784,8 @@ contract MaliciousBribe {
 
         return 0;
     }
+
+    fallback() external {}
 }
 
 contract BadBribes {

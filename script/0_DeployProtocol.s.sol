@@ -12,6 +12,7 @@ import "../src/MoeStaking.sol";
 import "../src/VeMoe.sol";
 import "../src/StableMoe.sol";
 import "../src/VestingContract.sol";
+import "../src/rewarders/RewarderFactory.sol";
 
 contract DeployProtocolScript is Script {
     struct Addresses {
@@ -35,6 +36,7 @@ contract DeployProtocolScript is Script {
         returns (
             ProxyAdmin2Step proxyAdmin,
             Moe moe,
+            RewarderFactory rewarderFactory,
             Addresses memory proxies,
             Addresses memory implementations,
             Vestings memory vestings
@@ -55,6 +57,7 @@ contract DeployProtocolScript is Script {
 
         address proxyAdminAddress = computeCreateAddress(deployer, nonce++);
         address moeAddress = computeCreateAddress(deployer, nonce++);
+        address rewarderFactoryAddress = computeCreateAddress(deployer, nonce++);
 
         implementations = _computeAddresses(deployer);
         vestings = _computeVestings(deployer);
@@ -90,6 +93,14 @@ contract DeployProtocolScript is Script {
             require(moeAddress == address(moe), "run::3");
         }
 
+        // Deploy RewarderFactory
+
+        {
+            rewarderFactory = new RewarderFactory(Parameters.multisig);
+
+            require(rewarderFactoryAddress == address(rewarderFactory), "run::17");
+        }
+
         // Deploy Implementations
 
         {
@@ -99,6 +110,7 @@ contract DeployProtocolScript is Script {
             MasterChef masterChefImplementation = new MasterChef(
                 IMoe(moeAddress),
                 IVeMoe(proxies.veMoe),
+                rewarderFactory,
                 Parameters.treasuryPercent * 1e18 / sumEmissionShare,
                 Parameters.futureFundingPercent * 1e18 / sumEmissionShare,
                 Parameters.teamPercent * 1e18 / sumEmissionShare
@@ -116,8 +128,11 @@ contract DeployProtocolScript is Script {
 
         {
             VeMoe veMoeImplementation = new VeMoe(
-            IMoeStaking(proxies.moeStaking), IMasterChef(proxies.masterChef), Parameters.maxVeMoePerMoe
-        );
+                IMoeStaking(proxies.moeStaking),
+                IMasterChef(proxies.masterChef),
+                rewarderFactory,
+                Parameters.maxVeMoePerMoe
+            );
 
             require(implementations.veMoe == address(veMoeImplementation), "run::6");
         }
