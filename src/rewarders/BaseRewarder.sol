@@ -35,8 +35,10 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
      * @dev Constructor for BaseRewarder contract.
      * @param caller The address of the contract that will call the onModify function.
      */
-    constructor(address caller) initializer {
+    constructor(address caller) {
         _caller = caller;
+
+        _disableInitializers();
     }
 
     /**
@@ -204,6 +206,22 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
     }
 
     /**
+     * @dev Returns the address of the token to be distributed as rewards.
+     * @return The address of the token to be distributed as rewards.
+     */
+    function _token() internal pure virtual returns (IERC20) {
+        return IERC20(_getArgAddress(0));
+    }
+
+    /**
+     * @dev Returns the pool ID of the staking pool.
+     * @return The pool ID.
+     */
+    function _pid() internal pure virtual returns (uint256) {
+        return _getArgUint256(20);
+    }
+
+    /**
      * @dev Returns the balance of the specified token held by the contract.
      * @param token The token to check the balance of.
      * @return The balance of the token held by the contract.
@@ -312,20 +330,6 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
     function _nativeReceived() internal view virtual {
         if (address(_token()) != address(0)) revert BaseRewarder__NotNativeRewarder();
     }
-
-    /**
-     * @dev Returns the address of the token to be distributed as rewards.
-     * Must be implemented by child contracts.
-     * @return The address of the token to be distributed as rewards.
-     */
-    function _token() internal view virtual returns (IERC20);
-
-    /**
-     * @dev Returns the pool ID of the staking pool.
-     * Must be implemented by child contracts.
-     * @return The pool ID.
-     */
-    function _pid() internal view virtual returns (uint256);
 
     /**
      * @dev Returns the total supply of the staking pool.

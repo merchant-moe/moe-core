@@ -12,19 +12,11 @@ import {BaseRewarder, IBaseRewarder} from "./BaseRewarder.sol";
  * @dev Contract for distributing rewards to stakers in the JoeStaking contract.
  */
 contract JoeStakingRewarder is BaseRewarder, IJoeStakingRewarder {
-    IERC20 private immutable _immutableToken;
-
     /**
      * @dev Constructor for JoeStakingRewarder contract.
-     * @param token The token to be distributed as rewards.
      * @param caller The address of the contract that will call the onModify function.
-     * @param initialOwner The initial owner of the contract.
      */
-    constructor(IERC20 token, address caller, address initialOwner) BaseRewarder(caller) {
-        _immutableToken = token;
-
-        initialize(initialOwner);
-    }
+    constructor(address caller) BaseRewarder(caller) {}
 
     /**
      * @dev Called by the caller contract to update the rewards for a given account.
@@ -43,29 +35,6 @@ contract JoeStakingRewarder is BaseRewarder, IJoeStakingRewarder {
         reward = BaseRewarder.onModify(account, pid, oldBalance, newBalance, oldTotalSupply);
 
         _claim(account, reward);
-    }
-
-    /**
-     * @dev Reverts if the contract receives native tokens.
-     */
-    function _nativeReceived() internal pure override {
-        revert BaseRewarder__NotNativeRewarder();
-    }
-
-    /**
-     * @dev Returns the address of the token to be distributed as rewards.
-     * @return The address of the token to be distributed as rewards.
-     */
-    function _token() internal view override returns (IERC20) {
-        return _immutableToken;
-    }
-
-    /**
-     * @dev Returns the pool ID of the staking pool.
-     * @return The pool ID.
-     */
-    function _pid() internal pure override returns (uint256) {
-        return 0;
     }
 
     /**

@@ -32,22 +32,6 @@ contract VeMoeRewarder is BaseRewarder, IVeMoeRewarder {
     }
 
     /**
-     * @dev Returns the address of the token to be distributed as rewards.
-     * @return The address of the token to be distributed as rewards.
-     */
-    function _token() internal pure override returns (IERC20) {
-        return IERC20(_getArgAddress(0));
-    }
-
-    /**
-     * @dev Returns the pool ID of the staking pool.
-     * @return The pool ID.
-     */
-    function _pid() internal pure override returns (uint256) {
-        return _getArgUint256(20);
-    }
-
-    /**
      * @dev Gets the total votes of this bribe contract.
      * @return The total votes of this bribe contract.
      */
