@@ -11,11 +11,13 @@ import "../src/JoeStaking.sol";
 import "../src/rewarders/JoeStakingRewarder.sol";
 import "../src/rewarders/BaseRewarder.sol";
 import "../src/Moe.sol";
+import "../src/rewarders/RewarderFactory.sol";
 
 contract JoeStakingTest is Test {
     JoeStaking staking;
     JoeStakingRewarder rewarder;
     Moe moe;
+    RewarderFactory factory;
 
     IERC20 joe;
 
@@ -28,13 +30,31 @@ contract JoeStakingTest is Test {
 
         uint256 nonce = vm.getNonce(address(this));
 
-        address implAddress = computeCreateAddress(address(this), nonce + 2);
+        address stakingAddress = computeCreateAddress(address(this), nonce + 3);
 
-        rewarder = new JoeStakingRewarder(IERC20(address(moe)), implAddress, address(this));
+        factory = new RewarderFactory(address(this));
+        factory.setRewarderImplementation(
+            IRewarderFactory.RewarderType.JoeStakingRewarder, new JoeStakingRewarder(stakingAddress)
+        );
+        rewarder = JoeStakingRewarder(
+            payable(
+                address(
+                    factory.createRewarder(IRewarderFactory.RewarderType.JoeStakingRewarder, IERC20(address(moe)), 0)
+                )
+            )
+        );
 
-        address impl = address(new JoeStaking(IERC20(address(joe)), IJoeStakingRewarder(address(rewarder))));
+        address impl = address(new JoeStaking(IERC20(address(joe)), factory));
 
-        staking = JoeStaking(address(new TransparentUpgradeableProxy2Step(impl, ProxyAdmin2Step(address(1)), "")));
+        staking = JoeStaking(
+            address(
+                new TransparentUpgradeableProxy2Step(impl, ProxyAdmin2Step(address(1)), abi.encodeWithSelector(JoeStaking.initialize.selector, address(this)))
+            )
+        );
+
+        assertEq(address(staking), stakingAddress, "setUp::1");
+
+        staking.setRewarder(rewarder);
 
         vm.prank(alice);
         joe.approve(address(staking), type(uint256).max);
@@ -156,7 +176,7 @@ contract JoeStakingTest is Test {
         vm.prank(alice);
         staking.claim();
 
-        assertEq(moe.balanceOf(address(alice)), 0, "test_Claim::3");
+        assertEq(moe.balanceOf(address(alice)), 0, "test_Claim::1");
 
         moe.mint(address(rewarder), 10e18);
 
@@ -166,18 +186,18 @@ contract JoeStakingTest is Test {
 
         (token, amount) = staking.getPendingReward(alice);
 
-        assertEq(address(token), address(moe), "test_Claim::4");
-        assertApproxEqAbs(amount, 0.2e18, 1, "test_Claim::5");
+        assertEq(address(token), address(moe), "test_Claim::3");
+        assertApproxEqAbs(amount, 0.2e18, 1, "test_Claim::4");
 
         vm.prank(alice);
         staking.claim();
 
-        assertApproxEqAbs(moe.balanceOf(address(alice)), 0.2e18, 1, "test_Claim::6");
+        assertApproxEqAbs(moe.balanceOf(address(alice)), 0.2e18, 1, "test_Claim::5");
 
         (token, amount) = staking.getPendingReward(bob);
 
-        assertEq(address(token), address(moe), "test_Claim::7");
-        assertApproxEqAbs(amount, 1.8e18, 1, "test_Claim::8");
+        assertEq(address(token), address(moe), "test_Claim::6");
+        assertApproxEqAbs(amount, 1.8e18, 1, "test_Claim::7");
 
         vm.warp(block.timestamp + 10);
 
@@ -288,5 +308,31 @@ contract JoeStakingTest is Test {
         assertApproxEqAbs(
             moe.balanceOf(address(bob)), airdropAmount * 9 / 10 + rewardAmount * 9 / 10, 1, "test_Aidrop::19"
         );
+    }
+
+    function test_SetRewarder() public {
+        IJoeStakingRewarder rewarder2 = IJoeStakingRewarder(
+            address(factory.createRewarder(IRewarderFactory.RewarderType.JoeStakingRewarder, IERC20(address(moe)), 0))
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        vm.prank(alice);
+        staking.setRewarder(rewarder2);
+
+        staking.setRewarder(rewarder2);
+
+        assertEq(staking.getRewarder(), address(rewarder2), "test_SetRewarder::1");
+
+        staking.setRewarder(IJoeStakingRewarder(address(0)));
+
+        assertEq(staking.getRewarder(), address(0), "test_SetRewarder::2");
+
+        Moe(address(joe)).mint(alice, 1e18);
+        vm.prank(alice);
+        staking.stake(1e18);
+
+        staking.setRewarder(rewarder);
+
+        assertEq(staking.getRewarder(), address(rewarder), "test_SetRewarder::3");
     }
 }

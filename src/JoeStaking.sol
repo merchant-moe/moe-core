@@ -2,34 +2,50 @@
 pragma solidity ^0.8.20;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {
+    Ownable2StepUpgradeable,
+    OwnableUpgradeable
+} from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 
 import {Math} from "./libraries/Math.sol";
 import {Amounts} from "./libraries/Amounts.sol";
 import {IJoeStaking} from "./interfaces/IJoeStaking.sol";
 import {IJoeStakingRewarder} from "./interfaces/IJoeStakingRewarder.sol";
+import {IRewarderFactory} from "./interfaces/IRewarderFactory.sol";
 
 /**
  * @title Joe Staking Contract
  * @dev The Joe Staking Contract allows users to stake JOE tokens to receive JOE tokens or other rewards.
  */
-contract JoeStaking is IJoeStaking {
+contract JoeStaking is Ownable2StepUpgradeable, IJoeStaking {
     using SafeERC20 for IERC20;
     using Math for uint256;
     using Amounts for Amounts.Parameter;
 
     IERC20 private immutable _joe;
-    IJoeStakingRewarder private immutable _rewarder;
+    IRewarderFactory private immutable _factory;
 
+    IJoeStakingRewarder private _rewarder;
     Amounts.Parameter private _amounts;
 
     /**
      * @dev Constructor for JoeStaking contract.
      * @param joe The JOE token.
-     * @param rewarder The JOE Staking Rewarder contract.
+     * @param rewarderFactory The Rewarder Factory contract.
      */
-    constructor(IERC20 joe, IJoeStakingRewarder rewarder) {
+    constructor(IERC20 joe, IRewarderFactory rewarderFactory) {
         _joe = joe;
-        _rewarder = rewarder;
+        _factory = rewarderFactory;
+
+        _disableInitializers();
+    }
+
+    /**
+     * @dev Initializes the JoeStaking contract.
+     * @param initialOwner The initial owner of the contract.
+     */
+    function initialize(address initialOwner) external initializer {
+        __Ownable_init(initialOwner);
     }
 
     /**
@@ -77,7 +93,12 @@ contract JoeStaking is IJoeStaking {
         override
         returns (IERC20 rewardToken, uint256 rewardAmount)
     {
-        return _rewarder.getPendingReward(account, _amounts.getAmountOf(account), _amounts.getTotalAmount());
+        IJoeStakingRewarder rewarder = _rewarder;
+
+        if (address(rewarder) != address(0)) {
+            (rewardToken, rewardAmount) =
+                rewarder.getPendingReward(account, _amounts.getAmountOf(account), _amounts.getTotalAmount());
+        }
     }
 
     /**
@@ -108,6 +129,24 @@ contract JoeStaking is IJoeStaking {
     }
 
     /**
+     * @dev Sets the JOE Staking Rewarder contract.
+     * Only the owner can call this function.
+     * @param rewarder The JOE Staking Rewarder contract.
+     */
+    function setRewarder(IJoeStakingRewarder rewarder) external override onlyOwner {
+        if (
+            address(rewarder) != address(0)
+                && _factory.getRewarderType(rewarder) != IRewarderFactory.RewarderType.JoeStakingRewarder
+        ) {
+            revert JoeStaking__InvalidRewarderType();
+        }
+
+        _rewarder = rewarder;
+
+        emit RewarderSet(rewarder);
+    }
+
+    /**
      * @dev Modifies the staking position of an account.
      * Will update the veJOE and sJOE positions of the account.
      * @param account The account to modify.
@@ -116,7 +155,9 @@ contract JoeStaking is IJoeStaking {
     function _modify(address account, int256 deltaAmount) private {
         (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply,) = _amounts.update(account, deltaAmount);
 
-        _rewarder.onModify(account, 0, oldBalance, newBalance, oldTotalSupply);
+        IJoeStakingRewarder rewarder = _rewarder;
+
+        if (address(rewarder) != address(0)) rewarder.onModify(account, 0, oldBalance, newBalance, oldTotalSupply);
 
         emit PositionModified(account, deltaAmount);
     }
