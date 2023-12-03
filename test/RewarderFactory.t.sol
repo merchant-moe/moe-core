@@ -108,100 +108,100 @@ contract RewarderFactoryTest is Test {
             factory.createRewarder(IRewarderFactory.RewarderType.MasterChefRewarder, IERC20(address(0)), 0);
 
         assertEq(
-            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 1, "test_CreateRewarder::3"
+            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 1, "test_CreateRewarder::4"
         );
-        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 0, "test_CreateRewarder::4");
+        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 0, "test_CreateRewarder::5");
         assertEq(
-            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 0, "test_CreateRewarder::5"
+            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 0, "test_CreateRewarder::6"
         );
 
         assertEq(
             address(factory.getRewarderAt(IRewarderFactory.RewarderType.MasterChefRewarder, 0)),
             address(rmc0),
-            "test_CreateRewarder::5"
+            "test_CreateRewarder::7"
         );
 
         IBaseRewarder rmc1 =
             factory.createRewarder(IRewarderFactory.RewarderType.MasterChefRewarder, IERC20(address(1)), 1);
 
         assertEq(
-            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::6"
+            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::8"
         );
-        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 0, "test_CreateRewarder::7");
+        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 0, "test_CreateRewarder::9");
         assertEq(
-            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 0, "test_CreateRewarder::8"
+            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 0, "test_CreateRewarder::10"
         );
 
         assertEq(
             address(factory.getRewarderAt(IRewarderFactory.RewarderType.MasterChefRewarder, 1)),
             address(rmc1),
-            "test_CreateRewarder::8"
+            "test_CreateRewarder::11"
         );
 
         IBaseRewarder rvm0 = factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, IERC20(address(0)), 0);
 
         assertEq(
-            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::9"
-        );
-        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 1, "test_CreateRewarder::10");
-        assertEq(
-            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 0, "test_CreateRewarder::11"
-        );
-
-        assertEq(
-            address(factory.getRewarderAt(IRewarderFactory.RewarderType.VeMoeRewarder, 0)),
-            address(rvm0),
-            "test_CreateRewarder::11"
-        );
-
-        IBaseRewarder rvm1 = factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, IERC20(address(1)), 1);
-
-        assertEq(
             factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::12"
         );
-        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 2, "test_CreateRewarder::13");
+        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 1, "test_CreateRewarder::13");
         assertEq(
             factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 0, "test_CreateRewarder::14"
         );
 
         assertEq(
+            address(factory.getRewarderAt(IRewarderFactory.RewarderType.VeMoeRewarder, 0)),
+            address(rvm0),
+            "test_CreateRewarder::15"
+        );
+
+        IBaseRewarder rvm1 = factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, IERC20(address(1)), 1);
+
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::16"
+        );
+        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 2, "test_CreateRewarder::17");
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 0, "test_CreateRewarder::18"
+        );
+
+        assertEq(
             address(factory.getRewarderAt(IRewarderFactory.RewarderType.VeMoeRewarder, 1)),
             address(rvm1),
-            "test_CreateRewarder::14"
+            "test_CreateRewarder::19"
         );
 
         IBaseRewarder rjs0 =
             factory.createRewarder(IRewarderFactory.RewarderType.JoeStakingRewarder, IERC20(address(0)), 0);
 
         assertEq(
-            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::15"
+            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::20"
         );
-        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 2, "test_CreateRewarder::16");
+        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 2, "test_CreateRewarder::21");
         assertEq(
-            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 1, "test_CreateRewarder::17"
+            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 1, "test_CreateRewarder::22"
         );
 
         assertEq(
             address(factory.getRewarderAt(IRewarderFactory.RewarderType.JoeStakingRewarder, 0)),
             address(rjs0),
-            "test_CreateRewarder::17"
+            "test_CreateRewarder::23"
         );
 
         IBaseRewarder rjs1 =
             factory.createRewarder(IRewarderFactory.RewarderType.JoeStakingRewarder, IERC20(address(1)), 1);
 
         assertEq(
-            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::18"
+            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::24"
         );
-        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 2, "test_CreateRewarder::19");
+        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 2, "test_CreateRewarder::25");
         assertEq(
-            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 2, "test_CreateRewarder::20"
+            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 2, "test_CreateRewarder::26"
         );
 
         assertEq(
             address(factory.getRewarderAt(IRewarderFactory.RewarderType.JoeStakingRewarder, 1)),
             address(rjs1),
-            "test_CreateRewarder::20"
+            "test_CreateRewarder::27"
         );
     }
 
@@ -249,7 +249,7 @@ contract RewarderFactoryTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
         vm.prank(alice);
-        factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, IERC20(address(0)), 0);
+        factory.createRewarder(IRewarderFactory.RewarderType.JoeStakingRewarder, IERC20(address(0)), 0);
 
         vm.prank(alice);
         factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, IERC20(address(0)), 0);
