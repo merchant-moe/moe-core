@@ -445,7 +445,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     function _setExtraRewarder(uint256 pid, IMasterChefRewarder extraRewarder) private {
         if (
             address(extraRewarder) != address(0)
-                && !_rewarderFactory.isMasterchefRewarder(IBaseRewarder(payable(address(extraRewarder))))
+                && _rewarderFactory.getRewarderType(extraRewarder) != IRewarderFactory.RewarderType.MasterChefRewarder
         ) {
             revert MasterChef__NotMasterchefRewarder();
         }

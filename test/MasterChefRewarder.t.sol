@@ -30,9 +30,13 @@ contract MasterChefRewarderTest is Test {
         masterchef = new MockMasterChef();
 
         factory = new RewarderFactory(address(this));
-        factory.setMasterchefRewarderImplementation(new MasterChefRewarder(address(masterchef)));
+        factory.setRewarderImplementation(
+            IRewarderFactory.RewarderType.MasterChefRewarder, new MasterChefRewarder(address(masterchef))
+        );
 
-        rewarder = MasterChefRewarder(payable(address(factory.createMasterchefRewarder(rewardToken, 0))));
+        rewarder = MasterChefRewarder(
+            payable(address(factory.createRewarder(IRewarderFactory.RewarderType.MasterChefRewarder, rewardToken, 0)))
+        );
     }
 
     function test_GetRewarderParameter() public {
@@ -46,8 +50,11 @@ contract MasterChefRewarderTest is Test {
     }
 
     function test_SendNative() public {
-        MasterChefRewarder nativeRewarder =
-            MasterChefRewarder(payable(address(factory.createMasterchefRewarder(IERC20(address(0)), 0))));
+        MasterChefRewarder nativeRewarder = MasterChefRewarder(
+            payable(
+                address(factory.createRewarder(IRewarderFactory.RewarderType.MasterChefRewarder, IERC20(address(0)), 0))
+            )
+        );
 
         (bool s,) = address(nativeRewarder).call{value: 1}("");
 

@@ -72,11 +72,19 @@ contract VeMoeTest is Test {
         masterChef = MasterChef(address(masterChefProxy));
 
         factory = new RewarderFactory(address(this));
-        factory.setVeMoeRewarderImplementation(new VeMoeRewarder(address(veMoe)));
+        factory.setRewarderImplementation(
+            IRewarderFactory.RewarderType.VeMoeRewarder, new VeMoeRewarder(address(veMoe))
+        );
 
-        bribes0 = VeMoeRewarder(payable(address(factory.createVeMoeRewarder(token18d, 0))));
-        bribes0Bis = VeMoeRewarder(payable(address(factory.createVeMoeRewarder(token18d, 0))));
-        bribes1 = VeMoeRewarder(payable(address(factory.createVeMoeRewarder(token6d, 1))));
+        bribes0 = VeMoeRewarder(
+            payable(address(factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, token18d, 0)))
+        );
+        bribes0Bis = VeMoeRewarder(
+            payable(address(factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, token18d, 0)))
+        );
+        bribes1 = VeMoeRewarder(
+            payable(address(factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, token6d, 1)))
+        );
 
         assertEq(address(masterChef.getVeMoe()), address(veMoe), "setUp::1");
 
@@ -585,8 +593,10 @@ contract VeMoeTest is Test {
         vm.prank(alice);
         veMoe.setBribes(bribePid, bribes);
 
-        factory.setVeMoeRewarderImplementation(IBaseRewarder(address(badBribes)));
-        badBribes = BadBribes(address(factory.createVeMoeRewarder(token18d, 0)));
+        factory.setRewarderImplementation(
+            IRewarderFactory.RewarderType.VeMoeRewarder, IBaseRewarder(address(badBribes))
+        );
+        badBribes = BadBribes(address(factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, token18d, 0)));
 
         bribes[0] = IVeMoeRewarder(address(badBribes));
 
@@ -723,9 +733,9 @@ contract VeMoeTest is Test {
 
     function test_ReenterBribes() public {
         MaliciousBribe imp = new MaliciousBribe(veMoe);
-        factory.setVeMoeRewarderImplementation(IBaseRewarder(address(imp)));
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.VeMoeRewarder, IBaseRewarder(address(imp)));
 
-        IBaseRewarder maliciousBribe = factory.createVeMoeRewarder(IERC20(address(0)), 0);
+        IBaseRewarder maliciousBribe = factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, token18d, 0);
         moe.mint(address(maliciousBribe), 1e18);
 
         veMoe.setVeMoePerSecondPerMoe(1e18);

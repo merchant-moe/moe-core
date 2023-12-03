@@ -315,7 +315,10 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
 
             if (oldBribe == newBribe) continue;
 
-            if (address(newBribe) != address(0) && !_rewarderFactory.isVeMoeRewarder(newBribe)) {
+            if (
+                address(newBribe) != address(0)
+                    && _rewarderFactory.getRewarderType(newBribe) != IRewarderFactory.RewarderType.VeMoeRewarder
+            ) {
                 revert VeMoe__InvalidBribeAddress();
             }
 
