@@ -7,36 +7,30 @@ import {IBaseRewarder} from "../interfaces/IBaseRewarder.sol";
 
 interface IRewarderFactory {
     error RewarderFactory__ZeroAddress();
+    error RewarderFactory__InvalidRewarderType();
 
-    event MasterchefRewarderImplementationUpdated(IBaseRewarder indexed implementation);
+    enum RewarderType {
+        InvalidRewarder,
+        MasterChefRewarder,
+        VeMoeRewarder,
+        JoeStakingRewarder
+    }
 
-    event VeMoeRewarderImplementationUpdated(IBaseRewarder indexed implementation);
+    event RewarderCreated(
+        RewarderType indexed rewarderType, IERC20 indexed token, uint256 indexed pid, IBaseRewarder rewarder
+    );
 
-    event MasterchefRewarderCreated(IBaseRewarder indexed rewarder);
+    event RewarderImplementationSet(RewarderType indexed rewarderType, IBaseRewarder indexed implementation);
 
-    event VeMoeRewarderCreated(IBaseRewarder indexed rewarder);
+    function getRewarderImplementation(RewarderType rewarderType) external view returns (IBaseRewarder);
 
-    function getMasterchefRewarderImplementation() external view returns (IBaseRewarder);
+    function getRewarderCount(RewarderType rewarderType) external view returns (uint256);
 
-    function getVeMoeRewarderImplementation() external view returns (IBaseRewarder);
+    function getRewarderAt(RewarderType rewarderType, uint256 index) external view returns (IBaseRewarder);
 
-    function getMasterchefRewarderCount() external view returns (uint256);
+    function getRewarderType(IBaseRewarder rewarder) external view returns (RewarderType);
 
-    function getVeMoeRewarderCount() external view returns (uint256);
+    function setRewarderImplementation(RewarderType rewarderType, IBaseRewarder implementation) external;
 
-    function getMasterchefRewarderAt(uint256 index) external view returns (IBaseRewarder);
-
-    function getVeMoeRewarderAt(uint256 index) external view returns (IBaseRewarder);
-
-    function isMasterchefRewarder(IBaseRewarder rewarder) external view returns (bool);
-
-    function isVeMoeRewarder(IBaseRewarder rewarder) external view returns (bool);
-
-    function setMasterchefRewarderImplementation(IBaseRewarder implementation) external;
-
-    function setVeMoeRewarderImplementation(IBaseRewarder implementation) external;
-
-    function createMasterchefRewarder(IERC20 token, uint256 pid) external returns (IBaseRewarder);
-
-    function createVeMoeRewarder(IERC20 token, uint256 pid) external returns (IBaseRewarder);
+    function createRewarder(RewarderType rewarderType, IERC20 token, uint256 pid) external returns (IBaseRewarder);
 }

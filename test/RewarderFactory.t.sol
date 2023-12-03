@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../src/rewarders/RewarderFactory.sol";
 import "../src/rewarders/VeMoeRewarder.sol";
 import "../src/rewarders/MasterChefRewarder.sol";
+import "../src/rewarders/JoeStakingRewarder.sol";
 
 contract RewarderFactoryTest is Test {
     RewarderFactory factory;
@@ -21,97 +22,239 @@ contract RewarderFactoryTest is Test {
 
     function test_SetRewardersImplementation() public {
         assertEq(
-            address(factory.getMasterchefRewarderImplementation()), address(0), "test_SetRewardersImplementation::1"
+            address(factory.getRewarderImplementation(IRewarderFactory.RewarderType.MasterChefRewarder)),
+            address(0),
+            "test_SetRewardersImplementation::1"
         );
 
-        factory.setMasterchefRewarderImplementation(IBaseRewarder(address(1)));
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.MasterChefRewarder, IBaseRewarder(address(1)));
         assertEq(
-            address(factory.getMasterchefRewarderImplementation()), address(1), "test_SetRewardersImplementation::2"
+            address(factory.getRewarderImplementation(IRewarderFactory.RewarderType.MasterChefRewarder)),
+            address(1),
+            "test_SetRewardersImplementation::2"
         );
 
-        factory.setMasterchefRewarderImplementation(IBaseRewarder(address(2)));
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.MasterChefRewarder, IBaseRewarder(address(2)));
         assertEq(
-            address(factory.getMasterchefRewarderImplementation()), address(2), "test_SetRewardersImplementation::3"
+            address(factory.getRewarderImplementation(IRewarderFactory.RewarderType.MasterChefRewarder)),
+            address(2),
+            "test_SetRewardersImplementation::3"
         );
 
-        factory.setMasterchefRewarderImplementation(IBaseRewarder(address(0)));
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.MasterChefRewarder, IBaseRewarder(address(0)));
         assertEq(
-            address(factory.getMasterchefRewarderImplementation()), address(0), "test_SetRewardersImplementation::4"
+            address(factory.getRewarderImplementation(IRewarderFactory.RewarderType.MasterChefRewarder)),
+            address(0),
+            "test_SetRewardersImplementation::4"
         );
 
-        factory.setVeMoeRewarderImplementation(IBaseRewarder(address(1)));
-        assertEq(address(factory.getVeMoeRewarderImplementation()), address(1), "test_SetRewardersImplementation::5");
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.VeMoeRewarder, IBaseRewarder(address(1)));
+        assertEq(
+            address(factory.getRewarderImplementation(IRewarderFactory.RewarderType.VeMoeRewarder)),
+            address(1),
+            "test_SetRewardersImplementation::5"
+        );
 
-        factory.setVeMoeRewarderImplementation(IBaseRewarder(address(2)));
-        assertEq(address(factory.getVeMoeRewarderImplementation()), address(2), "test_SetRewardersImplementation::6");
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.VeMoeRewarder, IBaseRewarder(address(2)));
+        assertEq(
+            address(factory.getRewarderImplementation(IRewarderFactory.RewarderType.VeMoeRewarder)),
+            address(2),
+            "test_SetRewardersImplementation::6"
+        );
 
-        factory.setVeMoeRewarderImplementation(IBaseRewarder(address(0)));
-        assertEq(address(factory.getVeMoeRewarderImplementation()), address(0), "test_SetRewardersImplementation::7");
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.VeMoeRewarder, IBaseRewarder(address(0)));
+        assertEq(
+            address(factory.getRewarderImplementation(IRewarderFactory.RewarderType.VeMoeRewarder)),
+            address(0),
+            "test_SetRewardersImplementation::7"
+        );
+
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.JoeStakingRewarder, IBaseRewarder(address(1)));
+        assertEq(
+            address(factory.getRewarderImplementation(IRewarderFactory.RewarderType.JoeStakingRewarder)),
+            address(1),
+            "test_SetRewardersImplementation::8"
+        );
+
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.JoeStakingRewarder, IBaseRewarder(address(2)));
+        assertEq(
+            address(factory.getRewarderImplementation(IRewarderFactory.RewarderType.JoeStakingRewarder)),
+            address(2),
+            "test_SetRewardersImplementation::9"
+        );
+
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.JoeStakingRewarder, IBaseRewarder(address(0)));
+        assertEq(
+            address(factory.getRewarderImplementation(IRewarderFactory.RewarderType.JoeStakingRewarder)),
+            address(0),
+            "test_SetRewardersImplementation::10"
+        );
     }
 
     function test_CreateRewarder() public {
-        factory.setMasterchefRewarderImplementation(IBaseRewarder(address(1)));
-        factory.setVeMoeRewarderImplementation(IBaseRewarder(address(2)));
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.MasterChefRewarder, IBaseRewarder(address(1)));
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.VeMoeRewarder, IBaseRewarder(address(2)));
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.JoeStakingRewarder, IBaseRewarder(address(3)));
 
-        assertEq(factory.getMasterchefRewarderCount(), 0, "test_CreateRewarder::1");
-        assertEq(factory.getVeMoeRewarderCount(), 0, "test_CreateRewarder::2");
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 0, "test_CreateRewarder::1"
+        );
+        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 0, "test_CreateRewarder::2");
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 0, "test_CreateRewarder::3"
+        );
 
-        IBaseRewarder rmc0 = factory.createMasterchefRewarder(IERC20(address(0)), 0);
+        IBaseRewarder rmc0 =
+            factory.createRewarder(IRewarderFactory.RewarderType.MasterChefRewarder, IERC20(address(0)), 0);
 
-        assertEq(factory.getMasterchefRewarderCount(), 1, "test_CreateRewarder::3");
-        assertEq(factory.getVeMoeRewarderCount(), 0, "test_CreateRewarder::4");
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 1, "test_CreateRewarder::3"
+        );
+        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 0, "test_CreateRewarder::4");
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 0, "test_CreateRewarder::5"
+        );
 
-        assertEq(address(factory.getMasterchefRewarderAt(0)), address(rmc0), "test_CreateRewarder::5");
+        assertEq(
+            address(factory.getRewarderAt(IRewarderFactory.RewarderType.MasterChefRewarder, 0)),
+            address(rmc0),
+            "test_CreateRewarder::5"
+        );
 
-        IBaseRewarder rmc1 = factory.createMasterchefRewarder(IERC20(address(1)), 1);
+        IBaseRewarder rmc1 =
+            factory.createRewarder(IRewarderFactory.RewarderType.MasterChefRewarder, IERC20(address(1)), 1);
 
-        assertEq(factory.getMasterchefRewarderCount(), 2, "test_CreateRewarder::6");
-        assertEq(factory.getVeMoeRewarderCount(), 0, "test_CreateRewarder::7");
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::6"
+        );
+        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 0, "test_CreateRewarder::7");
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 0, "test_CreateRewarder::8"
+        );
 
-        assertEq(address(factory.getMasterchefRewarderAt(1)), address(rmc1), "test_CreateRewarder::8");
+        assertEq(
+            address(factory.getRewarderAt(IRewarderFactory.RewarderType.MasterChefRewarder, 1)),
+            address(rmc1),
+            "test_CreateRewarder::8"
+        );
 
-        IBaseRewarder rvm0 = factory.createVeMoeRewarder(IERC20(address(0)), 0);
+        IBaseRewarder rvm0 = factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, IERC20(address(0)), 0);
 
-        assertEq(factory.getMasterchefRewarderCount(), 2, "test_CreateRewarder::9");
-        assertEq(factory.getVeMoeRewarderCount(), 1, "test_CreateRewarder::10");
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::9"
+        );
+        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 1, "test_CreateRewarder::10");
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 0, "test_CreateRewarder::11"
+        );
 
-        assertEq(address(factory.getVeMoeRewarderAt(0)), address(rvm0), "test_CreateRewarder::11");
+        assertEq(
+            address(factory.getRewarderAt(IRewarderFactory.RewarderType.VeMoeRewarder, 0)),
+            address(rvm0),
+            "test_CreateRewarder::11"
+        );
 
-        IBaseRewarder rvm1 = factory.createVeMoeRewarder(IERC20(address(1)), 1);
+        IBaseRewarder rvm1 = factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, IERC20(address(1)), 1);
 
-        assertEq(factory.getMasterchefRewarderCount(), 2, "test_CreateRewarder::12");
-        assertEq(factory.getVeMoeRewarderCount(), 2, "test_CreateRewarder::13");
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::12"
+        );
+        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 2, "test_CreateRewarder::13");
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 0, "test_CreateRewarder::14"
+        );
 
-        assertEq(address(factory.getVeMoeRewarderAt(1)), address(rvm1), "test_CreateRewarder::14");
+        assertEq(
+            address(factory.getRewarderAt(IRewarderFactory.RewarderType.VeMoeRewarder, 1)),
+            address(rvm1),
+            "test_CreateRewarder::14"
+        );
+
+        IBaseRewarder rjs0 =
+            factory.createRewarder(IRewarderFactory.RewarderType.JoeStakingRewarder, IERC20(address(0)), 0);
+
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::15"
+        );
+        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 2, "test_CreateRewarder::16");
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 1, "test_CreateRewarder::17"
+        );
+
+        assertEq(
+            address(factory.getRewarderAt(IRewarderFactory.RewarderType.JoeStakingRewarder, 0)),
+            address(rjs0),
+            "test_CreateRewarder::17"
+        );
+
+        IBaseRewarder rjs1 =
+            factory.createRewarder(IRewarderFactory.RewarderType.JoeStakingRewarder, IERC20(address(1)), 1);
+
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::18"
+        );
+        assertEq(factory.getRewarderCount(IRewarderFactory.RewarderType.VeMoeRewarder), 2, "test_CreateRewarder::19");
+        assertEq(
+            factory.getRewarderCount(IRewarderFactory.RewarderType.JoeStakingRewarder), 2, "test_CreateRewarder::20"
+        );
+
+        assertEq(
+            address(factory.getRewarderAt(IRewarderFactory.RewarderType.JoeStakingRewarder, 1)),
+            address(rjs1),
+            "test_CreateRewarder::20"
+        );
     }
 
     function test_Errors() public {
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
         vm.prank(alice);
-        factory.setMasterchefRewarderImplementation(IBaseRewarder(address(1)));
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.MasterChefRewarder, IBaseRewarder(address(1)));
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
         vm.prank(alice);
-        factory.setVeMoeRewarderImplementation(IBaseRewarder(address(2)));
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.VeMoeRewarder, IBaseRewarder(address(2)));
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
         vm.prank(alice);
-        factory.createMasterchefRewarder(IERC20(address(0)), 0);
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.JoeStakingRewarder, IBaseRewarder(address(3)));
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        vm.prank(alice);
+        factory.createRewarder(IRewarderFactory.RewarderType.MasterChefRewarder, IERC20(address(0)), 0);
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        vm.prank(alice);
+        factory.createRewarder(IRewarderFactory.RewarderType.JoeStakingRewarder, IERC20(address(0)), 0);
 
         vm.expectRevert(IRewarderFactory.RewarderFactory__ZeroAddress.selector);
-        factory.createMasterchefRewarder(IERC20(address(0)), 0);
+        factory.createRewarder(IRewarderFactory.RewarderType.MasterChefRewarder, IERC20(address(0)), 0);
 
         vm.expectRevert(IRewarderFactory.RewarderFactory__ZeroAddress.selector);
-        factory.createVeMoeRewarder(IERC20(address(0)), 0);
+        factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, IERC20(address(0)), 0);
 
-        factory.setMasterchefRewarderImplementation(new MasterChefRewarder(address(0)));
-        factory.setVeMoeRewarderImplementation(new VeMoeRewarder(address(0)));
+        vm.expectRevert(IRewarderFactory.RewarderFactory__ZeroAddress.selector);
+        factory.createRewarder(IRewarderFactory.RewarderType.JoeStakingRewarder, IERC20(address(0)), 0);
+
+        factory.setRewarderImplementation(
+            IRewarderFactory.RewarderType.MasterChefRewarder, new MasterChefRewarder(address(0))
+        );
+        factory.setRewarderImplementation(IRewarderFactory.RewarderType.VeMoeRewarder, new VeMoeRewarder(address(0)));
+        factory.setRewarderImplementation(
+            IRewarderFactory.RewarderType.JoeStakingRewarder, new JoeStakingRewarder(address(0))
+        );
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
         vm.prank(alice);
-        factory.createMasterchefRewarder(IERC20(address(0)), 0);
+        factory.createRewarder(IRewarderFactory.RewarderType.MasterChefRewarder, IERC20(address(0)), 0);
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        vm.prank(alice);
+        factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, IERC20(address(0)), 0);
 
         vm.prank(alice);
-        factory.createVeMoeRewarder(IERC20(address(0)), 0);
+        factory.createRewarder(IRewarderFactory.RewarderType.VeMoeRewarder, IERC20(address(0)), 0);
+
+        vm.expectRevert(IRewarderFactory.RewarderFactory__InvalidRewarderType.selector);
+        factory.createRewarder(IRewarderFactory.RewarderType.InvalidRewarder, IERC20(address(0)), 0);
     }
 }
