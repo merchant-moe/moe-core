@@ -65,8 +65,9 @@ contract MoeERC20 is IMoeERC20 {
     }
 
     function transferFrom(address from, address to, uint256 value) external override returns (bool) {
-        if (allowance[from][msg.sender] != type(uint256).max) {
-            allowance[from][msg.sender] -= value;
+        uint256 currentAllowance = allowance[from][msg.sender];
+        if (currentAllowance != type(uint256).max) {
+            _approve(from, msg.sender, currentAllowance - value);
         }
         _transfer(from, to, value);
         return true;
