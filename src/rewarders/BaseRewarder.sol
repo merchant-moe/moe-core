@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {
-    Ownable2StepUpgradeable,
-    OwnableUpgradeable
-} from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Clone} from "@tj-dexv2/src/libraries/Clone.sol";
 
-import {Math} from "../libraries/Math.sol";
 import {Rewarder} from "../libraries/Rewarder.sol";
 import {IBaseRewarder} from "../interfaces/IBaseRewarder.sol";
 
@@ -18,7 +14,6 @@ import {IBaseRewarder} from "../interfaces/IBaseRewarder.sol";
  */
 abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder {
     using SafeERC20 for IERC20;
-    using Math for uint256;
     using Rewarder for Rewarder.Parameter;
 
     address internal immutable _caller;
@@ -133,16 +128,15 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
 
     /**
      * @dev Sets the start of the reward distribution.
+     * @param rewardPerSecond The new reward per second.
      * @param startTimestamp The start timestamp.
+     * @param expectedDuration The expected duration of the reward distribution.
      */
     function setRewarderParameters(uint256 rewardPerSecond, uint256 startTimestamp, uint256 expectedDuration)
         public
         virtual
         onlyOwner
     {
-        if (_isStopped) revert BaseRewarder__Stopped();
-        if (startTimestamp < block.timestamp) revert BaseRewarder__InvalidStartTimestamp(startTimestamp);
-
         _setRewardParameters(rewardPerSecond, startTimestamp, expectedDuration);
     }
 
@@ -166,6 +160,8 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
         if (_isStopped) revert BaseRewarder__AlreadyStopped();
 
         _isStopped = true;
+
+        emit Stopped();
     }
 
     /**
@@ -182,6 +178,8 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
         if (balance == 0) revert BaseRewarder__ZeroAmount();
 
         _safeTransferTo(token, account, balance);
+
+        emit Swept(token, account, balance);
     }
 
     /**
@@ -295,6 +293,7 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
         internal
         virtual
     {
+        if (startTimestamp < block.timestamp) revert BaseRewarder__InvalidStartTimestamp(startTimestamp);
         if (_isStopped) revert BaseRewarder__Stopped();
         if (expectedDuration == 0 && rewardPerSecond != 0) revert BaseRewarder__InvalidDuration();
 
