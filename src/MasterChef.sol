@@ -347,6 +347,8 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      * @param moePerSecond The new MOE per second.
      */
     function setMoePerSecond(uint96 moePerSecond) external override onlyOwner {
+        if (moePerSecond > Constants.MAX_MOE_PER_SECOND) revert MasterChef__InvalidMoePerSecond();
+
         _updateAll(_veMoe.getTopPoolIds());
 
         _moePerSecond = moePerSecond;

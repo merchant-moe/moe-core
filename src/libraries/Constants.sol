@@ -11,4 +11,6 @@ library Constants {
 
     uint256 internal constant MAX_NUMBER_OF_FARMS = 32;
     uint256 internal constant MAX_NUMBER_OF_REWARDS = 32;
+
+    uint256 internal constant MAX_MOE_PER_SECOND = 10e18;
 }
