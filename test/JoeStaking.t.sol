@@ -79,8 +79,8 @@ contract JoeStakingTest is Test {
     }
 
     function test_GetParameters() public {
-        assertEq(staking.getJoe(), address(joe), "test_GetParameters::1");
-        assertEq(staking.getRewarder(), address(rewarder), "test_GetParameters::2");
+        assertEq(address(staking.getJoe()), address(joe), "test_GetParameters::1");
+        assertEq(address(staking.getRewarder()), address(rewarder), "test_GetParameters::2");
 
         assertEq(address(rewarder.getToken()), address(moe), "test_GetParameters::3");
         assertEq(rewarder.getCaller(), address(staking), "test_GetParameters::4");
@@ -331,11 +331,11 @@ contract JoeStakingTest is Test {
 
         staking.setRewarder(rewarder2);
 
-        assertEq(staking.getRewarder(), address(rewarder2), "test_SetRewarder::1");
+        assertEq(address(staking.getRewarder()), address(rewarder2), "test_SetRewarder::1");
 
         staking.setRewarder(IJoeStakingRewarder(address(0)));
 
-        assertEq(staking.getRewarder(), address(0), "test_SetRewarder::2");
+        assertEq(address(staking.getRewarder()), address(0), "test_SetRewarder::2");
 
         Moe(address(joe)).mint(alice, 1e18);
         vm.prank(alice);
@@ -343,6 +343,6 @@ contract JoeStakingTest is Test {
 
         staking.setRewarder(rewarder);
 
-        assertEq(staking.getRewarder(), address(rewarder), "test_SetRewarder::3");
+        assertEq(address(staking.getRewarder()), address(rewarder), "test_SetRewarder::3");
     }
 }

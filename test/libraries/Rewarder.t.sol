@@ -22,23 +22,23 @@ contract RewarderTest is Test {
         deltaTime = bound(deltaTime, 0, 1e20);
 
         rewarder.lastUpdateTimestamp = block.timestamp - 1;
-        uint256 totalRewards = Rewarder.getTotalRewards(rewarder, rewardPerSecond);
+        uint256 totalRewards = Rewarder.getTotalRewards(rewarder, rewardPerSecond, 1);
 
         assertEq(totalRewards, rewardPerSecond, "test_getTotalRewards::1");
 
         rewarder.lastUpdateTimestamp = block.timestamp;
-        totalRewards = Rewarder.getTotalRewards(rewarder, rewardPerSecond);
+        totalRewards = Rewarder.getTotalRewards(rewarder, rewardPerSecond, 1);
 
         assertEq(totalRewards, 0, "test_getTotalRewards::2");
 
         rewarder.lastUpdateTimestamp = block.timestamp + 1;
-        totalRewards = Rewarder.getTotalRewards(rewarder, rewardPerSecond);
+        totalRewards = Rewarder.getTotalRewards(rewarder, rewardPerSecond, 1);
 
         assertEq(totalRewards, 0, "test_getTotalRewards::3");
 
         vm.warp(rewarder.lastUpdateTimestamp + deltaTime);
 
-        totalRewards = Rewarder.getTotalRewards(rewarder, rewardPerSecond);
+        totalRewards = Rewarder.getTotalRewards(rewarder, rewardPerSecond, 1);
 
         assertEq(totalRewards, deltaTime * rewardPerSecond, "test_getTotalRewards::4");
     }
