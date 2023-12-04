@@ -274,7 +274,8 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
      * @param deltaAmounts The list of delta amounts.
      */
     function vote(uint256[] calldata pids, int256[] calldata deltaAmounts) external override {
-        if (pids.length != deltaAmounts.length) revert VeMoe__InvalidLength();
+        uint256 length = pids.length;
+        if (length != deltaAmounts.length) revert VeMoe__InvalidLength();
 
         uint256 numberOfFarm = _masterChef.getNumberOfFarms();
 
@@ -286,8 +287,26 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
 
         _claim(msg.sender, balance, balance);
 
-        for (uint256 i; i < pids.length; ++i) {
-            _vote(user, pids[i], deltaAmounts[i], numberOfFarm);
+        uint256 userTotalVeMoe = user.veMoe;
+        uint256 topPidsTotalVotes = _topPidsTotalVotes;
+
+        IVeMoeRewarder[] memory bribes = new IVeMoeRewarder[](length);
+        uint256[] memory amounts = new uint256[](length);
+
+        for (uint256 i; i < length; ++i) {
+            uint256 pid = pids[i];
+
+            if (_topPids.contains(pid)) topPidsTotalVotes = topPidsTotalVotes.addDelta(deltaAmounts[i]);
+
+            (bribes[i], amounts[i]) = _vote(user, pid, deltaAmounts[i], userTotalVeMoe, numberOfFarm);
+        }
+
+        _topPidsTotalVotes = topPidsTotalVotes;
+
+        for (uint256 i; i < length; ++i) {
+            uint256 amount = amounts[i];
+
+            if (amount > 0) bribes[i].claim(msg.sender, amount);
         }
 
         emit Vote(msg.sender, pids, deltaAmounts);
@@ -458,29 +477,30 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
      * @param user The storage pointer to the user.
      * @param pid The pool ID.
      * @param deltaAmount The delta amount to vote.
+     * @param userTotalVeMoe The total veMOE of the user.
      * @param numberOfFarm The number of farms in the MasterChef contract.
+     * @return bribe The bribe contract.
+     * @return amount The amount of rewards to claim from the bribe contract.
      */
-    function _vote(User storage user, uint256 pid, int256 deltaAmount, uint256 numberOfFarm) private {
+    function _vote(User storage user, uint256 pid, int256 deltaAmount, uint256 userTotalVeMoe, uint256 numberOfFarm)
+        private
+        returns (IVeMoeRewarder bribe, uint256 amount)
+    {
         if (pid >= numberOfFarm) revert VeMoe__InvalidPid(pid);
 
         (uint256 userOldVotes, uint256 userNewVotes,, uint256 userNewTotalVotes) = user.votes.update(pid, deltaAmount);
 
-        uint256 userTotalVeMoe = user.veMoe;
         if (userNewTotalVotes > userTotalVeMoe) revert VeMoe__InsufficientVeMoe(userTotalVeMoe, userNewTotalVotes);
 
         _votes.update(pid, deltaAmount);
 
-        if (_topPids.contains(pid)) _topPidsTotalVotes = _topPidsTotalVotes.addDelta(deltaAmount);
-
-        IVeMoeRewarder bribe = user.bribes[pid];
+        bribe = user.bribes[pid];
 
         if (address(bribe) != address(0)) {
             uint256 totalVotes = _bribesTotalVotes[bribe][pid];
             _bribesTotalVotes[bribe][pid] = totalVotes.addDelta(deltaAmount);
 
-            uint256 rewards = bribe.onModify(msg.sender, pid, userOldVotes, userNewVotes, totalVotes);
-
-            bribe.claim(msg.sender, rewards);
+            amount = bribe.onModify(msg.sender, pid, userOldVotes, userNewVotes, totalVotes);
         }
     }
 
