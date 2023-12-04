@@ -45,6 +45,9 @@ library Parameters {
     // Moe
     uint256 internal constant maxSupply = 500_000_000e18;
 
+    // Joe
+    address internal constant joe = address(8);
+
     // VeMoe
     uint256 internal constant maxVeMoePerMoe = 0;
 
