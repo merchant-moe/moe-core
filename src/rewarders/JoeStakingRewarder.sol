@@ -42,6 +42,6 @@ contract JoeStakingRewarder is BaseRewarder, IJoeStakingRewarder {
      * @return The total supply of the staking pool.
      */
     function _getTotalSupply() internal view override returns (uint256) {
-        return IJoeStaking(_caller).getTotalDeposit();
+        return IJoeStaking(_caller).getRewarder() == this ? IJoeStaking(_caller).getTotalDeposit() : 0;
     }
 }
