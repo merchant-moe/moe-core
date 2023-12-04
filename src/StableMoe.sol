@@ -147,6 +147,8 @@ contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
         }
         if (_activeRewards.length() > Constants.MAX_NUMBER_OF_REWARDS) revert StableMoe__TooManyActiveRewards();
 
+        _rewards[address(reward)].rewarder.lastUpdateTimestamp = type(uint256).max;
+
         emit AddReward(reward);
     }
 
