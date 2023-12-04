@@ -33,8 +33,17 @@ contract RewarderFactory is Ownable2StepUpgradeable, IRewarderFactory {
      * @dev Initializes the RewarderFactory contract.
      * @param initialOwner The initial owner of the contract.
      */
-    function initialize(address initialOwner) external initializer {
+    function initialize(
+        address initialOwner,
+        RewarderType[] calldata initialRewarderTypes,
+        IBaseRewarder[] calldata initialRewarders
+    ) external initializer {
         __Ownable_init(initialOwner);
+
+        uint256 length = initialRewarderTypes.length;
+        for (uint256 i; i < length; ++i) {
+            _setRewarderImplementation(initialRewarderTypes[i], initialRewarders[i]);
+        }
     }
 
     /**
@@ -100,9 +109,7 @@ contract RewarderFactory is Ownable2StepUpgradeable, IRewarderFactory {
      * @param implementation The rewarder implementation.
      */
     function setRewarderImplementation(RewarderType rewarderType, IBaseRewarder implementation) external onlyOwner {
-        _implementations[rewarderType] = implementation;
-
-        emit RewarderImplementationSet(rewarderType, implementation);
+        _setRewarderImplementation(rewarderType, implementation);
     }
 
     /**
@@ -130,5 +137,18 @@ contract RewarderFactory is Ownable2StepUpgradeable, IRewarderFactory {
         _rewarderTypes[rewarder] = rewarderType;
 
         rewarder.initialize(msg.sender);
+    }
+
+    /**
+     * @dev Sets the rewarder implementation for the given rewarder type.
+     * @param rewarderType The rewarder type.
+     * @param implementation The rewarder implementation.
+     */
+    function _setRewarderImplementation(RewarderType rewarderType, IBaseRewarder implementation) private {
+        if (rewarderType == RewarderType.InvalidRewarder) revert RewarderFactory__InvalidRewarderType();
+
+        _implementations[rewarderType] = implementation;
+
+        emit RewarderImplementationSet(rewarderType, implementation);
     }
 }

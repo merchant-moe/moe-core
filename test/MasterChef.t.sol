@@ -59,7 +59,7 @@ contract MasterChefTest is Test {
                 new TransparentUpgradeableProxy2Step(
                     factoryImpl,
                     ProxyAdmin2Step(address(1)),
-                    abi.encodeWithSelector(RewarderFactory.initialize.selector, address(this))
+                    abi.encodeWithSelector(RewarderFactory.initialize.selector, address(this), new uint8[](0), new address[](0))
                 )
             )
         );
