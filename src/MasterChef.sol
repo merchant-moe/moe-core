@@ -214,19 +214,20 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
             uint256 pid = pids[i];
 
             Farm storage farm = _farms[pid];
+
             Rewarder.Parameter storage rewarder = farm.rewarder;
+            Amounts.Parameter storage amounts = farm.amounts;
+
             IMasterChefRewarder extraRewarder = farm.extraRewarder;
 
             {
                 uint256 totalMoeRewardForPid = _getRewardForPid(rewarder, pid);
                 (,,, uint256 moeRewardForPid) = _calculateAmounts(totalMoeRewardForPid);
 
-                moeRewards[i] = rewarder.getPendingReward(farm.amounts, account, moeRewardForPid);
+                moeRewards[i] = rewarder.getPendingReward(amounts, account, moeRewardForPid);
             }
 
             if (address(extraRewarder) != address(0)) {
-                Amounts.Parameter storage amounts = farm.amounts;
-
                 (extraTokens[i], extraRewards[i]) =
                     extraRewarder.getPendingReward(account, amounts.getAmountOf(account), amounts.getTotalAmount());
             }
