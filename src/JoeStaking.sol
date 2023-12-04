@@ -49,16 +49,16 @@ contract JoeStaking is Ownable2StepUpgradeable, IJoeStaking {
      * @dev Returns the JOE token.
      * @return The JOE token.
      */
-    function getJoe() external view override returns (address) {
-        return address(_joe);
+    function getJoe() external view override returns (IERC20) {
+        return _joe;
     }
 
     /**
      * @dev Returns the JOE Staking Rewarder contract.
      * @return The JOE Staking Rewarder contract.
      */
-    function getRewarder() external view override returns (address) {
-        return address(_rewarder);
+    function getRewarder() external view override returns (IJoeStakingRewarder) {
+        return _rewarder;
     }
 
     /**

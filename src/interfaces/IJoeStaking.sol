@@ -12,9 +12,9 @@ interface IJoeStaking {
 
     event RewarderSet(IJoeStakingRewarder indexed rewarder);
 
-    function getJoe() external view returns (address);
+    function getJoe() external view returns (IERC20);
 
-    function getRewarder() external view returns (address);
+    function getRewarder() external view returns (IJoeStakingRewarder);
 
     function getDeposit(address account) external view returns (uint256);
 
