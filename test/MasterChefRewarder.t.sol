@@ -7,6 +7,7 @@ import "../src/interfaces/IMasterChef.sol";
 import "../src/rewarders/MasterChefRewarder.sol";
 import "../src/rewarders/BaseRewarder.sol";
 import "../src/rewarders/RewarderFactory.sol";
+import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
 import "./mocks/MockERC20.sol";
 
 contract MasterChefRewarderTest is Test {
@@ -29,7 +30,16 @@ contract MasterChefRewarderTest is Test {
         rewardToken = IERC20(new MockERC20("Reward Token", "RT", 6));
         masterchef = new MockMasterChef();
 
-        factory = new RewarderFactory(address(this));
+        address factoryImpl = address(new RewarderFactory());
+        factory = RewarderFactory(
+            address(
+                new TransparentUpgradeableProxy2Step(
+                    factoryImpl,
+                    ProxyAdmin2Step(address(1)),
+                    abi.encodeWithSelector(RewarderFactory.initialize.selector, address(this))
+                )
+            )
+        );
         factory.setRewarderImplementation(
             IRewarderFactory.RewarderType.MasterChefRewarder, new MasterChefRewarder(address(masterchef))
         );

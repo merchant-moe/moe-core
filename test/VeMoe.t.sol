@@ -46,7 +46,7 @@ contract VeMoeTest is Test {
         address stakingAddress = computeCreateAddress(address(this), nonce);
         address masterChefAddress = computeCreateAddress(address(this), nonce + 3);
         address veMoeAddress = computeCreateAddress(address(this), nonce + 4);
-        address factoryAddress = computeCreateAddress(address(this), nonce + 5);
+        address factoryAddress = computeCreateAddress(address(this), nonce + 6);
 
         staking = new MoeStaking(moe, IVeMoe(veMoeAddress), IStableMoe(sMoe));
         masterChef = new MasterChef(moe, IVeMoe(veMoeAddress), IRewarderFactory(factoryAddress), 0, 0, 0);
@@ -71,7 +71,16 @@ contract VeMoeTest is Test {
         veMoe = VeMoe(address(veMoeProxy));
         masterChef = MasterChef(address(masterChefProxy));
 
-        factory = new RewarderFactory(address(this));
+        address factoryImpl = address(new RewarderFactory());
+        factory = RewarderFactory(
+            address(
+                new TransparentUpgradeableProxy2Step(
+                    factoryImpl,
+                    ProxyAdmin2Step(address(1)),
+                    abi.encodeWithSelector(RewarderFactory.initialize.selector, address(this))
+                )
+            )
+        );
         factory.setRewarderImplementation(
             IRewarderFactory.RewarderType.VeMoeRewarder, new VeMoeRewarder(address(veMoe))
         );

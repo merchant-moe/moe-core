@@ -3,12 +3,14 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "../src/rewarders/RewarderFactory.sol";
 import "../src/rewarders/VeMoeRewarder.sol";
 import "../src/rewarders/MasterChefRewarder.sol";
 import "../src/rewarders/JoeStakingRewarder.sol";
+import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
 
 contract RewarderFactoryTest is Test {
     RewarderFactory factory;
@@ -17,7 +19,16 @@ contract RewarderFactoryTest is Test {
     address bob = makeAddr("bob");
 
     function setUp() public {
-        factory = new RewarderFactory(address(this));
+        address factoryImpl = address(new RewarderFactory());
+        factory = RewarderFactory(
+            address(
+                new TransparentUpgradeableProxy2Step(
+                    factoryImpl,
+                    ProxyAdmin2Step(address(1)),
+                    abi.encodeWithSelector(RewarderFactory.initialize.selector, address(this))
+                )
+            )
+        );
     }
 
     function test_SetRewardersImplementation() public {

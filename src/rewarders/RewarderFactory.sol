@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {
+    Ownable2StepUpgradeable,
+    OwnableUpgradeable
+} from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 import {ImmutableClone} from "@tj-dexv2/src/libraries/ImmutableClone.sol";
-import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IBaseRewarder} from "../interfaces/IBaseRewarder.sol";
@@ -13,17 +16,26 @@ import {IRewarderFactory} from "../interfaces/IRewarderFactory.sol";
  * @dev The Rewarder Factory Contract allows users to create veMoe rewarders,
  * and admin to create masterchef rewarders.
  */
-contract RewarderFactory is Ownable2Step, IRewarderFactory {
+contract RewarderFactory is Ownable2StepUpgradeable, IRewarderFactory {
     mapping(RewarderType => IBaseRewarder) private _implementations;
 
     mapping(RewarderType => IBaseRewarder[]) private _rewarders;
     mapping(IBaseRewarder => RewarderType) private _rewarderTypes;
 
     /**
-     * @dev Constructor for RewarderFactory contract.
+     * @dev Disables the initialize function.
+     */
+    constructor() {
+        _disableInitializers();
+    }
+
+    /**
+     * @dev Initializes the RewarderFactory contract.
      * @param initialOwner The initial owner of the contract.
      */
-    constructor(address initialOwner) Ownable(initialOwner) {}
+    function initialize(address initialOwner) external initializer {
+        __Ownable_init(initialOwner);
+    }
 
     /**
      * @dev Returns the rewarder implementation for the given rewarder type.
