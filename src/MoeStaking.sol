@@ -18,7 +18,7 @@ contract MoeStaking is IMoeStaking {
     using Math for uint256;
     using Amounts for Amounts.Parameter;
 
-    IERC20 private immutable _moe;
+    IMoe private immutable _moe;
     IVeMoe private immutable _veMoe;
     IStableMoe private immutable _sMoe;
 
@@ -30,7 +30,7 @@ contract MoeStaking is IMoeStaking {
      * @param veMoe The veMOE token.
      * @param sMoe The sMOE token.
      */
-    constructor(IERC20 moe, IVeMoe veMoe, IStableMoe sMoe) {
+    constructor(IMoe moe, IVeMoe veMoe, IStableMoe sMoe) {
         _moe = moe;
         _veMoe = veMoe;
         _sMoe = sMoe;
@@ -40,24 +40,24 @@ contract MoeStaking is IMoeStaking {
      * @dev Returns the MOE token.
      * @return The MOE token.
      */
-    function getMoe() external view override returns (address) {
-        return address(_moe);
+    function getMoe() external view override returns (IMoe) {
+        return _moe;
     }
 
     /**
      * @dev Returns the veMOE token.
      * @return The veMOE token.
      */
-    function getVeMoe() external view override returns (address) {
-        return address(_veMoe);
+    function getVeMoe() external view override returns (IVeMoe) {
+        return _veMoe;
     }
 
     /**
      * @dev Returns the sMOE token.
      * @return The sMOE token.
      */
-    function getSMoe() external view override returns (address) {
-        return address(_sMoe);
+    function getSMoe() external view override returns (IStableMoe) {
+        return _sMoe;
     }
 
     /**
