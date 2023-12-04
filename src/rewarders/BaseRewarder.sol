@@ -244,7 +244,7 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
         uint256 totalUnclaimedRewards = _totalUnclaimedRewards;
         uint256 reserve = _reserve;
 
-        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
+        uint256 totalRewards = oldTotalSupply == 0 ? 0 : _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
         rewards = _rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalRewards);
 
         _totalUnclaimedRewards = totalUnclaimedRewards + totalRewards - rewards;
