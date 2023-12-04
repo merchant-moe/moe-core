@@ -38,12 +38,12 @@ contract MoePair is IMoePair, MoeERC20, Clone {
     }
 
     // returns the token0 address
-    function token0() public pure override returns (address) {
+    function token0() external pure override returns (address) {
         return address(_token0());
     }
 
     // returns the token1 address
-    function token1() public pure override returns (address) {
+    function token1() external pure override returns (address) {
         return address(_token1());
     }
 
