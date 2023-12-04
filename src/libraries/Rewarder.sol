@@ -56,7 +56,7 @@ library Rewarder {
         uint256 timestamp = block.timestamp > endTimestamp ? endTimestamp : block.timestamp;
 
         unchecked {
-            return lastUpdateTimestamp > timestamp ? 0 : (timestamp - lastUpdateTimestamp) * rewardPerSecond;
+            return timestamp > lastUpdateTimestamp ? (timestamp - lastUpdateTimestamp) * rewardPerSecond : 0;
         }
     }
 

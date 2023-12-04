@@ -19,6 +19,10 @@ interface IBaseRewarder {
 
     event RewardParameterUpdated(uint256 rewardPerSecond, uint256 startTimestamp, uint256 endTimestamp);
 
+    event Stopped();
+
+    event Swept(IERC20 indexed token, address indexed account, uint256 amount);
+
     function getToken() external view returns (IERC20);
 
     function getCaller() external view returns (address);

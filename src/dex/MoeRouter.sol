@@ -13,6 +13,7 @@ contract MoeRouter is IMoeRouter {
     using SafeERC20 for IERC20;
 
     address public immutable override factory;
+    address public immutable override pairImplementation;
     address public immutable override wNative;
 
     modifier ensure(uint256 deadline) {
@@ -23,6 +24,8 @@ contract MoeRouter is IMoeRouter {
     constructor(address _factory, address _wNative) {
         factory = _factory;
         wNative = _wNative;
+
+        pairImplementation = IMoeFactory(_factory).implementation();
     }
 
     receive() external payable {
@@ -35,6 +38,10 @@ contract MoeRouter is IMoeRouter {
     }
 
     // **** ADD LIQUIDITY ****
+    function _getPair(address tokenA, address tokenB) internal view virtual returns (address pair) {
+        pair = MoeLibrary.pairFor(factory, pairImplementation, tokenA, tokenB);
+    }
+
     function _addLiquidity(
         address tokenA,
         address tokenB,
@@ -78,7 +85,7 @@ contract MoeRouter is IMoeRouter {
         (address _tokenA, address _tokenB) = (tokenA, tokenB); // avoid stack too deep errors
 
         (amountA, amountB) = _addLiquidity(_tokenA, _tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
-        address pair = MoeLibrary.pairFor(factory, _tokenA, _tokenB);
+        address pair = _getPair(_tokenA, _tokenB);
         IERC20(_tokenA).safeTransferFrom(msg.sender, pair, amountA);
         IERC20(_tokenB).safeTransferFrom(msg.sender, pair, amountB);
         liquidity = IMoePair(pair).mint(to);
@@ -101,7 +108,7 @@ contract MoeRouter is IMoeRouter {
     {
         (amountToken, amountNative) =
             _addLiquidity(token, wNative, amountTokenDesired, msg.value, amountTokenMin, amountNativeMin);
-        address pair = MoeLibrary.pairFor(factory, token, wNative);
+        address pair = _getPair(token, wNative);
         IERC20(token).safeTransferFrom(msg.sender, pair, amountToken);
         IWNative(wNative).deposit{value: amountNative}();
         assert(IWNative(wNative).transfer(pair, amountNative));
@@ -120,7 +127,7 @@ contract MoeRouter is IMoeRouter {
         address to,
         uint256 deadline
     ) public virtual override ensure(deadline) returns (uint256 amountA, uint256 amountB) {
-        address pair = MoeLibrary.pairFor(factory, tokenA, tokenB);
+        address pair = _getPair(tokenA, tokenB);
         IMoePair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
         (uint256 amount0, uint256 amount1) = IMoePair(pair).burn(to);
         (address token0,) = MoeLibrary.sortTokens(tokenA, tokenB);
@@ -157,7 +164,7 @@ contract MoeRouter is IMoeRouter {
         bytes32 r,
         bytes32 s
     ) external virtual override returns (uint256 amountA, uint256 amountB) {
-        address pair = MoeLibrary.pairFor(factory, tokenA, tokenB);
+        address pair = _getPair(tokenA, tokenB);
         uint256 value = approveMax ? type(uint256).max : liquidity;
         IMoePair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);
@@ -175,7 +182,7 @@ contract MoeRouter is IMoeRouter {
         bytes32 r,
         bytes32 s
     ) external virtual override returns (uint256 amountToken, uint256 amountNative) {
-        address pair = MoeLibrary.pairFor(factory, token, wNative);
+        address pair = _getPair(token, wNative);
         uint256 value = approveMax ? type(uint256).max : liquidity;
         IMoePair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         (amountToken, amountNative) =
@@ -210,7 +217,7 @@ contract MoeRouter is IMoeRouter {
         bytes32 r,
         bytes32 s
     ) external virtual override returns (uint256 amountNative) {
-        address pair = MoeLibrary.pairFor(factory, token, wNative);
+        address pair = _getPair(token, wNative);
         uint256 value = approveMax ? type(uint256).max : liquidity;
         IMoePair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         amountNative = removeLiquidityNativeSupportingFeeOnTransferTokens(
@@ -227,8 +234,8 @@ contract MoeRouter is IMoeRouter {
             uint256 amountOut = amounts[i + 1];
             (uint256 amount0Out, uint256 amount1Out) =
                 input == token0 ? (uint256(0), amountOut) : (amountOut, uint256(0));
-            address to = i < path.length - 2 ? MoeLibrary.pairFor(factory, output, path[i + 2]) : _to;
-            IMoePair(MoeLibrary.pairFor(factory, input, output)).swap(amount0Out, amount1Out, to, new bytes(0));
+            address to = i < path.length - 2 ? _getPair(output, path[i + 2]) : _to;
+            IMoePair(_getPair(input, output)).swap(amount0Out, amount1Out, to, new bytes(0));
         }
     }
 
@@ -241,7 +248,7 @@ contract MoeRouter is IMoeRouter {
     ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
         amounts = MoeLibrary.getAmountsOut(factory, amountIn, path);
         require(amounts[amounts.length - 1] >= amountOutMin, "MoeRouter: INSUFFICIENT_OUTPUT_AMOUNT");
-        IERC20(path[0]).safeTransferFrom(msg.sender, MoeLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
+        IERC20(path[0]).safeTransferFrom(msg.sender, _getPair(path[0], path[1]), amounts[0]);
         _swap(amounts, path, to);
     }
 
@@ -254,7 +261,7 @@ contract MoeRouter is IMoeRouter {
     ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
         amounts = MoeLibrary.getAmountsIn(factory, amountOut, path);
         require(amounts[0] <= amountInMax, "MoeRouter: EXCESSIVE_INPUT_AMOUNT");
-        IERC20(path[0]).safeTransferFrom(msg.sender, MoeLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
+        IERC20(path[0]).safeTransferFrom(msg.sender, _getPair(path[0], path[1]), amounts[0]);
         _swap(amounts, path, to);
     }
 
@@ -270,7 +277,7 @@ contract MoeRouter is IMoeRouter {
         amounts = MoeLibrary.getAmountsOut(factory, msg.value, path);
         require(amounts[amounts.length - 1] >= amountOutMin, "MoeRouter: INSUFFICIENT_OUTPUT_AMOUNT");
         IWNative(wNative).deposit{value: amounts[0]}();
-        assert(IWNative(wNative).transfer(MoeLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        assert(IWNative(wNative).transfer(_getPair(path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
     }
 
@@ -284,7 +291,7 @@ contract MoeRouter is IMoeRouter {
         require(path[path.length - 1] == wNative, "MoeRouter: INVALID_PATH");
         amounts = MoeLibrary.getAmountsIn(factory, amountOut, path);
         require(amounts[0] <= amountInMax, "MoeRouter: EXCESSIVE_INPUT_AMOUNT");
-        IERC20(path[0]).safeTransferFrom(msg.sender, MoeLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
+        IERC20(path[0]).safeTransferFrom(msg.sender, _getPair(path[0], path[1]), amounts[0]);
         _swap(amounts, path, address(this));
         IWNative(wNative).withdraw(amounts[amounts.length - 1]);
         _safeTransferNative(to, amounts[amounts.length - 1]);
@@ -300,7 +307,7 @@ contract MoeRouter is IMoeRouter {
         require(path[path.length - 1] == wNative, "MoeRouter: INVALID_PATH");
         amounts = MoeLibrary.getAmountsOut(factory, amountIn, path);
         require(amounts[amounts.length - 1] >= amountOutMin, "MoeRouter: INSUFFICIENT_OUTPUT_AMOUNT");
-        IERC20(path[0]).safeTransferFrom(msg.sender, MoeLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
+        IERC20(path[0]).safeTransferFrom(msg.sender, _getPair(path[0], path[1]), amounts[0]);
         _swap(amounts, path, address(this));
         IWNative(wNative).withdraw(amounts[amounts.length - 1]);
         _safeTransferNative(to, amounts[amounts.length - 1]);
@@ -318,7 +325,7 @@ contract MoeRouter is IMoeRouter {
         amounts = MoeLibrary.getAmountsIn(factory, amountOut, path);
         require(amounts[0] <= msg.value, "MoeRouter: EXCESSIVE_INPUT_AMOUNT");
         IWNative(wNative).deposit{value: amounts[0]}();
-        assert(IWNative(wNative).transfer(MoeLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        assert(IWNative(wNative).transfer(_getPair(path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
         // refund dust eth, if any
         if (msg.value > amounts[0]) _safeTransferNative(msg.sender, msg.value - amounts[0]);
@@ -330,7 +337,7 @@ contract MoeRouter is IMoeRouter {
         for (uint256 i; i < path.length - 1; i++) {
             (address input, address output) = (path[i], path[i + 1]);
             (address token0,) = MoeLibrary.sortTokens(input, output);
-            IMoePair pair = IMoePair(MoeLibrary.pairFor(factory, input, output));
+            IMoePair pair = IMoePair(_getPair(input, output));
             uint256 amountInput;
             uint256 amountOutput;
             {
@@ -343,7 +350,7 @@ contract MoeRouter is IMoeRouter {
             }
             (uint256 amount0Out, uint256 amount1Out) =
                 input == token0 ? (uint256(0), amountOutput) : (amountOutput, uint256(0));
-            address to = i < path.length - 2 ? MoeLibrary.pairFor(factory, output, path[i + 2]) : _to;
+            address to = i < path.length - 2 ? _getPair(output, path[i + 2]) : _to;
             pair.swap(amount0Out, amount1Out, to, new bytes(0));
         }
     }
@@ -355,7 +362,7 @@ contract MoeRouter is IMoeRouter {
         address to,
         uint256 deadline
     ) external virtual override ensure(deadline) {
-        IERC20(path[0]).safeTransferFrom(msg.sender, MoeLibrary.pairFor(factory, path[0], path[1]), amountIn);
+        IERC20(path[0]).safeTransferFrom(msg.sender, _getPair(path[0], path[1]), amountIn);
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
@@ -373,7 +380,7 @@ contract MoeRouter is IMoeRouter {
         require(path[0] == wNative, "MoeRouter: INVALID_PATH");
         uint256 amountIn = msg.value;
         IWNative(wNative).deposit{value: amountIn}();
-        assert(IWNative(wNative).transfer(MoeLibrary.pairFor(factory, path[0], path[1]), amountIn));
+        assert(IWNative(wNative).transfer(_getPair(path[0], path[1]), amountIn));
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
@@ -390,7 +397,7 @@ contract MoeRouter is IMoeRouter {
         uint256 deadline
     ) external virtual override ensure(deadline) {
         require(path[path.length - 1] == wNative, "MoeRouter: INVALID_PATH");
-        IERC20(path[0]).safeTransferFrom(msg.sender, MoeLibrary.pairFor(factory, path[0], path[1]), amountIn);
+        IERC20(path[0]).safeTransferFrom(msg.sender, _getPair(path[0], path[1]), amountIn);
         _swapSupportingFeeOnTransferTokens(path, address(this));
         uint256 amountOut = IERC20(wNative).balanceOf(address(this));
         require(amountOut >= amountOutMin, "MoeRouter: INSUFFICIENT_OUTPUT_AMOUNT");

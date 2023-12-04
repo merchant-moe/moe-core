@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {Math} from "./libraries/Math.sol";
 import {Amounts} from "./libraries/Amounts.sol";
-import {IMoeStaking} from "./interfaces/IMoeStaking.sol";
-import {IVeMoe} from "./interfaces/IVeMoe.sol";
-import {IStableMoe} from "./interfaces/IStableMoe.sol";
+import {IMoe, IVeMoe, IStableMoe, IMoeStaking} from "./interfaces/IMoeStaking.sol";
 
 /**
  * @title Moe Staking Contract
@@ -16,11 +14,11 @@ import {IStableMoe} from "./interfaces/IStableMoe.sol";
  * sMOE will allow users to receive rewards from the volume of the DEX.
  */
 contract MoeStaking is IMoeStaking {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IMoe;
     using Math for uint256;
     using Amounts for Amounts.Parameter;
 
-    IERC20 private immutable _moe;
+    IMoe private immutable _moe;
     IVeMoe private immutable _veMoe;
     IStableMoe private immutable _sMoe;
 
@@ -32,7 +30,7 @@ contract MoeStaking is IMoeStaking {
      * @param veMoe The veMOE token.
      * @param sMoe The sMOE token.
      */
-    constructor(IERC20 moe, IVeMoe veMoe, IStableMoe sMoe) {
+    constructor(IMoe moe, IVeMoe veMoe, IStableMoe sMoe) {
         _moe = moe;
         _veMoe = veMoe;
         _sMoe = sMoe;
@@ -42,24 +40,24 @@ contract MoeStaking is IMoeStaking {
      * @dev Returns the MOE token.
      * @return The MOE token.
      */
-    function getMoe() external view override returns (address) {
-        return address(_moe);
+    function getMoe() external view override returns (IMoe) {
+        return _moe;
     }
 
     /**
      * @dev Returns the veMOE token.
      * @return The veMOE token.
      */
-    function getVeMoe() external view override returns (address) {
-        return address(_veMoe);
+    function getVeMoe() external view override returns (IVeMoe) {
+        return _veMoe;
     }
 
     /**
      * @dev Returns the sMOE token.
      * @return The sMOE token.
      */
-    function getSMoe() external view override returns (address) {
-        return address(_sMoe);
+    function getSMoe() external view override returns (IStableMoe) {
+        return _sMoe;
     }
 
     /**

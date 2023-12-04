@@ -12,6 +12,7 @@ import {IRewarderFactory} from "./IRewarderFactory.sol";
 
 interface IMasterChef {
     error MasterChef__InvalidShares();
+    error MasterChef__InvalidMoePerSecond();
     error MasterChef__ZeroAddress();
     error MasterChef__NotMasterchefRewarder();
 
