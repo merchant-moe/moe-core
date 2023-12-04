@@ -203,7 +203,7 @@ contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
             Reward storage reward = _rewards[address(token)];
 
             uint256 reserve = reward.reserve;
-            uint256 balance = _balanceOfThis(token);
+            uint256 balance = totalSupply == 0 ? reserve : _balanceOfThis(token);
 
             uint256 totalRewards = balance - reserve;
 
