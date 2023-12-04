@@ -6,6 +6,8 @@ interface IMoeRouter {
 
     function wNative() external view returns (address);
 
+    function pairImplementation() external view returns (address);
+
     function addLiquidity(
         address tokenA,
         address tokenB,
