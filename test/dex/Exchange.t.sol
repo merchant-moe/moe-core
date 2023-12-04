@@ -43,7 +43,15 @@ contract ExchangeTest is Test {
         address factoryImpl = factory.implementation();
 
         assembly {
-            mstore(add(add(pairCode, 0x20), 0x32c), factoryImpl)
+            let length := mload(pairCode)
+            for { let i := 0 } lt(i, length) { i := add(i, 1) } {
+                let val := mload(add(pairCode, add(0x20, i)))
+                if eq(val, pair) {
+                    mstore(add(add(pairCode, 0x20), i), factoryImpl)
+
+                    i := length
+                }
+            }
         }
 
         assertEq(keccak256(factoryImpl.code), keccak256(pairCode), "test_Initialize::3");
