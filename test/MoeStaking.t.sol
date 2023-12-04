@@ -26,7 +26,7 @@ contract MoeStakingTest is Test {
         veMoe = address(new MockNoRevert());
         sMoe = address(new MockNoRevert());
 
-        staking = new MoeStaking(IERC20(moe), IVeMoe(veMoe), IStableMoe(sMoe));
+        staking = new MoeStaking(IMoe(moe), IVeMoe(veMoe), IStableMoe(sMoe));
 
         TransparentUpgradeableProxy2Step proxy =
             new TransparentUpgradeableProxy2Step(address(staking), ProxyAdmin2Step(address(1)), "");
@@ -35,9 +35,9 @@ contract MoeStakingTest is Test {
     }
 
     function test_GetParameters() public {
-        assertEq(staking.getMoe(), address(moe), "test_GetParameters::1");
-        assertEq(staking.getVeMoe(), veMoe, "test_GetParameters::2");
-        assertEq(staking.getSMoe(), sMoe, "test_GetParameters::3");
+        assertEq(address(staking.getMoe()), address(moe), "test_GetParameters::1");
+        assertEq(address(staking.getVeMoe()), veMoe, "test_GetParameters::2");
+        assertEq(address(staking.getSMoe()), sMoe, "test_GetParameters::3");
     }
 
     function test_Stake() public {

@@ -3,8 +3,9 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
+import "@openzeppelin-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
+import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
 import "../src/MasterChef.sol";
 import "../src/Moe.sol";
 import "./mocks/MockVeMoe.sol";
@@ -179,6 +180,8 @@ contract MasterChefTest is Test {
     }
 
     function test_SetMoePerSecond(uint96 moePerSecond) public {
+        moePerSecond = uint96(bound(moePerSecond, 0, Constants.MAX_MOE_PER_SECOND));
+
         masterChef.setMoePerSecond(moePerSecond);
 
         assertEq(masterChef.getMoePerSecond(), moePerSecond, "test_SetMoePerSecond::1");
@@ -476,6 +479,8 @@ contract MasterChefTest is Test {
         masterChef.setMoePerSecond(10e18);
 
         veMoe.setVotes(0, 1e18);
+        veMoe.setVotes(1, 1e18);
+
         veMoe.setTopPoolIds(new uint256[](1));
 
         vm.startPrank(alice);

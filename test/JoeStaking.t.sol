@@ -85,7 +85,7 @@ contract JoeStakingTest is Test {
         assertEq(address(rewarder.getToken()), address(moe), "test_GetParameters::3");
         assertEq(rewarder.getCaller(), address(staking), "test_GetParameters::4");
         assertEq(rewarder.getPid(), 0, "test_GetParameters::5");
-        assertEq(OwnableUpgradeable(address(rewarder)).owner(), address(this), "test_GetParameters::6");
+        assertEq(Ownable2StepUpgradeable(address(rewarder)).owner(), address(this), "test_GetParameters::6");
 
         vm.expectRevert(Initializable.InvalidInitialization.selector);
         rewarder.initialize(address(this));

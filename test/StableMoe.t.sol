@@ -38,7 +38,7 @@ contract StableMoeTest is Test {
         address stakingAddress = computeCreateAddress(address(this), nonce);
         address sMoeAddress = computeCreateAddress(address(this), nonce + 2);
 
-        staking = new MoeStaking(IERC20(moe), IVeMoe(veMoe), IStableMoe(sMoeAddress));
+        staking = new MoeStaking(moe, IVeMoe(veMoe), IStableMoe(sMoeAddress));
         sMoe = new StableMoe(IMoeStaking(stakingAddress));
 
         TransparentUpgradeableProxy2Step proxy = new TransparentUpgradeableProxy2Step(

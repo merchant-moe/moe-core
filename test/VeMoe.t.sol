@@ -4,8 +4,9 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
+import "@openzeppelin-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
+import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
 import "../src/VeMoe.sol";
 import "../src/MoeStaking.sol";
 import "../src/Moe.sol";
