@@ -39,7 +39,7 @@ contract MasterChefTest is Test {
         uint256 nonce = vm.getNonce(address(this));
 
         address masterChefAddress = computeCreateAddress(address(this), nonce + 2);
-        address factoryAddress = computeCreateAddress(address(this), nonce + 3);
+        address factoryAddress = computeCreateAddress(address(this), nonce + 4);
 
         moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
 
@@ -53,7 +53,16 @@ contract MasterChefTest is Test {
 
         masterChef = MasterChef(address(proxy));
 
-        factory = new RewarderFactory(address(this));
+        address factoryImpl = address(new RewarderFactory());
+        factory = RewarderFactory(
+            address(
+                new TransparentUpgradeableProxy2Step(
+                    factoryImpl,
+                    ProxyAdmin2Step(address(1)),
+                    abi.encodeWithSelector(RewarderFactory.initialize.selector, address(this), new uint8[](0), new address[](0))
+                )
+            )
+        );
         factory.setRewarderImplementation(
             IRewarderFactory.RewarderType.MasterChefRewarder, new MasterChefRewarder(address(masterChef))
         );

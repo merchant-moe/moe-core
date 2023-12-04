@@ -3,15 +3,16 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin-upgradeable/contracts/proxy/utils/Initializable.sol";
-import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
 
 import "../src/JoeStaking.sol";
 import "../src/rewarders/JoeStakingRewarder.sol";
 import "../src/rewarders/BaseRewarder.sol";
 import "../src/Moe.sol";
 import "../src/rewarders/RewarderFactory.sol";
+import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
 
 contract JoeStakingTest is Test {
     JoeStaking staking;
@@ -30,9 +31,18 @@ contract JoeStakingTest is Test {
 
         uint256 nonce = vm.getNonce(address(this));
 
-        address stakingAddress = computeCreateAddress(address(this), nonce + 3);
+        address stakingAddress = computeCreateAddress(address(this), nonce + 4);
 
-        factory = new RewarderFactory(address(this));
+        address factoryImpl = address(new RewarderFactory());
+        factory = RewarderFactory(
+            address(
+                new TransparentUpgradeableProxy2Step(
+                    factoryImpl,
+                    ProxyAdmin2Step(address(1)),
+                    abi.encodeWithSelector(RewarderFactory.initialize.selector, address(this), new uint8[](0), new address[](0))
+                )
+            )
+        );
         factory.setRewarderImplementation(
             IRewarderFactory.RewarderType.JoeStakingRewarder, new JoeStakingRewarder(stakingAddress)
         );
