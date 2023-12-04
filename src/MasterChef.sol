@@ -2,11 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {
-    Ownable2StepUpgradeable,
-    OwnableUpgradeable,
-    Initializable
-} from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 
 import {Math} from "./libraries/Math.sol";
 import {Rewarder} from "./libraries/Rewarder.sol";
@@ -28,6 +24,7 @@ import {IRewarderFactory, IBaseRewarder} from "./interfaces/IRewarderFactory.sol
  */
 contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     using SafeERC20 for IERC20;
+    using SafeERC20 for IMoe;
     using Math for uint256;
     using Rewarder for Rewarder.Parameter;
     using Amounts for Amounts.Parameter;
