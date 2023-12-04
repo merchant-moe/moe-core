@@ -18,6 +18,7 @@ docs/
 !out/MoeFactory.sol/MoeFactory.json
 !out/MoeRouter.sol/MoeRouter.json
 !out/MoeQuoter.sol/MoeQuoter.json
+!out/RewarderFactory.sol/RewarderFactory.json
 !out/MasterChefRewarder.sol/MasterChefRewarder.json
 !out/VeMoeRewarder.sol/VeMoeRewarder.json
 !out/JoeStakingRewarder.sol/JoeStakingRewarder.json
