@@ -570,9 +570,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
         _moe.mint(_treasury, treasuryAmount);
         _moe.mint(_futureFunding, futureFundingAmount);
         _moe.mint(_team, teamAmount);
-        _moe.mint(address(this), liquidityMiningAmount);
-
-        return liquidityMiningAmount;
+        return _moe.mint(address(this), liquidityMiningAmount);
     }
 
     /**
