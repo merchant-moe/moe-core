@@ -155,12 +155,13 @@ contract VestingContract is IVestingContract {
 
         if (msg.sender != owner) revert VestingContract__NotMasterChefOwner();
 
+        uint256 released_ = released();
         uint256 balance = _token.balanceOf(address(this));
-        uint256 vested = _vestingSchedule(balance + released(), block.timestamp);
+        uint256 vested = _vestingSchedule(balance + released_, block.timestamp);
 
         _revoked = true;
 
-        _token.safeTransfer(owner, balance - vested);
+        _token.safeTransfer(owner, balance + released_ - vested);
 
         emit Revoked();
     }

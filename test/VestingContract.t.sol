@@ -17,7 +17,7 @@ contract VestingContractTest is Test {
     function setUp() public {
         token = new MockERC20("token", "TKN", 18);
 
-        vesting = new VestingContract(address(this), token, block.timestamp+ 365 days, 365 days);
+        vesting = new VestingContract(address(this), token, block.timestamp + 365 days, 365 days);
     }
 
     function owner() public view returns (address) {
@@ -239,5 +239,75 @@ contract VestingContractTest is Test {
         assertEq(token.balanceOf(alice), 365e18, "test_RevokeAfterEnd::12");
         assertEq(token.balanceOf(address(vesting)), 0, "test_RevokeAfterEnd::13");
         assertEq(token.balanceOf(address(this)), 0, "test_RevokeAfterEnd::14");
+    }
+
+    function test_Fuzz_Revoke(uint256 t0, uint256 t1) public {
+        t0 = bound(t0, 0, 100 days - 1);
+        t1 = bound(t1, t0 + 1, 100 days);
+
+        uint256 start = block.timestamp + 365 days;
+        uint256 total = 100e18;
+
+        MockERC20(address(token)).mint(address(vesting), total);
+        vesting.setBeneficiary(alice);
+
+        vm.warp(start + t0);
+
+        assertEq(vesting.revoked(), false, "test_Fuzz_Revoke::1");
+
+        vm.prank(alice);
+        vesting.release();
+
+        uint256 released0 = t0 * total / 365 days;
+
+        assertEq(vesting.revoked(), false, "test_Fuzz_Revoke::2");
+        assertEq(vesting.released(), released0, "test_Fuzz_Revoke::3");
+        assertEq(vesting.releasable(), 0, "test_Fuzz_Revoke::4");
+        assertEq(vesting.vestedAmount(block.timestamp), released0, "test_Fuzz_Revoke::5");
+        assertEq(token.balanceOf(alice), released0, "test_Fuzz_Revoke::6");
+        assertEq(token.balanceOf(address(vesting)), total - released0, "test_Fuzz_Revoke::7");
+        assertEq(token.balanceOf(address(this)), 0, "test_Fuzz_Revoke::8");
+
+        vm.warp(start + t1);
+
+        uint256 released1 = t1 * total / 365 days;
+
+        vesting.revoke();
+
+        assertEq(vesting.released(), released0, "test_Fuzz_Revoke::9");
+        assertEq(vesting.releasable(), released1 - released0, "test_Fuzz_Revoke::10");
+        assertEq(vesting.vestedAmount(block.timestamp), released1, "test_Fuzz_Revoke::11");
+        assertEq(token.balanceOf(alice), released0, "test_Fuzz_Revoke::12");
+        assertEq(token.balanceOf(address(vesting)), released1 - released0, "test_Fuzz_Revoke::13");
+        assertEq(token.balanceOf(address(this)), total - released1, "test_Fuzz_Revoke::14");
+
+        vm.prank(alice);
+        vesting.release();
+
+        assertEq(vesting.released(), released1, "test_Fuzz_Revoke::15");
+        assertEq(vesting.releasable(), 0, "test_Fuzz_Revoke::16");
+        assertEq(vesting.vestedAmount(block.timestamp), released1, "test_Fuzz_Revoke::17");
+        assertEq(token.balanceOf(alice), released1, "test_Fuzz_Revoke::18");
+        assertEq(token.balanceOf(address(vesting)), 0, "test_Fuzz_Revoke::19");
+        assertEq(token.balanceOf(address(this)), total - released1, "test_Fuzz_Revoke::20");
+
+        MockERC20(address(token)).mint(address(vesting), total);
+
+        assertEq(vesting.released(), released1, "test_Fuzz_Revoke::21");
+        assertEq(vesting.releasable(), total, "test_Fuzz_Revoke::22");
+        assertEq(vesting.vestedAmount(block.timestamp), total + released1, "test_Fuzz_Revoke::23");
+        assertEq(token.balanceOf(alice), released1, "test_Fuzz_Revoke::24");
+        assertEq(token.balanceOf(address(vesting)), total, "test_Fuzz_Revoke::25");
+        assertEq(token.balanceOf(address(this)), total - released1, "test_Fuzz_Revoke::26");
+
+        vm.prank(alice);
+        vesting.release();
+
+        assertEq(vesting.released(), total + released1, "test_Fuzz_Revoke::27");
+        assertEq(vesting.releasable(), 0, "test_Fuzz_Revoke::28");
+        assertEq(vesting.vestedAmount(block.timestamp), total + released1, "test_Fuzz_Revoke::29");
+        assertEq(token.balanceOf(alice), total + released1, "test_Fuzz_Revoke::30");
+        assertEq(token.balanceOf(address(vesting)), 0, "test_Fuzz_Revoke::31");
+        assertEq(token.balanceOf(address(this)), total - released1, "test_Fuzz_Revoke::32");
     }
 }
