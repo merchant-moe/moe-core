@@ -145,7 +145,6 @@ contract JoeStaking is Ownable2StepUpgradeable, IJoeStaking {
 
     /**
      * @dev Modifies the staking position of an account.
-     * Will update the veJOE and sJOE positions of the account.
      * @param account The account to modify.
      * @param deltaAmount The delta amount to modify.
      */
