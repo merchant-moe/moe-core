@@ -177,6 +177,13 @@ contract StableMoe is Ownable2StepUpgradeable, IStableMoe {
     }
 
     /**
+     * @dev Blocks the renouncing of ownership.
+     */
+    function renounceOwnership() public pure override {
+        revert StableMoe__CannotRenounceOwnership();
+    }
+
+    /**
      * @dev Returns the balance of the specified token held by the contract.
      * @param token The token to check the balance of.
      * @return The balance of the token held by the contract.

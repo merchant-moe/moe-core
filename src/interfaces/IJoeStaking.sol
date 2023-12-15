@@ -7,6 +7,7 @@ import {IJoeStakingRewarder} from "./IJoeStakingRewarder.sol";
 
 interface IJoeStaking {
     error JoeStaking__InvalidRewarderType();
+    error JoeStaking__CannotRenounceOwnership();
 
     event PositionModified(address indexed account, int256 deltaAmount);
 

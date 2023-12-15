@@ -204,6 +204,13 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
     }
 
     /**
+     * @dev Blocks the renouncing of ownership.
+     */
+    function renounceOwnership() public pure override {
+        revert BaseRewarder__CannotRenounceOwnership();
+    }
+
+    /**
      * @dev Returns the address of the token to be distributed as rewards.
      * @return The address of the token to be distributed as rewards.
      */

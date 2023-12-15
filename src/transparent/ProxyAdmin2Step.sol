@@ -9,10 +9,16 @@ import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.s
  * @dev The ProxyAdmin2Step Contract is a ProxyAdmin contract that uses the Ownable2Step contract.
  */
 contract ProxyAdmin2Step is ProxyAdmin, Ownable2Step {
+    error ProxyAdmin2Step__CannotRenounceOwnership();
+
     constructor(address initialOwner) ProxyAdmin(initialOwner) {}
 
     function transferOwnership(address newOwner) public override(Ownable2Step, Ownable) {
         Ownable2Step.transferOwnership(newOwner);
+    }
+
+    function renounceOwnership() public pure override {
+        revert ProxyAdmin2Step__CannotRenounceOwnership();
     }
 
     function _transferOwnership(address newOwner) internal override(Ownable2Step, Ownable) {

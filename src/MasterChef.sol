@@ -411,6 +411,13 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     }
 
     /**
+     * @dev Blocks the renouncing of ownership.
+     */
+    function renounceOwnership() public pure override {
+        revert MasterChef__CannotRenounceOwnership();
+    }
+
+    /**
      * @dev Returns the reward for a given pool ID.
      * If the pool ID is not in the top pool IDs, it will return 0.
      * Else, it will return the reward multiplied by the proportion of votes for this pool ID.

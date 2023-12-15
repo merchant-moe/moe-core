@@ -8,6 +8,7 @@ import {IBaseRewarder} from "../interfaces/IBaseRewarder.sol";
 interface IRewarderFactory {
     error RewarderFactory__ZeroAddress();
     error RewarderFactory__InvalidRewarderType();
+    error RewarderFactory__InvalidPid();
 
     enum RewarderType {
         InvalidRewarder,

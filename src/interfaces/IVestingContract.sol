@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IVestingContract {
     error VestingContract__NotBeneficiary();
     error VestingContract__NotMasterChefOwner();
+    error VestingContract__AlreadyRevoked();
 
     event BeneficiarySet(address beneficiary);
 

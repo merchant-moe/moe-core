@@ -13,6 +13,7 @@ interface IStableMoe {
     error StableMoe__ActiveReward(IERC20 reward);
     error StableMoe__NativeTransferFailed();
     error StableMoe__TooManyActiveRewards();
+    error StableMoe__CannotRenounceOwnership();
 
     struct Reward {
         Rewarder.Parameter rewarder;

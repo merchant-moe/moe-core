@@ -14,6 +14,7 @@ interface IBaseRewarder {
     error BaseRewarder__InvalidDuration();
     error BaseRewarder__InvalidPid(uint256 pid);
     error BaseRewarder__InvalidStartTimestamp(uint256 startTimestamp);
+    error BaseRewarder__CannotRenounceOwnership();
 
     event Claim(address indexed account, IERC20 indexed token, uint256 reward);
 

@@ -144,6 +144,13 @@ contract JoeStaking is Ownable2StepUpgradeable, IJoeStaking {
     }
 
     /**
+     * @dev Blocks the renouncing of ownership.
+     */
+    function renounceOwnership() public pure override {
+        revert JoeStaking__CannotRenounceOwnership();
+    }
+
+    /**
      * @dev Modifies the staking position of an account.
      * @param account The account to modify.
      * @param deltaAmount The delta amount to modify.

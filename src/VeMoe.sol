@@ -456,6 +456,13 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
     }
 
     /**
+     * @dev Blocks the renouncing of ownership.
+     */
+    function renounceOwnership() public pure override {
+        revert VeMoe__CannotRenounceOwnership();
+    }
+
+    /**
      * @dev Claims the pending veMOE of an account.
      * @param account The account to claim veMOE for.
      * @param oldBalance The old balance of the account.
