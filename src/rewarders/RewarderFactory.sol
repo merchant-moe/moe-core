@@ -19,6 +19,8 @@ contract RewarderFactory is Ownable2StepUpgradeable, IRewarderFactory {
     mapping(RewarderType => IBaseRewarder[]) private _rewarders;
     mapping(IBaseRewarder => RewarderType) private _rewarderTypes;
 
+    mapping(address => uint256) private _nonces;
+
     /**
      * @dev Disables the initialize function.
      */
@@ -127,7 +129,7 @@ contract RewarderFactory is Ownable2StepUpgradeable, IRewarderFactory {
         IBaseRewarder[] storage rewarders = _rewarders[rewarderType];
 
         bytes memory immutableData = abi.encodePacked(token, pid);
-        bytes32 salt = keccak256(abi.encodePacked(uint8(rewarderType), rewarders.length, msg.sender));
+        bytes32 salt = keccak256(abi.encodePacked(msg.sender, _nonces[msg.sender]++));
 
         rewarder = IBaseRewarder(ImmutableClone.cloneDeterministic(address(implementation), immutableData, salt));
 
