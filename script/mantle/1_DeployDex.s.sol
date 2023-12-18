@@ -6,12 +6,16 @@ import "forge-std/Script.sol";
 import "@openzeppelin/contracts/finance/VestingWallet.sol";
 
 import "./Parameters.sol";
-import "../src/dex/MoeFactory.sol";
-import "../src/dex/MoePair.sol";
-import "../src/dex/MoeRouter.sol";
+import "../../src/dex/MoeFactory.sol";
+import "../../src/dex/MoePair.sol";
+import "../../src/dex/MoeRouter.sol";
+import "../../src/dex/MoeQuoter.sol";
 
 contract DeployDexScript is Script {
-    function run() public returns (MoeFactory moeFactory, address moePairImplentation, MoeRouter router) {
+    function run()
+        public
+        returns (MoeFactory moeFactory, address moePairImplentation, MoeRouter router, MoeQuoter quoter)
+    {
         // add the custom chain
         setChain(
             Parameters.chainAlias,
@@ -27,6 +31,8 @@ contract DeployDexScript is Script {
         moeFactory = new MoeFactory(Parameters.feeTo, Parameters.multisig);
 
         router = new MoeRouter(address(moeFactory), Parameters.wNative);
+
+        quoter = new MoeQuoter(address(moeFactory));
 
         vm.stopBroadcast();
 

@@ -55,5 +55,6 @@ library Parameters {
     address internal constant feeTo = address(6);
 
     // Router
+    string internal constant nativeSymbol = "MANTLE";
     address internal constant wNative = address(7);
 }
