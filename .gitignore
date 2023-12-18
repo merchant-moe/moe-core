@@ -29,3 +29,5 @@ docs/
 !out/StableMoe.sol/StableMoe.json
 !out/VeMoe.sol/VeMoe.json
 !out/VestingContract.sol/VestingContract.json
+!out/MoeQuoter.sol/MoeQuoter.json
+!out/MoeLens.sol/MoeLens.json
