@@ -114,7 +114,7 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
 
         uint256 balance = _moeStaking.getDeposit(account);
 
-        uint256 totalVested = _veRewarder.getTotalRewards(_veMoePerSecondPerMoe);
+        uint256 totalVested = _veRewarder.getTotalRewards(_veMoePerSecondPerMoe, Constants.PRECISION);
         uint256 userVested = _veRewarder.getPendingReward(account, balance, Constants.PRECISION, totalVested);
 
         (veMoe,) = _getVeMoe(user, balance, balance, userVested);
@@ -446,11 +446,20 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
      * @param veMoePerSecondPerMoe The veMOE per second.
      */
     function setVeMoePerSecondPerMoe(uint256 veMoePerSecondPerMoe) external override onlyOwner {
-        _veRewarder.updateAccDebtPerShare(Constants.PRECISION, _veRewarder.getTotalRewards(_veMoePerSecondPerMoe));
+        _veRewarder.updateAccDebtPerShare(
+            Constants.PRECISION, _veRewarder.getTotalRewards(_veMoePerSecondPerMoe, Constants.PRECISION)
+        );
 
         _veMoePerSecondPerMoe = veMoePerSecondPerMoe;
 
         emit VeMoePerSecondPerMoeSet(veMoePerSecondPerMoe);
+    }
+
+    /**
+     * @dev Blocks the renouncing of ownership.
+     */
+    function renounceOwnership() public pure override {
+        revert VeMoe__CannotRenounceOwnership();
     }
 
     /**
@@ -462,7 +471,7 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
     function _claim(address account, uint256 oldBalance, uint256 newBalance) private {
         User storage user = _users[account];
 
-        uint256 totalVested = _veRewarder.getTotalRewards(_veMoePerSecondPerMoe);
+        uint256 totalVested = _veRewarder.getTotalRewards(_veMoePerSecondPerMoe, Constants.PRECISION);
         uint256 userVested = _veRewarder.update(account, oldBalance, newBalance, Constants.PRECISION, totalVested);
 
         (uint256 newVeMoe, int256 deltaVeMoe) = _getVeMoe(user, oldBalance, newBalance, userVested);

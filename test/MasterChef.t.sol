@@ -44,12 +44,14 @@ contract MasterChefTest is Test {
 
         moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
 
-        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)),IRewarderFactory(factoryAddress), 0, 0, 0);
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), IRewarderFactory(factoryAddress), 0, 0, 0);
 
         TransparentUpgradeableProxy2Step proxy = new TransparentUpgradeableProxy2Step(
             address(masterChef),
             ProxyAdmin2Step(address(1)),
-            abi.encodeWithSelector(MasterChef.initialize.selector, address(this), address(this), address(this), address(this))
+            abi.encodeWithSelector(
+                MasterChef.initialize.selector, address(this), address(this), address(this), address(this)
+            )
         );
 
         masterChef = MasterChef(address(proxy));
@@ -60,7 +62,9 @@ contract MasterChefTest is Test {
                 new TransparentUpgradeableProxy2Step(
                     factoryImpl,
                     ProxyAdmin2Step(address(1)),
-                    abi.encodeWithSelector(RewarderFactory.initialize.selector, address(this), new uint8[](0), new address[](0))
+                    abi.encodeWithSelector(
+                        RewarderFactory.initialize.selector, address(this), new uint8[](0), new address[](0)
+                    )
                 )
             )
         );
@@ -451,9 +455,13 @@ contract MasterChefTest is Test {
         new MasterChef(moe, IVeMoe(address(veMoe)), factory, 1e18 + 1, 0, 0);
 
         vm.expectRevert(IMasterChef.MasterChef__InvalidShares.selector);
-        new MasterChef(moe, IVeMoe(address(veMoe)), factory, uint256(1e18) / 3 + 1, uint256(1e18) / 3, uint256(1e18) / 3 + 1);
+        new MasterChef(
+            moe, IVeMoe(address(veMoe)), factory, uint256(1e18) / 3 + 1, uint256(1e18) / 3, uint256(1e18) / 3 + 1
+        );
 
-        new MasterChef(moe, IVeMoe(address(veMoe)), factory, uint256(1e18) / 3 + 1, uint256(1e18) / 3, uint256(1e18) / 3);
+        new MasterChef(
+            moe, IVeMoe(address(veMoe)), factory, uint256(1e18) / 3 + 1, uint256(1e18) / 3, uint256(1e18) / 3
+        );
     }
 
     function test_ExtraRewarder() public {

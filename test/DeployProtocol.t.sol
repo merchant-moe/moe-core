@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import "../script/0_DeployProtocol.s.sol";
+import "../script/mantle/0_DeployProtocol.s.sol";
 
 contract DeployProtocolTest is Test {
     function test_DeployProtocol() public {
@@ -15,7 +15,8 @@ contract DeployProtocolTest is Test {
             IBaseRewarder[3] memory rewarders,
             DeployProtocolScript.Addresses memory proxies,
             DeployProtocolScript.Addresses memory implementations,
-            DeployProtocolScript.Vestings memory vestings
+            DeployProtocolScript.Vestings memory vestings,
+            MoeLens moeLens
         ) = deployer.run();
 
         assertEq(proxyAdmin.owner(), Parameters.multisig, "test_DeployProtocol::1");
@@ -137,42 +138,45 @@ contract DeployProtocolTest is Test {
         );
         assertEq(Ownable(proxies.masterChef).owner(), Parameters.multisig, "test_DeployProtocol::40");
 
-        assertEq(address(MoeStaking(proxies.moeStaking).getMoe()), address(moe), "test_DeployProtocol::41");
-        assertEq(address(MoeStaking(proxies.moeStaking).getVeMoe()), proxies.veMoe, "test_DeployProtocol::42");
-        assertEq(address(MoeStaking(proxies.moeStaking).getSMoe()), proxies.sMoe, "test_DeployProtocol::43");
+        assertEq(address(JoeStaking(proxies.joeStaking).getJoe()), Parameters.joe, "test_DeployProtocol::41");
+        assertEq(Ownable(proxies.joeStaking).owner(), Parameters.multisig, "test_DeployProtocol::42");
 
-        assertEq(address(VeMoe(proxies.veMoe).getMoeStaking()), proxies.moeStaking, "test_DeployProtocol::44");
-        assertEq(address(VeMoe(proxies.veMoe).getMasterChef()), proxies.masterChef, "test_DeployProtocol::45");
+        assertEq(address(MoeStaking(proxies.moeStaking).getMoe()), address(moe), "test_DeployProtocol::43");
+        assertEq(address(MoeStaking(proxies.moeStaking).getVeMoe()), proxies.veMoe, "test_DeployProtocol::44");
+        assertEq(address(MoeStaking(proxies.moeStaking).getSMoe()), proxies.sMoe, "test_DeployProtocol::45");
+
+        assertEq(address(VeMoe(proxies.veMoe).getMoeStaking()), proxies.moeStaking, "test_DeployProtocol::46");
+        assertEq(address(VeMoe(proxies.veMoe).getMasterChef()), proxies.masterChef, "test_DeployProtocol::47");
         assertEq(
             address(VeMoe(proxies.veMoe).getRewarderFactory()),
             address(proxies.rewarderFactory),
-            "test_DeployProtocol::46"
+            "test_DeployProtocol::48"
         );
-        assertEq(VeMoe(proxies.veMoe).getMaxVeMoePerMoe(), Parameters.maxVeMoePerMoe, "test_DeployProtocol::47");
-        assertEq(Ownable(proxies.veMoe).owner(), Parameters.multisig, "test_DeployProtocol::48");
+        assertEq(VeMoe(proxies.veMoe).getMaxVeMoePerMoe(), Parameters.maxVeMoePerMoe, "test_DeployProtocol::49");
+        assertEq(Ownable(proxies.veMoe).owner(), Parameters.multisig, "test_DeployProtocol::50");
 
         assertEq(
-            address(StableMoe(payable(proxies.sMoe)).getMoeStaking()), proxies.moeStaking, "test_DeployProtocol::49"
+            address(StableMoe(payable(proxies.sMoe)).getMoeStaking()), proxies.moeStaking, "test_DeployProtocol::51"
         );
-        assertEq(Ownable(proxies.sMoe).owner(), Parameters.multisig, "test_DeployProtocol::50");
+        assertEq(Ownable(proxies.sMoe).owner(), Parameters.multisig, "test_DeployProtocol::52");
 
-        assertEq(_getAdmin(proxies.rewarderFactory), address(proxyAdmin), "test_DeployProtocol::51");
-        assertEq(_getAdmin(proxies.masterChef), address(proxyAdmin), "test_DeployProtocol::52");
-        assertEq(_getAdmin(proxies.joeStaking), address(proxyAdmin), "test_DeployProtocol::53");
-        assertEq(_getAdmin(proxies.moeStaking), address(proxyAdmin), "test_DeployProtocol::54");
-        assertEq(_getAdmin(proxies.veMoe), address(proxyAdmin), "test_DeployProtocol::55");
-        assertEq(_getAdmin(proxies.sMoe), address(proxyAdmin), "test_DeployProtocol::56");
+        assertEq(_getAdmin(proxies.rewarderFactory), address(proxyAdmin), "test_DeployProtocol::53");
+        assertEq(_getAdmin(proxies.masterChef), address(proxyAdmin), "test_DeployProtocol::54");
+        assertEq(_getAdmin(proxies.joeStaking), address(proxyAdmin), "test_DeployProtocol::55");
+        assertEq(_getAdmin(proxies.moeStaking), address(proxyAdmin), "test_DeployProtocol::56");
+        assertEq(_getAdmin(proxies.veMoe), address(proxyAdmin), "test_DeployProtocol::57");
+        assertEq(_getAdmin(proxies.sMoe), address(proxyAdmin), "test_DeployProtocol::58");
 
         assertEq(
             _getImplementation(proxies.rewarderFactory),
             address(implementations.rewarderFactory),
-            "test_DeployProtocol::57"
+            "test_DeployProtocol::59"
         );
-        assertEq(_getImplementation(proxies.masterChef), address(implementations.masterChef), "test_DeployProtocol::58");
-        assertEq(_getImplementation(proxies.joeStaking), address(implementations.joeStaking), "test_DeployProtocol::59");
-        assertEq(_getImplementation(proxies.moeStaking), address(implementations.moeStaking), "test_DeployProtocol::60");
-        assertEq(_getImplementation(proxies.veMoe), address(implementations.veMoe), "test_DeployProtocol::61");
-        assertEq(_getImplementation(proxies.sMoe), address(implementations.sMoe), "test_DeployProtocol::62");
+        assertEq(_getImplementation(proxies.masterChef), address(implementations.masterChef), "test_DeployProtocol::60");
+        assertEq(_getImplementation(proxies.joeStaking), address(implementations.joeStaking), "test_DeployProtocol::61");
+        assertEq(_getImplementation(proxies.moeStaking), address(implementations.moeStaking), "test_DeployProtocol::62");
+        assertEq(_getImplementation(proxies.veMoe), address(implementations.veMoe), "test_DeployProtocol::63");
+        assertEq(_getImplementation(proxies.sMoe), address(implementations.sMoe), "test_DeployProtocol::64");
     }
 
     function _getImplementation(address proxy) internal view returns (address) {

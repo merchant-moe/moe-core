@@ -113,7 +113,7 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
         override
         returns (IERC20, uint256)
     {
-        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
+        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp, totalSupply);
 
         return (_token(), _rewarder.getPendingReward(account, balance, totalSupply, totalRewards));
     }
@@ -204,6 +204,13 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
     }
 
     /**
+     * @dev Blocks the renouncing of ownership.
+     */
+    function renounceOwnership() public pure override {
+        revert BaseRewarder__CannotRenounceOwnership();
+    }
+
+    /**
      * @dev Returns the address of the token to be distributed as rewards.
      * @return The address of the token to be distributed as rewards.
      */
@@ -244,7 +251,8 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
         uint256 totalUnclaimedRewards = _totalUnclaimedRewards;
         uint256 reserve = _reserve;
 
-        uint256 totalRewards = oldTotalSupply == 0 ? 0 : _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
+        uint256 totalRewards =
+            oldTotalSupply == 0 ? 0 : _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp, oldTotalSupply);
         rewards = _rewarder.update(account, oldBalance, newBalance, oldTotalSupply, totalRewards);
 
         _totalUnclaimedRewards = totalUnclaimedRewards + totalRewards - rewards;
@@ -298,7 +306,9 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
         if (expectedDuration == 0 && rewardPerSecond != 0) revert BaseRewarder__InvalidDuration();
 
         uint256 totalUnclaimedRewards = _totalUnclaimedRewards;
-        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp);
+        uint256 totalSupply = _getTotalSupply();
+
+        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp, totalSupply);
 
         totalUnclaimedRewards += totalRewards;
 
@@ -308,7 +318,6 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
         if (remainingReward < expectedReward) revert BaseRewarder__InsufficientReward(remainingReward, expectedReward);
 
         uint256 endTimestamp = startTimestamp + expectedDuration;
-        uint256 totalSupply = _getTotalSupply();
 
         _rewardsPerSecond = rewardPerSecond;
         _reserve = totalUnclaimedRewards + expectedReward;

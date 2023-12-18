@@ -11,13 +11,15 @@ import {IRewarderFactory} from "../interfaces/IRewarderFactory.sol";
 /**
  * @title Rewarder Factory Contract
  * @dev The Rewarder Factory Contract allows users to create veMoe rewarders,
- * and admin to create masterchef rewarders.
+ * and admin to create masterchef and joe staking rewarders.
  */
 contract RewarderFactory is Ownable2StepUpgradeable, IRewarderFactory {
     mapping(RewarderType => IBaseRewarder) private _implementations;
 
     mapping(RewarderType => IBaseRewarder[]) private _rewarders;
     mapping(IBaseRewarder => RewarderType) private _rewarderTypes;
+
+    mapping(address => uint256) private _nonces;
 
     /**
      * @dev Disables the initialize function.
@@ -93,6 +95,7 @@ contract RewarderFactory is Ownable2StepUpgradeable, IRewarderFactory {
         returns (IBaseRewarder rewarder)
     {
         if (rewarderType != RewarderType.VeMoeRewarder) _checkOwner();
+        if (rewarderType == RewarderType.JoeStakingRewarder && pid != 0) revert RewarderFactory__InvalidPid();
 
         rewarder = _clone(rewarderType, token, pid);
 
@@ -126,7 +129,7 @@ contract RewarderFactory is Ownable2StepUpgradeable, IRewarderFactory {
         IBaseRewarder[] storage rewarders = _rewarders[rewarderType];
 
         bytes memory immutableData = abi.encodePacked(token, pid);
-        bytes32 salt = keccak256(abi.encodePacked(uint8(rewarderType), rewarders.length));
+        bytes32 salt = keccak256(abi.encodePacked(msg.sender, _nonces[msg.sender]++));
 
         rewarder = IBaseRewarder(ImmutableClone.cloneDeterministic(address(implementation), immutableData, salt));
 

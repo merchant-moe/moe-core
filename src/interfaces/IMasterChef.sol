@@ -15,6 +15,7 @@ interface IMasterChef {
     error MasterChef__InvalidMoePerSecond();
     error MasterChef__ZeroAddress();
     error MasterChef__NotMasterchefRewarder();
+    error MasterChef__CannotRenounceOwnership();
 
     struct Farm {
         Amounts.Parameter amounts;

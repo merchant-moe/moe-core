@@ -82,6 +82,6 @@ contract MasterChefRewarder is BaseRewarder, IMasterChefRewarder {
      * @return The total supply of the staking pool.
      */
     function _getTotalSupply() internal view override returns (uint256) {
-        return IMasterChef(_caller).getTotalDeposit(_pid());
+        return _status != Status.Linked ? 0 : IMasterChef(_caller).getTotalDeposit(_pid());
     }
 }

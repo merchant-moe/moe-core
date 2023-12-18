@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {IVestingContract} from "./interfaces/IVestingContract.sol";
@@ -14,7 +13,6 @@ import {IVestingContract} from "./interfaces/IVestingContract.sol";
  */
 contract VestingContract is IVestingContract {
     using SafeERC20 for IERC20;
-    using SafeCast for uint256;
 
     address private immutable _masterChef;
 
@@ -22,8 +20,9 @@ contract VestingContract is IVestingContract {
     uint256 private immutable _start;
     uint256 private immutable _duration;
 
+    uint256 private _released;
+
     address private _beneficiary;
-    uint88 private _released;
     bool private _revoked;
 
     /**
@@ -128,11 +127,11 @@ contract VestingContract is IVestingContract {
         if (msg.sender != _beneficiary) revert VestingContract__NotBeneficiary();
 
         uint256 amount = releasable();
-        _released += amount.toUint88();
+        _released += amount;
 
-        _token.safeTransfer(_beneficiary, amount);
+        _token.safeTransfer(msg.sender, amount);
 
-        emit Released(_beneficiary, amount);
+        emit Released(msg.sender, amount);
     }
 
     /**
@@ -154,13 +153,15 @@ contract VestingContract is IVestingContract {
         address owner = Ownable(_masterChef).owner();
 
         if (msg.sender != owner) revert VestingContract__NotMasterChefOwner();
+        if (_revoked) revert VestingContract__AlreadyRevoked();
 
+        uint256 released_ = released();
         uint256 balance = _token.balanceOf(address(this));
-        uint256 vested = _vestingSchedule(balance + released(), block.timestamp);
+        uint256 vested = _vestingSchedule(balance + released_, block.timestamp);
 
         _revoked = true;
 
-        _token.safeTransfer(owner, balance - vested);
+        _token.safeTransfer(owner, balance + released_ - vested);
 
         emit Revoked();
     }
@@ -174,12 +175,15 @@ contract VestingContract is IVestingContract {
     function _vestingSchedule(uint256 total, uint256 timestamp) internal view virtual returns (uint256) {
         if (_revoked) return total;
 
-        if (timestamp < start()) {
+        uint256 start_ = start();
+        uint256 duration_ = duration();
+
+        if (timestamp <= start_) {
             return 0;
-        } else if (timestamp >= end()) {
+        } else if (timestamp >= start_ + duration_) {
             return total;
         } else {
-            return (total * (timestamp - start())) / duration();
+            return (total * (timestamp - start_)) / duration_;
         }
     }
 }

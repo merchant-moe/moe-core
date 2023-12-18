@@ -38,7 +38,9 @@ contract MasterChefRewarderTest is Test {
                 new TransparentUpgradeableProxy2Step(
                     factoryImpl,
                     ProxyAdmin2Step(address(1)),
-                    abi.encodeWithSelector(RewarderFactory.initialize.selector, address(this), new uint8[](0), new address[](0))
+                    abi.encodeWithSelector(
+                        RewarderFactory.initialize.selector, address(this), new uint8[](0), new address[](0)
+                    )
                 )
             )
         );
@@ -81,6 +83,11 @@ contract MasterChefRewarderTest is Test {
     function test_SetRewardPerSecond() public {
         rewarder.setRewardPerSecond(0, 0);
 
+        vm.prank(address(masterchef));
+        rewarder.link(0);
+
+        masterchef.setTotalDeposit(0, 1e18);
+
         vm.warp(block.timestamp + 1);
 
         vm.expectRevert(IBaseRewarder.BaseRewarder__InvalidDuration.selector);
@@ -109,9 +116,6 @@ contract MasterChefRewarderTest is Test {
 
         assertEq(rewardPerSecond, 0.5e18, "test_SetRewardPerSecond::3");
         assertEq(endTimestamp, block.timestamp + 100, "test_SetRewardPerSecond::4");
-
-        vm.prank(address(masterchef));
-        rewarder.link(0);
 
         rewarder.setRewardPerSecond(0, 0);
 

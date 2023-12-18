@@ -4,19 +4,20 @@ pragma solidity ^0.8.20;
 import "forge-std/Script.sol";
 
 import "./Parameters.sol";
-import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
-import "../src/transparent/ProxyAdmin2Step.sol";
-import "../src/Moe.sol";
-import "../src/MasterChef.sol";
-import "../src/MoeStaking.sol";
-import "../src/JoeStaking.sol";
-import "../src/VeMoe.sol";
-import "../src/StableMoe.sol";
-import "../src/VestingContract.sol";
-import "../src/rewarders/RewarderFactory.sol";
-import "../src/rewarders/JoeStakingRewarder.sol";
-import "../src/rewarders/MasterChefRewarder.sol";
-import "../src/rewarders/VeMoeRewarder.sol";
+import "../../src/transparent/TransparentUpgradeableProxy2Step.sol";
+import "../../src/transparent/ProxyAdmin2Step.sol";
+import "../../src/Moe.sol";
+import "../../src/MasterChef.sol";
+import "../../src/MoeStaking.sol";
+import "../../src/JoeStaking.sol";
+import "../../src/VeMoe.sol";
+import "../../src/StableMoe.sol";
+import "../../src/VestingContract.sol";
+import "../../src/rewarders/RewarderFactory.sol";
+import "../../src/rewarders/JoeStakingRewarder.sol";
+import "../../src/rewarders/MasterChefRewarder.sol";
+import "../../src/rewarders/VeMoeRewarder.sol";
+import "../../src/MoeLens.sol";
 
 contract DeployProtocolScript is Script {
     struct Addresses {
@@ -39,6 +40,9 @@ contract DeployProtocolScript is Script {
 
     uint256 nonce;
 
+    uint256 pk;
+    address deployer;
+
     function run()
         public
         returns (
@@ -47,24 +51,20 @@ contract DeployProtocolScript is Script {
             IBaseRewarder[3] memory rewarders,
             Addresses memory proxies,
             Addresses memory implementations,
-            Vestings memory vestings
+            Vestings memory vestings,
+            MoeLens lens
         )
     {
-        // add the custom chain
-        setChain(
-            Parameters.chainAlias,
-            StdChains.ChainData({name: Parameters.chainName, chainId: Parameters.chainId, rpcUrl: Parameters.rpcUrl})
-        );
+        vm.createSelectFork(StdChains.getChain("avalanche_fuji").rpcUrl);
 
-        vm.createSelectFork(StdChains.getChain(Parameters.chainAlias).rpcUrl);
-
-        uint256 pk = vm.envUint("DEPLOYER_PRIVATE_KEY");
-        address deployer = vm.addr(pk);
+        pk = vm.envUint("DEPLOYER_PRIVATE_KEY");
+        deployer = vm.addr(pk);
 
         nonce = vm.getNonce(deployer);
 
         address proxyAdminAddress = computeCreateAddress(deployer, nonce++);
         address moeAddress = computeCreateAddress(deployer, nonce++);
+        address moeLensAddress = computeCreateAddress(deployer, nonce++);
 
         address[] memory rewarderAddresses = new address[](3);
 
@@ -75,6 +75,8 @@ contract DeployProtocolScript is Script {
         implementations = _computeAddresses(deployer);
         vestings = _computeVestings(deployer);
         proxies = _computeAddresses(deployer);
+
+        address joeAddress = computeCreateAddress(deployer, nonce++);
 
         require(
             Parameters.liquidityMiningPercent + Parameters.treasuryPercent + Parameters.stakingPercent
@@ -104,6 +106,15 @@ contract DeployProtocolScript is Script {
             moe = new Moe(proxies.masterChef, initialSupply, Parameters.maxSupply);
 
             require(moeAddress == address(moe), "run::3");
+        }
+
+        // Deploy Lens
+
+        {
+            lens =
+                new MoeLens(IMasterChef(proxies.masterChef), IJoeStaking(proxies.joeStaking), Parameters.nativeSymbol);
+
+            require(moeLensAddress == address(lens), "run::3");
         }
 
         // Deploy Rewarders
@@ -159,7 +170,7 @@ contract DeployProtocolScript is Script {
 
         {
             JoeStaking joeStakingImplementation =
-                new JoeStaking(IERC20(Parameters.joe), IRewarderFactory(proxies.rewarderFactory));
+                new JoeStaking(IERC20(joeAddress), IRewarderFactory(proxies.rewarderFactory));
 
             require(implementations.joeStaking == address(joeStakingImplementation), "run::6");
         }
@@ -196,10 +207,7 @@ contract DeployProtocolScript is Script {
 
         {
             VestingContract teamVesting = new VestingContract(
-                proxies.masterChef,
-                IERC20(moeAddress),
-                Parameters.start + Parameters.teamCliff,
-                Parameters.teamDuration
+                proxies.masterChef, IERC20(moeAddress), Parameters.start + Parameters.teamCliff, Parameters.teamDuration
             );
 
             require(vestings.team == address(teamVesting), "run::13");
@@ -246,11 +254,8 @@ contract DeployProtocolScript is Script {
                 RewarderFactory.initialize.selector, Parameters.multisig, rewarderTypes, rewarderImplementations
             );
 
-            TransparentUpgradeableProxy2Step rewarderFactoryProxy = new TransparentUpgradeableProxy2Step(
-                implementations.rewarderFactory,
-                proxyAdmin,
-                data
-            );
+            TransparentUpgradeableProxy2Step rewarderFactoryProxy =
+                new TransparentUpgradeableProxy2Step(implementations.rewarderFactory, proxyAdmin, data);
 
             require(proxies.rewarderFactory == address(rewarderFactoryProxy), "run::7");
         }
@@ -259,18 +264,21 @@ contract DeployProtocolScript is Script {
             TransparentUpgradeableProxy2Step masterChefProxy = new TransparentUpgradeableProxy2Step(
                 implementations.masterChef,
                 proxyAdmin,
-                abi.encodeWithSelector(MasterChef.initialize.selector, Parameters.multisig, Parameters.treasury, vestings.futureFunding, vestings.team)
+                abi.encodeWithSelector(
+                    MasterChef.initialize.selector,
+                    Parameters.multisig,
+                    Parameters.treasury,
+                    vestings.futureFunding,
+                    vestings.team
+                )
             );
 
             require(proxies.masterChef == address(masterChefProxy), "run::8");
         }
 
         {
-            TransparentUpgradeableProxy2Step moeStakingProxy = new TransparentUpgradeableProxy2Step(
-                implementations.moeStaking,
-                proxyAdmin,
-                ""
-            );
+            TransparentUpgradeableProxy2Step moeStakingProxy =
+                new TransparentUpgradeableProxy2Step(implementations.moeStaking, proxyAdmin, "");
 
             require(proxies.moeStaking == address(moeStakingProxy), "run::9");
         }
@@ -279,7 +287,7 @@ contract DeployProtocolScript is Script {
             TransparentUpgradeableProxy2Step joeStakingProxy = new TransparentUpgradeableProxy2Step(
                 implementations.joeStaking,
                 proxyAdmin,
-                ""
+                abi.encodeWithSelector(JoeStaking.initialize.selector, Parameters.multisig)
             );
 
             require(proxies.joeStaking == address(joeStakingProxy), "run::10");
@@ -305,6 +313,14 @@ contract DeployProtocolScript is Script {
             require(proxies.sMoe == address(sMoeProxy), "run::11");
         }
 
+        // Deploy JOE
+
+        {
+            Moe joe = new Moe(Parameters.multisig, 0, 500_000_000e18);
+
+            require(joeAddress == address(joe), "run::3");
+        }
+
         moe.transfer(vestings.seed1, Parameters.seed1Percent * Parameters.maxSupply / 1e18);
         moe.transfer(vestings.seed2, Parameters.seed2Percent * Parameters.maxSupply / 1e18);
 
@@ -320,19 +336,19 @@ contract DeployProtocolScript is Script {
         vm.stopBroadcast();
     }
 
-    function _computeAddresses(address deployer) internal returns (Addresses memory addresses) {
-        addresses.rewarderFactory = computeCreateAddress(deployer, nonce++);
-        addresses.masterChef = computeCreateAddress(deployer, nonce++);
-        addresses.moeStaking = computeCreateAddress(deployer, nonce++);
-        addresses.joeStaking = computeCreateAddress(deployer, nonce++);
-        addresses.veMoe = computeCreateAddress(deployer, nonce++);
-        addresses.sMoe = computeCreateAddress(deployer, nonce++);
+    function _computeAddresses(address deployer_) internal returns (Addresses memory addresses) {
+        addresses.rewarderFactory = computeCreateAddress(deployer_, nonce++);
+        addresses.masterChef = computeCreateAddress(deployer_, nonce++);
+        addresses.moeStaking = computeCreateAddress(deployer_, nonce++);
+        addresses.joeStaking = computeCreateAddress(deployer_, nonce++);
+        addresses.veMoe = computeCreateAddress(deployer_, nonce++);
+        addresses.sMoe = computeCreateAddress(deployer_, nonce++);
     }
 
-    function _computeVestings(address deployer) internal returns (Vestings memory vestings) {
-        vestings.futureFunding = computeCreateAddress(deployer, nonce++);
-        vestings.team = computeCreateAddress(deployer, nonce++);
-        vestings.seed1 = computeCreateAddress(deployer, nonce++);
-        vestings.seed2 = computeCreateAddress(deployer, nonce++);
+    function _computeVestings(address deployer_) internal returns (Vestings memory vestings) {
+        vestings.futureFunding = computeCreateAddress(deployer_, nonce++);
+        vestings.team = computeCreateAddress(deployer_, nonce++);
+        vestings.seed1 = computeCreateAddress(deployer_, nonce++);
+        vestings.seed2 = computeCreateAddress(deployer_, nonce++);
     }
 }

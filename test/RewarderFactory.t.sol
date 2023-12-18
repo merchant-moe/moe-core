@@ -25,7 +25,9 @@ contract RewarderFactoryTest is Test {
                 new TransparentUpgradeableProxy2Step(
                     factoryImpl,
                     ProxyAdmin2Step(address(1)),
-                    abi.encodeWithSelector(RewarderFactory.initialize.selector, address(this), new uint8[](0), new address[](0))
+                    abi.encodeWithSelector(
+                        RewarderFactory.initialize.selector, address(this), new uint8[](0), new address[](0)
+                    )
                 )
             )
         );
@@ -199,7 +201,7 @@ contract RewarderFactoryTest is Test {
         );
 
         IBaseRewarder rjs1 =
-            factory.createRewarder(IRewarderFactory.RewarderType.JoeStakingRewarder, IERC20(address(1)), 1);
+            factory.createRewarder(IRewarderFactory.RewarderType.JoeStakingRewarder, IERC20(address(1)), 0);
 
         assertEq(
             factory.getRewarderCount(IRewarderFactory.RewarderType.MasterChefRewarder), 2, "test_CreateRewarder::24"

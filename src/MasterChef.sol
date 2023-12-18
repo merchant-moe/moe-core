@@ -218,18 +218,19 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
             Rewarder.Parameter storage rewarder = farm.rewarder;
             Amounts.Parameter storage amounts = farm.amounts;
 
-            IMasterChefRewarder extraRewarder = farm.extraRewarder;
+            uint256 balance = amounts.getAmountOf(account);
+            uint256 totalSupply = amounts.getTotalAmount();
 
             {
-                uint256 totalMoeRewardForPid = _getRewardForPid(rewarder, pid);
-                (,,, uint256 moeRewardForPid) = _calculateAmounts(totalMoeRewardForPid);
+                (,,, uint256 moeRewardForPid) = _calculateAmounts(_getRewardForPid(rewarder, pid, totalSupply));
 
-                moeRewards[i] = rewarder.getPendingReward(amounts, account, moeRewardForPid);
+                moeRewards[i] = rewarder.getPendingReward(account, balance, totalSupply, moeRewardForPid);
             }
 
+            IMasterChefRewarder extraRewarder = farm.extraRewarder;
+
             if (address(extraRewarder) != address(0)) {
-                (extraTokens[i], extraRewards[i]) =
-                    extraRewarder.getPendingReward(account, amounts.getAmountOf(account), amounts.getTotalAmount());
+                (extraTokens[i], extraRewards[i]) = extraRewarder.getPendingReward(account, balance, totalSupply);
             }
         }
     }
@@ -410,17 +411,30 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     }
 
     /**
+     * @dev Blocks the renouncing of ownership.
+     */
+    function renounceOwnership() public pure override {
+        revert MasterChef__CannotRenounceOwnership();
+    }
+
+    /**
      * @dev Returns the reward for a given pool ID.
      * If the pool ID is not in the top pool IDs, it will return 0.
      * Else, it will return the reward multiplied by the proportion of votes for this pool ID.
      * @param rewarder The storage pointer to the rewarder.
      * @param pid The pool ID.
+     * @param totalSupply The total supply.
      * @return The reward for the pool ID.
      */
-    function _getRewardForPid(Rewarder.Parameter storage rewarder, uint256 pid) private view returns (uint256) {
+    function _getRewardForPid(Rewarder.Parameter storage rewarder, uint256 pid, uint256 totalSupply)
+        private
+        view
+        returns (uint256)
+    {
         if (!_veMoe.isInTopPoolIds(pid)) return 0;
 
-        return _getRewardForPid(pid, rewarder.getTotalRewards(_moePerSecond), _veMoe.getTopPidsTotalVotes());
+        return
+            _getRewardForPid(pid, rewarder.getTotalRewards(_moePerSecond, totalSupply), _veMoe.getTopPidsTotalVotes());
     }
 
     /**
@@ -476,11 +490,11 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
             Farm storage farm = _farms[pid];
             Rewarder.Parameter storage rewarder = farm.rewarder;
 
-            uint256 totalRewards = rewarder.getTotalRewards(moePerSecond);
             uint256 totalSupply = farm.amounts.getTotalAmount();
+            uint256 totalRewards = rewarder.getTotalRewards(moePerSecond, totalSupply);
 
             uint256 totalMoeRewardForPid = _getRewardForPid(pid, totalRewards, totalVotes);
-            uint256 moeRewardForPid = _mintMoe(totalMoeRewardForPid, totalSupply);
+            uint256 moeRewardForPid = _mintMoe(totalMoeRewardForPid);
 
             rewarder.updateAccDebtPerShare(totalSupply, moeRewardForPid);
         }
@@ -499,8 +513,8 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
 
         (uint256 oldBalance, uint256 newBalance, uint256 oldTotalSupply,) = farm.amounts.update(account, deltaAmount);
 
-        uint256 totalMoeRewardForPid = _getRewardForPid(rewarder, pid);
-        uint256 moeRewardForPid = _mintMoe(totalMoeRewardForPid, oldTotalSupply);
+        uint256 totalMoeRewardForPid = _getRewardForPid(rewarder, pid, oldTotalSupply);
+        uint256 moeRewardForPid = _mintMoe(totalMoeRewardForPid);
 
         uint256 moeReward = rewarder.update(account, oldBalance, newBalance, oldTotalSupply, moeRewardForPid);
 
@@ -551,13 +565,11 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
 
     /**
      * @dev Mints MOE tokens to the treasury and to this contract.
-     * If the total supply is 0, it will not mint any MOE tokens.
      * @param amount The amount of MOE tokens to mint.
-     * @param totalSupply The total supply of the farm.
      * @return The amount of MOE tokens minted for liquidity mining.
      */
-    function _mintMoe(uint256 amount, uint256 totalSupply) private returns (uint256) {
-        if (amount == 0 || totalSupply == 0) return 0;
+    function _mintMoe(uint256 amount) private returns (uint256) {
+        if (amount == 0) return 0;
 
         (uint256 treasuryAmount, uint256 futureFundingAmount, uint256 teamAmount, uint256 liquidityMiningAmount) =
             _calculateAmounts(amount);
@@ -565,9 +577,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
         _moe.mint(_treasury, treasuryAmount);
         _moe.mint(_futureFunding, futureFundingAmount);
         _moe.mint(_team, teamAmount);
-        _moe.mint(address(this), liquidityMiningAmount);
-
-        return liquidityMiningAmount;
+        return _moe.mint(address(this), liquidityMiningAmount);
     }
 
     /**

@@ -43,5 +43,7 @@ contract MoeFactory is IMoeFactory, Ownable2Step {
 
     function setFeeTo(address _feeTo) external override onlyOwner {
         feeTo = _feeTo;
+
+        emit FeeToSet(_feeTo);
     }
 }
