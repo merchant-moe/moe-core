@@ -43,6 +43,8 @@ contract DeployProtocolScript is Script {
     uint256 pk;
     address deployer;
 
+    address joeAddress;
+
     function run()
         public
         returns (
@@ -76,7 +78,7 @@ contract DeployProtocolScript is Script {
         vestings = _computeVestings(deployer);
         proxies = _computeAddresses(deployer);
 
-        address joeAddress = computeCreateAddress(deployer, nonce++);
+        joeAddress = computeCreateAddress(deployer, nonce++);
 
         require(
             Parameters.liquidityMiningPercent + Parameters.treasuryPercent + Parameters.stakingPercent
