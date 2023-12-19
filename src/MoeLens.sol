@@ -163,6 +163,7 @@ contract MoeLens {
     }
 
     function getFarmDataAt(uint256 pid, address user) external view returns (Farm memory farm) {
+        farm.pid = pid;
         farm.isRewardable = _veMoe.isInTopPoolIds(pid);
         farm.votesOnFarm = _veMoe.getVotes(pid);
         farm.moePerSecScaled = _masterchef.getMoePerSecondForPid(pid);
