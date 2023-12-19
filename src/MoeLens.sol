@@ -18,7 +18,7 @@ contract MoeLens {
         address masterChef;
         address moe;
         uint256 totalVotes;
-        uint256 totalMoePerSecScaled;
+        uint256 totalMoePerSec;
         uint256 totalNumberOfFarms;
         uint256 userTotalVeMoe;
         uint256 userTotalVotes;
@@ -29,9 +29,9 @@ contract MoeLens {
         address moeStakingAddress;
         address veMoeAddress;
         address sMoeAddress;
-        uint256 totalStakedScaled;
+        uint256 totalStaked;
         uint256 totalVotes;
-        uint256 userStakedScaled;
+        uint256 userStaked;
         uint256 userTotalVeMoe;
         uint256 userTotalVotes;
         Reward[] userRewards;
@@ -59,8 +59,8 @@ contract MoeLens {
         address joeStakingAddress;
         address joeAddress;
         address rewarderAddress;
-        uint256 totalStakedScaled;
-        uint256 userStakedScaled;
+        uint256 totalStaked;
+        uint256 userStaked;
         Reward userReward;
     }
 
@@ -68,18 +68,16 @@ contract MoeLens {
         uint256 pid;
         bool isRewardable;
         uint256 votesOnFarm;
-        uint256 moePerSecScaled;
+        uint256 moePerSec;
         uint256 totalVotesOnFarm;
-        address lpToken;
-        string lpTokenSymbol;
-        uint256 totalStakedScaled;
-        uint256 totalSupplyScaled;
-        Token token0;
-        Token token1;
+        Token lpToken;
+        uint256 totalStaked;
+        uint256 totalSupply;
+        Reserves reserves;
         Rewarder rewarder;
         uint256 userVotesOnFarm;
-        uint256 userAmountScaled;
-        uint256 userPendingMoeRewardScaled;
+        uint256 userAmount;
+        uint256 userPendingMoeReward;
     }
 
     struct Vote {
@@ -87,7 +85,7 @@ contract MoeLens {
         uint256 totalVotesOnFarm;
         Rewarder rewarder;
         uint256 userVotesOnFarm;
-        uint256 userPendingRewardScaled;
+        uint256 userPendingReward;
     }
 
     struct Rewarder {
@@ -95,26 +93,30 @@ contract MoeLens {
         bool isStarted;
         bool isEnded;
         uint256 pid;
-        uint256 totalDepositedScaled;
+        uint256 totalDeposited;
         Reward reward;
-        uint256 rewardPerSecScaled;
+        uint256 rewardPerSec;
         uint256 lastUpdateTimestamp;
         uint256 endUpdateTimestamp;
     }
 
+    struct Reward {
+        Token token;
+        uint256 userPendingAmount;
+    }
+
+    struct Reserves {
+        Token token0;
+        Token token1;
+        uint256 reserve0;
+        uint256 reserve1;
+    }
+
     struct Token {
         address token;
+        uint256 decimals;
         string symbol;
-        uint256 reserveScaled;
     }
-
-    struct Reward {
-        address token;
-        string symbol;
-        uint256 userPendingAmountScaled;
-    }
-
-    uint256 public constant SCALE = Constants.PRECISION;
 
     IMasterChef private immutable _masterchef;
     IMoe private immutable _moe;
@@ -148,7 +150,7 @@ contract MoeLens {
             masterChef: address(_masterchef),
             moe: address(_moe),
             totalVotes: _veMoe.getTotalVotes(),
-            totalMoePerSecScaled: _masterchef.getMoePerSecond(),
+            totalMoePerSec: _masterchef.getMoePerSecond(),
             totalNumberOfFarms: nbFarms,
             userTotalVeMoe: _veMoe.balanceOf(user),
             userTotalVotes: _veMoe.getTotalVotesOf(user),
@@ -166,29 +168,28 @@ contract MoeLens {
         farm.pid = pid;
         farm.isRewardable = _veMoe.isInTopPoolIds(pid);
         farm.votesOnFarm = _veMoe.getVotes(pid);
-        farm.moePerSecScaled = _masterchef.getMoePerSecondForPid(pid);
+        farm.moePerSec = _masterchef.getMoePerSecondForPid(pid);
         farm.totalVotesOnFarm = _veMoe.getVotes(pid);
 
         address lpToken = address(_masterchef.getToken(pid));
-        uint256 lpScale = 10 ** IERC20Metadata(lpToken).decimals();
+        uint256 lpDecimals = IERC20Metadata(lpToken).decimals();
 
-        farm.lpToken = lpToken;
-        farm.lpTokenSymbol = IERC20Metadata(lpToken).symbol();
-        farm.totalStakedScaled = _masterchef.getTotalDeposit(pid) * SCALE / lpScale;
-        farm.totalSupplyScaled = IERC20Metadata(lpToken).totalSupply() * SCALE / lpScale;
+        farm.lpToken = Token({token: lpToken, symbol: IERC20Metadata(lpToken).symbol(), decimals: lpDecimals});
 
-        try this.getPoolDataAt(lpToken) returns (Token memory token0, Token memory token1) {
-            farm.token0 = token0;
-            farm.token1 = token1;
+        farm.totalStaked = _masterchef.getTotalDeposit(pid);
+        farm.totalSupply = IERC20Metadata(lpToken).totalSupply();
+
+        try this.getPoolDataAt(lpToken) returns (Reserves memory reserves) {
+            farm.reserves = reserves;
         } catch {}
 
         farm.userVotesOnFarm = _veMoe.getVotesOf(user, pid);
 
-        farm.userAmountScaled = _masterchef.getDeposit(pid, user) * SCALE / lpScale;
+        farm.userAmount = _masterchef.getDeposit(pid, user);
 
         (uint256 moeReward,, uint256 extraReward) = getMasterChefPendingRewardsAt(user, pid);
 
-        farm.userPendingMoeRewardScaled = moeReward;
+        farm.userPendingMoeReward = moeReward;
 
         IMasterChefRewarder rewarder = _masterchef.getExtraRewarder(pid);
 
@@ -202,40 +203,37 @@ contract MoeLens {
                 reward = r;
             } catch {}
 
-            uint256 extraRewardScale =
-                address(token) == address(0) ? SCALE : 10 ** IERC20Metadata(address(token)).decimals();
-
             farm.rewarder = Rewarder({
                 isSet: true,
                 isStarted: lastUpdateTimestamp <= block.timestamp,
                 isEnded: endTimestamp <= block.timestamp,
                 pid: pid,
-                totalDepositedScaled: farm.totalStakedScaled,
+                totalDeposited: farm.totalStaked,
                 reward: reward,
-                rewardPerSecScaled: rewardPerSecond * SCALE / extraRewardScale,
+                rewardPerSec: rewardPerSecond,
                 lastUpdateTimestamp: lastUpdateTimestamp,
                 endUpdateTimestamp: endTimestamp
             });
         }
     }
 
-    function getPoolDataAt(address lpToken) external view returns (Token memory token0, Token memory token1) {
+    function getPoolDataAt(address lpToken) external view returns (Reserves memory reserves) {
         (uint256 reserve0, uint256 reserve1,) = IMoePair(lpToken).getReserves();
 
         address token0Address = IMoePair(lpToken).token0();
         address token1Address = IMoePair(lpToken).token1();
 
-        token0 = Token({
-            token: token0Address,
-            symbol: IERC20Metadata(token0Address).symbol(),
-            reserveScaled: reserve0 * SCALE / 10 ** IERC20Metadata(token0Address).decimals()
-        });
+        uint256 decimals0 = IERC20Metadata(token0Address).decimals();
+        uint256 decimals1 = IERC20Metadata(token1Address).decimals();
 
-        token1 = Token({
-            token: token1Address,
-            symbol: IERC20Metadata(token1Address).symbol(),
-            reserveScaled: reserve1 * SCALE / 10 ** IERC20Metadata(token1Address).decimals()
-        });
+        reserves.token0 =
+            Token({token: token0Address, symbol: IERC20Metadata(token0Address).symbol(), decimals: decimals0});
+
+        reserves.token1 =
+            Token({token: token1Address, symbol: IERC20Metadata(token1Address).symbol(), decimals: decimals1});
+
+        reserves.reserve0 = reserve0;
+        reserves.reserve1 = reserve1;
     }
 
     function getMasterChefPendingRewardsAt(address user, uint256 pid)
@@ -267,20 +265,20 @@ contract MoeLens {
             moeStakingAddress: address(_moeStaking),
             veMoeAddress: address(_veMoe),
             sMoeAddress: address(_stableMoe),
-            totalStakedScaled: _moeStaking.getTotalDeposit(),
+            totalStaked: _moeStaking.getTotalDeposit(),
             totalVotes: _veMoe.getTotalVotes(),
-            userStakedScaled: _moeStaking.getDeposit(user),
+            userStaked: _moeStaking.getDeposit(user),
             userTotalVeMoe: _veMoe.balanceOf(user),
             userTotalVotes: _veMoe.getTotalVotesOf(user),
             userRewards: rewards
         });
     }
 
-    function getRewardData(address token, uint256 amount) external view returns (Reward memory) {
+    function getRewardData(address token, uint256 amount) external view returns (Reward memory reward) {
         string memory symbol = address(token) == address(0) ? _nativeSymbol : IERC20Metadata(address(token)).symbol();
-        uint256 scale = address(token) == address(0) ? SCALE : 10 ** IERC20Metadata(address(token)).decimals();
+        uint256 decimals = address(token) == address(0) ? 18 : IERC20Metadata(address(token)).decimals();
 
-        return Reward({token: token, symbol: symbol, userPendingAmountScaled: amount * SCALE / scale});
+        reward = Reward({token: Token({token: token, symbol: symbol, decimals: decimals}), userPendingAmount: amount});
     }
 
     function getVeMoeData(uint256 start, uint256 nb, address user) public view returns (VeMoeData memory data) {
@@ -294,7 +292,7 @@ contract MoeLens {
             moeStakingAddress: address(_moeStaking),
             veMoeAddress: address(_veMoe),
             totalVotes: _veMoe.getTotalVotes(),
-            maxVeMoe: balance * _veMoe.getMaxVeMoePerMoe() / SCALE,
+            maxVeMoe: balance * _veMoe.getMaxVeMoePerMoe() / Constants.PRECISION,
             veMoePerSecondPerMoe: _veMoe.getVeMoePerSecondPerMoe(),
             topPoolsIds: _veMoe.getTopPoolIds(),
             votes: new Vote[](nb),
@@ -320,28 +318,25 @@ contract MoeLens {
             (IERC20 token, uint256 rewardPerSecond, uint256 lastUpdateTimestamp, uint256 endTimestamp) =
                 bribe.getRewarderParameter();
 
-            uint256 tokenScale = address(token) == address(0) ? SCALE : 10 ** IERC20Metadata(address(token)).decimals();
-
             Reward memory reward;
 
-            {
-                uint256[] memory pids = new uint256[](1);
-                pids[0] = pid;
+            uint256[] memory pids = new uint256[](1);
+            pids[0] = pid;
 
-                (, uint256[] memory extraRewards) = _veMoe.getPendingRewards(user, pids);
+            (, uint256[] memory extraRewards) = _veMoe.getPendingRewards(user, pids);
 
-                try this.getRewardData(address(token), extraRewards[0]) returns (Reward memory r) {
-                    reward = r;
-                } catch {}
-            }
+            try this.getRewardData(address(token), extraRewards[0]) returns (Reward memory r) {
+                reward = r;
+            } catch {}
+
             vote.rewarder = Rewarder({
                 isSet: true,
                 isStarted: lastUpdateTimestamp <= block.timestamp,
                 isEnded: endTimestamp <= block.timestamp,
                 pid: pid,
-                totalDepositedScaled: _veMoe.getBribesTotalVotes(bribe, pid),
+                totalDeposited: _veMoe.getBribesTotalVotes(bribe, pid),
                 reward: reward,
-                rewardPerSecScaled: rewardPerSecond * SCALE / tokenScale,
+                rewardPerSec: rewardPerSecond,
                 lastUpdateTimestamp: lastUpdateTimestamp,
                 endUpdateTimestamp: endTimestamp
             });
@@ -374,7 +369,6 @@ contract MoeLens {
             rewarderContract.getRewarderParameter();
 
         uint256 pid = rewarderContract.getPid();
-        uint256 tokenScale = address(token) == address(0) ? SCALE : 10 ** IERC20Metadata(address(token)).decimals();
 
         Reward memory reward;
         try this.getRewardData(address(token), 0) returns (Reward memory r) {
@@ -386,9 +380,9 @@ contract MoeLens {
             isStarted: lastUpdateTimestamp <= block.timestamp,
             isEnded: endTimestamp <= block.timestamp,
             pid: pid,
-            totalDepositedScaled: _veMoe.getBribesTotalVotes(IVeMoeRewarder(address(rewarderContract)), pid),
+            totalDeposited: _veMoe.getBribesTotalVotes(IVeMoeRewarder(address(rewarderContract)), pid),
             reward: reward,
-            rewardPerSecScaled: rewardPerSecond * SCALE / tokenScale,
+            rewardPerSec: rewardPerSecond,
             lastUpdateTimestamp: lastUpdateTimestamp,
             endUpdateTimestamp: endTimestamp
         });
@@ -407,8 +401,8 @@ contract MoeLens {
             joeStakingAddress: address(_joeStaking),
             joeAddress: address(_moe),
             rewarderAddress: address(_joeStaking.getRewarder()),
-            totalStakedScaled: _joeStaking.getTotalDeposit(),
-            userStakedScaled: _joeStaking.getDeposit(user),
+            totalStaked: _joeStaking.getTotalDeposit(),
+            userStaked: _joeStaking.getDeposit(user),
             userReward: reward
         });
     }
