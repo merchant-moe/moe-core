@@ -7,6 +7,10 @@ evm_version = 'paris'
 optimizer = true
 optimizer_runs = 600
 
+[rpc_endpoints]
+avalanche_fuji = "https://api.avax-test.network/ext/bc/C/rpc"
+mantle = "https://rpc.mantle.xyz"
+
 [etherscan]
 mantle = { key = "$MANTLESCAN_API_KEY", chain=5000 }
 
