@@ -31,3 +31,4 @@ docs/
 !out/VestingContract.sol/VestingContract.json
 !out/MoeQuoter.sol/MoeQuoter.json
 !out/MoeLens.sol/MoeLens.json
+!out/MoeHelper.sol/MoeHelper.json
