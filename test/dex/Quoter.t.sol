@@ -31,7 +31,13 @@ contract QuoterTest is Test {
         token9d = new MockERC20("token9d", "9", 9);
         token6d = new MockERC20("token6d", "6", 6);
 
-        factory = new MoeFactory(treasury, address(this));
+        uint256 nonce = vm.getNonce(address(this));
+
+        address moeFactoryAddress = computeCreateAddress(address(this), nonce);
+        address moePairImplentationAddress = computeCreateAddress(address(this), nonce + 1);
+
+        factory = new MoeFactory(treasury, address(this), moePairImplentationAddress);
+        new MoePair(moeFactoryAddress);
 
         quoter = new MoeQuoter(address(factory));
 

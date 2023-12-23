@@ -9,7 +9,7 @@ library Parameters {
     string internal constant chainAlias = "mantle";
     string internal constant rpcUrl = "https://rpc.mantle.xyz";
 
-    address internal constant multisig = address(1);
+    address internal constant multisig = 0x244305969310527b29d8Ff3Aa263f686dB61Df6f;
 
     // Token Distribution
     uint256 internal constant stakingPercent = 0.05e18;
@@ -46,15 +46,15 @@ library Parameters {
     uint256 internal constant maxSupply = 500_000_000e18;
 
     // Joe
-    address internal constant joe = address(8);
+    address internal constant joe = 0x371c7ec6D8039ff7933a2AA28EB827Ffe1F52f07;
 
     // VeMoe
-    uint256 internal constant maxVeMoePerMoe = 0;
+    uint256 internal constant maxVeMoePerMoe = 1_000e18;
 
     // Factory
     address internal constant feeTo = address(6);
 
     // Router
     string internal constant nativeSymbol = "MANTLE";
-    address internal constant wNative = address(7);
+    address internal constant wNative = 0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8;
 }
