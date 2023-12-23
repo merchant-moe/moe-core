@@ -25,7 +25,13 @@ contract ExchangeTest is Test {
         token9d = new MockERC20("token9d", "9", 9);
         token6d = new MockERC20("token6d", "6", 6);
 
-        factory = new MoeFactory(treasury, address(this));
+        uint256 nonce = vm.getNonce(address(this));
+
+        address moeFactoryAddress = computeCreateAddress(address(this), nonce);
+        address moePairImplentationAddress = computeCreateAddress(address(this), nonce + 1);
+
+        factory = new MoeFactory(treasury, address(this), moePairImplentationAddress);
+        new MoePair(moeFactoryAddress);
 
         vm.label(address(token18d), "token18d");
         vm.label(address(token9d), "token9d");
@@ -36,11 +42,10 @@ contract ExchangeTest is Test {
         assertEq(factory.feeTo(), treasury, "test_Initialize::1");
         assertEq(factory.owner(), address(this), "test_Initialize::2");
 
-        vm.prank(address(factory));
-        address pair = address(new MoePair());
+        address pair = address(new MoePair(address(factory)));
 
         bytes memory pairCode = pair.code;
-        address factoryImpl = factory.implementation();
+        address factoryImpl = factory.moePairImplementation();
 
         assembly {
             let length := mload(pairCode)
@@ -71,7 +76,7 @@ contract ExchangeTest is Test {
 
         assertEq(MoePair(pair18_9).token0(), address(token0), "test_CreatePair::5");
         assertEq(MoePair(pair18_9).token1(), address(token1), "test_CreatePair::6");
-        assertEq(MoePair(pair18_9).implementation(), factory.implementation(), "test_CreatePair::7");
+        assertEq(MoePair(pair18_9).implementation(), factory.moePairImplementation(), "test_CreatePair::7");
 
         address pair18_6 = factory.createPair(address(token18d), address(token6d));
 
@@ -86,7 +91,7 @@ contract ExchangeTest is Test {
 
         assertEq(MoePair(pair18_6).token0(), address(token0), "test_CreatePair::12");
         assertEq(MoePair(pair18_6).token1(), address(token1), "test_CreatePair::13");
-        assertEq(MoePair(pair18_6).implementation(), factory.implementation(), "test_CreatePair::14");
+        assertEq(MoePair(pair18_6).implementation(), factory.moePairImplementation(), "test_CreatePair::14");
 
         address pair9_6 = factory.createPair(address(token9d), address(token6d));
 
@@ -101,7 +106,7 @@ contract ExchangeTest is Test {
 
         assertEq(MoePair(pair9_6).token0(), address(token0), "test_CreatePair::19");
         assertEq(MoePair(pair9_6).token1(), address(token1), "test_CreatePair::20");
-        assertEq(MoePair(pair9_6).implementation(), factory.implementation(), "test_CreatePair::21");
+        assertEq(MoePair(pair9_6).implementation(), factory.moePairImplementation(), "test_CreatePair::21");
     }
 
     function test_Swap() public {

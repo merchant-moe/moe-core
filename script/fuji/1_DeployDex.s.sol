@@ -12,15 +12,23 @@ import "../../src/dex/MoeQuoter.sol";
 contract DeployDexScript is Script {
     function run()
         public
-        returns (MoeFactory moeFactory, address moePairImplentation, MoeRouter router, MoeQuoter quoter)
+        returns (MoeFactory moeFactory, MoePair moePairImplentation, MoeRouter router, MoeQuoter quoter)
     {
         vm.createSelectFork(StdChains.getChain("avalanche_fuji").rpcUrl);
 
         uint256 pk = vm.envUint("DEPLOYER_PRIVATE_KEY");
+        address deployer = vm.addr(pk);
+
+        uint256 nonce = vm.getNonce(deployer);
+
+        address moeFactoryAddress = computeCreateAddress(deployer, nonce);
+        address moePairImplentationAddress = computeCreateAddress(deployer, nonce + 1);
 
         vm.startBroadcast(pk);
 
-        moeFactory = new MoeFactory(Parameters.feeTo, Parameters.multisig);
+        moeFactory = new MoeFactory(Parameters.feeTo, Parameters.multisig, moePairImplentationAddress);
+
+        moePairImplentation = new MoePair(moeFactoryAddress);
 
         router = new MoeRouter(address(moeFactory), Parameters.wNative);
 
@@ -28,6 +36,7 @@ contract DeployDexScript is Script {
 
         vm.stopBroadcast();
 
-        moePairImplentation = moeFactory.implementation();
+        require(MoeFactory(moeFactory).moePairImplementation() == address(moePairImplentation), "DeployDexScript::1");
+        require(MoePair(moePairImplentation).factory() == address(moeFactory), "DeployDexScript::2");
     }
 }
