@@ -16,7 +16,7 @@ library MoeLibrary {
 
     // calculates the CREATE2 address for a pair without using any sload
     function pairFor(address factory, address tokenA, address tokenB) internal view returns (address pair) {
-        address implementation = IMoeFactory(factory).implementation();
+        address implementation = IMoeFactory(factory).moePairImplementation();
         return pairFor(factory, implementation, tokenA, tokenB);
     }
 

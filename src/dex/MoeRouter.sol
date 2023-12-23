@@ -25,7 +25,7 @@ contract MoeRouter is IMoeRouter {
         factory = _factory;
         wNative = _wNative;
 
-        pairImplementation = IMoeFactory(_factory).implementation();
+        pairImplementation = IMoeFactory(_factory).moePairImplementation();
     }
 
     receive() external payable {
