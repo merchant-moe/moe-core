@@ -70,7 +70,6 @@ contract DeployProtocolScript is Script {
 
         address proxyAdminAddress = computeCreateAddress(deployer, nonce++);
         address moeAddress = computeCreateAddress(deployer, nonce++);
-        address moeLensAddress = computeCreateAddress(deployer, nonce++);
 
         address[] memory rewarderAddresses = new address[](3);
 
@@ -81,6 +80,8 @@ contract DeployProtocolScript is Script {
         implementations = _computeAddresses(deployer);
         vestings = _computeVestings(deployer);
         proxies = _computeAddresses(deployer);
+
+        address moeLensAddress = computeCreateAddress(deployer, nonce++);
 
         require(
             Parameters.liquidityMiningPercent + Parameters.treasuryPercent + Parameters.stakingPercent
@@ -112,15 +113,6 @@ contract DeployProtocolScript is Script {
             require(moeAddress == address(moe), "run::3");
         }
 
-        // Deploy MoeLens
-
-        {
-            lens =
-                new MoeLens(IMasterChef(proxies.masterChef), IJoeStaking(proxies.joeStaking), Parameters.nativeSymbol);
-
-            require(moeLensAddress == address(lens), "run::3");
-        }
-
         // Deploy Rewarders
 
         {
@@ -128,17 +120,17 @@ contract DeployProtocolScript is Script {
             IBaseRewarder masterChefRewarder = new MasterChefRewarder(proxies.masterChef);
             IBaseRewarder veMoeRewarder = new VeMoeRewarder(proxies.veMoe);
 
-            _implementations[IRewarderFactory.RewarderType.JoeStakingRewarder] = joeStakingRewarder;
-            _implementations[IRewarderFactory.RewarderType.MasterChefRewarder] = masterChefRewarder;
-            _implementations[IRewarderFactory.RewarderType.VeMoeRewarder] = veMoeRewarder;
+            _implementations[IRewarderFactory.RewarderType.JoeStakingRewarder] = IBaseRewarder(rewarderAddresses[0]);
+            _implementations[IRewarderFactory.RewarderType.MasterChefRewarder] = IBaseRewarder(rewarderAddresses[1]);
+            _implementations[IRewarderFactory.RewarderType.VeMoeRewarder] = IBaseRewarder(rewarderAddresses[2]);
 
             rewarders[0] = _implementations[IRewarderFactory.RewarderType.JoeStakingRewarder];
             rewarders[1] = _implementations[IRewarderFactory.RewarderType.MasterChefRewarder];
             rewarders[2] = _implementations[IRewarderFactory.RewarderType.VeMoeRewarder];
 
-            require(rewarderAddresses[0] == address(joeStakingRewarder), "run::3");
-            require(rewarderAddresses[1] == address(masterChefRewarder), "run::3");
-            require(rewarderAddresses[2] == address(veMoeRewarder), "run::3");
+            require(rewarderAddresses[0] == address(joeStakingRewarder), "run::4");
+            require(rewarderAddresses[1] == address(masterChefRewarder), "run::5");
+            require(rewarderAddresses[2] == address(veMoeRewarder), "run::6");
         }
 
         // Deploy Implementations
@@ -146,7 +138,7 @@ contract DeployProtocolScript is Script {
         {
             RewarderFactory rewarderFactoryImplementation = new RewarderFactory();
 
-            require(implementations.rewarderFactory == address(rewarderFactoryImplementation), "run::3");
+            require(implementations.rewarderFactory == address(rewarderFactoryImplementation), "run::7");
         }
 
         {
@@ -162,21 +154,21 @@ contract DeployProtocolScript is Script {
                 Parameters.teamPercent * 1e18 / sumEmissionShare
             );
 
-            require(implementations.masterChef == address(masterChefImplementation), "run::4");
+            require(implementations.masterChef == address(masterChefImplementation), "run::8");
         }
 
         {
             MoeStaking moeStakingImplementation =
                 new MoeStaking(IMoe(moeAddress), IVeMoe(proxies.veMoe), IStableMoe(proxies.sMoe));
 
-            require(implementations.moeStaking == address(moeStakingImplementation), "run::5");
+            require(implementations.moeStaking == address(moeStakingImplementation), "run::9");
         }
 
         {
             JoeStaking joeStakingImplementation =
                 new JoeStaking(IERC20(Parameters.joe), IRewarderFactory(proxies.rewarderFactory));
 
-            require(implementations.joeStaking == address(joeStakingImplementation), "run::6");
+            require(implementations.joeStaking == address(joeStakingImplementation), "run::10");
         }
 
         {
@@ -187,13 +179,13 @@ contract DeployProtocolScript is Script {
                 Parameters.maxVeMoePerMoe
             );
 
-            require(implementations.veMoe == address(veMoeImplementation), "run::6");
+            require(implementations.veMoe == address(veMoeImplementation), "run::11");
         }
 
         {
             StableMoe sMoeImplementation = new StableMoe(IMoeStaking(proxies.moeStaking));
 
-            require(implementations.sMoe == address(sMoeImplementation), "run::7");
+            require(implementations.sMoe == address(sMoeImplementation), "run::12");
         }
 
         // Deploy Vestings
@@ -261,7 +253,7 @@ contract DeployProtocolScript is Script {
             TransparentUpgradeableProxy2Step rewarderFactoryProxy =
                 new TransparentUpgradeableProxy2Step(implementations.rewarderFactory, proxyAdmin, data);
 
-            require(proxies.rewarderFactory == address(rewarderFactoryProxy), "run::7");
+            require(proxies.rewarderFactory == address(rewarderFactoryProxy), "run::13");
         }
 
         {
@@ -277,14 +269,14 @@ contract DeployProtocolScript is Script {
                 )
             );
 
-            require(proxies.masterChef == address(masterChefProxy), "run::8");
+            require(proxies.masterChef == address(masterChefProxy), "run::14");
         }
 
         {
             TransparentUpgradeableProxy2Step moeStakingProxy =
                 new TransparentUpgradeableProxy2Step(implementations.moeStaking, proxyAdmin, "");
 
-            require(proxies.moeStaking == address(moeStakingProxy), "run::9");
+            require(proxies.moeStaking == address(moeStakingProxy), "run::15");
         }
 
         {
@@ -294,7 +286,7 @@ contract DeployProtocolScript is Script {
                 abi.encodeWithSelector(JoeStaking.initialize.selector, Parameters.multisig)
             );
 
-            require(proxies.joeStaking == address(joeStakingProxy), "run::10");
+            require(proxies.joeStaking == address(joeStakingProxy), "run::16");
         }
 
         {
@@ -304,7 +296,7 @@ contract DeployProtocolScript is Script {
                 abi.encodeWithSelector(VeMoe.initialize.selector, Parameters.multisig)
             );
 
-            require(proxies.veMoe == address(veMoeProxy), "run::10");
+            require(proxies.veMoe == address(veMoeProxy), "run::17");
         }
 
         {
@@ -314,7 +306,16 @@ contract DeployProtocolScript is Script {
                 abi.encodeWithSelector(StableMoe.initialize.selector, Parameters.multisig)
             );
 
-            require(proxies.sMoe == address(sMoeProxy), "run::11");
+            require(proxies.sMoe == address(sMoeProxy), "run::18");
+        }
+
+        // Deploy MoeLens
+
+        {
+            lens =
+                new MoeLens(IMasterChef(proxies.masterChef), IJoeStaking(proxies.joeStaking), Parameters.nativeSymbol);
+
+            require(moeLensAddress == address(lens), "run::19");
         }
 
         moe.transfer(vestings.seed1, Parameters.seed1Percent * Parameters.maxSupply / 1e18);
@@ -324,7 +325,7 @@ contract DeployProtocolScript is Script {
             moe.balanceOf(deployer)
                 == Parameters.maxSupply * Parameters.airdropPercent / 1e18
                     + Parameters.maxSupply * Parameters.stakingPercent / 1e18,
-            "run::16"
+            "run::20"
         );
 
         moe.transfer(Parameters.treasury, moe.balanceOf(deployer));

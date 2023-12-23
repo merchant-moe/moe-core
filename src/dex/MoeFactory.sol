@@ -5,18 +5,18 @@ import {ImmutableClone} from "@tj-dexv2/src/libraries/ImmutableClone.sol";
 import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 import {IMoeFactory} from "./interfaces/IMoeFactory.sol";
-import {MoePair, IMoePair} from "./MoePair.sol";
+import {IMoePair} from "./interfaces/IMoePair.sol";
 
 contract MoeFactory is IMoeFactory, Ownable2Step {
-    address public immutable override implementation;
+    address public immutable override moePairImplementation;
 
     address public override feeTo;
 
     mapping(address => mapping(address => address)) public override getPair;
     address[] public override allPairs;
 
-    constructor(address initialFeeTo, address initialOwner) Ownable(initialOwner) {
-        implementation = address(new MoePair());
+    constructor(address initialFeeTo, address initialOwner, address moePairImplementation_) Ownable(initialOwner) {
+        moePairImplementation = moePairImplementation_;
         feeTo = initialFeeTo;
     }
 
@@ -32,7 +32,7 @@ contract MoeFactory is IMoeFactory, Ownable2Step {
 
         bytes memory immutableData = abi.encodePacked(token0, token1);
         bytes32 salt = keccak256(abi.encodePacked(token0, token1));
-        pair = ImmutableClone.cloneDeterministic(implementation, immutableData, salt);
+        pair = ImmutableClone.cloneDeterministic(moePairImplementation, immutableData, salt);
         IMoePair(pair).initialize();
 
         getPair[token0][token1] = pair;

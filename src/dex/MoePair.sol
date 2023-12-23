@@ -58,8 +58,8 @@ contract MoePair is IMoePair, MoeERC20, Clone {
         _blockTimestampLast = blockTimestampLast;
     }
 
-    constructor() {
-        factory = msg.sender;
+    constructor(address factory_) {
+        factory = factory_;
         implementation = address(this);
 
         unlocked = type(uint256).max;
