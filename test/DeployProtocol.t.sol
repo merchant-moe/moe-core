@@ -1,4 +1,4 @@
-SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
@@ -15,8 +15,7 @@ contract DeployProtocolTest is Test {
             IBaseRewarder[3] memory rewarders,
             DeployProtocolScript.Addresses memory proxies,
             DeployProtocolScript.Addresses memory implementations,
-            DeployProtocolScript.Vestings memory vestings
-            ,
+            DeployProtocolScript.Vestings memory vestings,
             MoeLens moeLens
         ) = deployer.run();
 
