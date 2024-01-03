@@ -3,19 +3,10 @@ pragma solidity ^0.8.20;
 
 import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {ITransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IERC1967} from "@openzeppelin/contracts/interfaces/IERC1967.sol";
 
 import {ProxyAdmin2Step} from "./ProxyAdmin2Step.sol";
-
-/**
- * @dev Interface for {TransparentUpgradeableProxy}. In order to implement transparency, {TransparentUpgradeableProxy}
- * does not implement this interface directly, and its upgradeability mechanism is implemented by an internal dispatch
- * mechanism. The compiler is unaware that these functions are implemented by {TransparentUpgradeableProxy} and will not
- * include them in the ABI so this interface must be used to interact with it.
- */
-interface ITransparentUpgradeableProxy is IERC1967 {
-    function upgradeToAndCall(address, bytes calldata) external payable;
-}
 
 /**
  * @title Transparent Upgradeable Proxy Contract
