@@ -34,10 +34,6 @@ interface IMasterChef {
 
     event TreasurySet(address indexed treasury);
 
-    event FutureFundingSet(address indexed futureFunding);
-
-    event TeamSet(address indexed team);
-
     function add(IERC20 token, IMasterChefRewarder extraRewarder) external;
 
     function claim(uint256[] memory pids) external;
@@ -71,15 +67,7 @@ interface IMasterChef {
 
     function getTreasury() external view returns (address);
 
-    function getFutureFunding() external view returns (address);
-
-    function getTeam() external view returns (address);
-
     function getTreasuryShare() external view returns (uint256);
-
-    function getFutureFundingShare() external view returns (uint256);
-
-    function getTeamShare() external view returns (uint256);
 
     function getRewarderFactory() external view returns (IRewarderFactory);
 
@@ -90,10 +78,6 @@ interface IMasterChef {
     function setMoePerSecond(uint96 moePerSecond) external;
 
     function setTreasury(address treasury) external;
-
-    function setFutureFunding(address futureFunding) external;
-
-    function setTeam(address team) external;
 
     function updateAll(uint256[] calldata pids) external;
 
