@@ -18,29 +18,19 @@ library Parameters {
     uint256 internal constant liquidityMiningPercent = 0.3e18;
 
     uint256 internal constant treasuryPercent = 0.175e18;
-    address internal constant treasury = address(2);
-
-    uint64 internal constant start = 123456789;
+    address internal constant treasury = 0x69722b1F681f321c9078136E9223148234eB3BE0;
 
     uint256 internal constant seed1Percent = 0.15e18 / 2;
-    address internal constant seed1Beneficiary = address(3);
-    uint64 internal constant seed1Cliff = 365 days;
-    uint64 internal constant seed1Duration = 3 * 365 days;
+    address internal constant futureFunding = 0x685489467Ff83E8fF3d1f63f86bE9b1425a0787d;
 
     uint256 internal constant seed2Percent = 0.15e18 / 2;
-    address internal constant seed2Beneficiary = address(4);
-    uint64 internal constant seed2Cliff = 365 days;
-    uint64 internal constant seed2Duration = 3 * 365 days;
+    address internal constant seed1 = 0x06f7a877c4E33642F77CA8D58739D5D7Fa5D2Eea;
 
     uint256 internal constant futureFundingPercent = 0.15e18;
-    address internal constant futureFundingBeneficiary = address(5);
-    uint64 internal constant futureFundingCliff = 365 days;
-    uint64 internal constant futureFundingDuration = 0;
+    address internal constant seed2 = 0xF4e86cb0343f7D2DC1d0515Bc8DD946ce4859130;
 
     uint256 internal constant teamPercent = 0.15e18;
-    address internal constant teamBeneficiary = address(6);
-    uint64 internal constant teamCliff = 365 days;
-    uint64 internal constant teamDuration = 0;
+    address internal constant team = 0x0933824Da7DB2f07DECD82ebbd0A6b5B69F2949a;
 
     // Moe
     uint256 internal constant maxSupply = 500_000_000e18;
@@ -52,7 +42,7 @@ library Parameters {
     uint256 internal constant maxVeMoePerMoe = 1_000e18;
 
     // Factory
-    address internal constant feeTo = address(6);
+    address internal constant feeTo = multisig;
 
     // Router
     string internal constant nativeSymbol = "MANTLE";

@@ -44,7 +44,7 @@ library Parameters {
     address internal constant joe = 0xeAF034F59e660b7b5a71Db280604bd9804307B53;
 
     // VeMoe
-    uint256 internal constant maxVeMoePerMoe = 0;
+    uint256 internal constant maxVeMoePerMoe = 1_000e18;
 
     // Factory
     address internal constant feeTo = 0xFFC08538077a0455E0F4077823b1A0E3e18Faf0b;

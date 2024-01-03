@@ -148,16 +148,13 @@ contract DeployProtocolScript is Script {
         }
 
         {
-            uint256 sumEmissionShare = Parameters.liquidityMiningPercent + Parameters.treasuryPercent
-                + Parameters.futureFundingPercent + Parameters.teamPercent;
+            uint256 sumEmissionShare = Parameters.liquidityMiningPercent + Parameters.treasuryPercent;
 
             MasterChef masterChefImplementation = new MasterChef(
                 IMoe(moeAddress),
                 IVeMoe(proxies.veMoe),
                 IRewarderFactory(proxies.rewarderFactory),
-                Parameters.treasuryPercent * 1e18 / sumEmissionShare,
-                Parameters.futureFundingPercent * 1e18 / sumEmissionShare,
-                Parameters.teamPercent * 1e18 / sumEmissionShare
+                Parameters.treasuryPercent * 1e18 / sumEmissionShare
             );
 
             require(implementations.masterChef == address(masterChefImplementation), "run::4");
@@ -271,7 +268,9 @@ contract DeployProtocolScript is Script {
                     Parameters.multisig,
                     Parameters.treasury,
                     vestings.futureFunding,
-                    vestings.team
+                    vestings.team,
+                    Parameters.futureFundingPercent * Parameters.maxSupply / 1e18,
+                    Parameters.teamPercent * Parameters.maxSupply / 1e18
                 )
             );
 
