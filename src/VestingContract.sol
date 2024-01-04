@@ -205,7 +205,7 @@ contract VestingContract is IVestingContract {
      * whether the vesting contract has a cliff or has been revoked.
      * @param total The total amount of tokens to be vested.
      * @param start_ The timestamp at which the vesting starts.
-     * @param vestingDuration_ The vestingDuration_ of the vesting.
+     * @param vestingDuration_ The duration of the vesting.
      * @param timestamp The timestamp at which the amount of vested tokens will be calculated.
      * @return The amount of tokens that have been vested at the specified timestamp.
      */
