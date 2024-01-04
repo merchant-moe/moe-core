@@ -191,49 +191,6 @@ contract DeployProtocolScript is Script {
             require(implementations.sMoe == address(sMoeImplementation), "run::7");
         }
 
-        // Deploy Vestings
-
-        {
-            VestingContract futureFundingVesting = new VestingContract(
-                proxies.masterChef,
-                IERC20(moeAddress),
-                Parameters.start + Parameters.futureFundingCliff,
-                Parameters.futureFundingDuration
-            );
-
-            require(vestings.futureFunding == address(futureFundingVesting), "run::12");
-        }
-
-        {
-            VestingContract teamVesting = new VestingContract(
-                proxies.masterChef, IERC20(moeAddress), Parameters.start + Parameters.teamCliff, Parameters.teamDuration
-            );
-
-            require(vestings.team == address(teamVesting), "run::13");
-        }
-
-        {
-            VestingContract seed1Vesting = new VestingContract(
-                proxies.masterChef,
-                IERC20(moeAddress),
-                Parameters.start + Parameters.seed1Cliff,
-                Parameters.seed1Duration
-            );
-
-            require(vestings.seed1 == address(seed1Vesting), "run::14");
-        }
-
-        {
-            VestingContract seed2Vesting = new VestingContract(
-                proxies.masterChef,
-                IERC20(moeAddress),
-                Parameters.start + Parameters.seed2Cliff,
-                Parameters.seed2Duration
-            );
-
-            require(vestings.seed2 == address(seed2Vesting), "run::15");
-        }
-
         // Deploy Proxies
 
         {
