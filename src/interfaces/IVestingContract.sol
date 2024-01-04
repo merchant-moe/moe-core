@@ -7,6 +7,7 @@ interface IVestingContract {
     error VestingContract__NotBeneficiary();
     error VestingContract__NotMasterChefOwner();
     error VestingContract__AlreadyRevoked();
+    error VestingContract__InvalidCliffDuration();
 
     event BeneficiarySet(address beneficiary);
 
@@ -20,7 +21,9 @@ interface IVestingContract {
 
     function start() external view returns (uint256);
 
-    function duration() external view returns (uint256);
+    function cliffDuration() external view returns (uint256);
+
+    function vestingDuration() external view returns (uint256);
 
     function end() external view returns (uint256);
 
