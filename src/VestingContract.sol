@@ -10,6 +10,10 @@ import {IVestingContract} from "./interfaces/IVestingContract.sol";
  * @title Vesting Contract
  * @dev This contract implements a vesting contract. Only the owner of the master chef contract can set the beneficiary
  * and only the beneficiary can release the vested tokens.
+ * The vesting contract can be revoked by the owner of the master chef contract.
+ * The vesting schedule is as follows:
+ * - tokens vest linearly from the `start` to the `start + vestingDuration` timestamp
+ * - vested tokens can only be claimed after the `start + lockDuration` timestamp
  */
 contract VestingContract is IVestingContract {
     using SafeERC20 for IERC20;
@@ -18,7 +22,8 @@ contract VestingContract is IVestingContract {
 
     IERC20 private immutable _token;
     uint256 private immutable _start;
-    uint256 private immutable _duration;
+    uint256 private immutable _cliffDuration;
+    uint256 private immutable _vestingDuration;
 
     uint256 private _released;
 
@@ -30,13 +35,17 @@ contract VestingContract is IVestingContract {
      * @param masterChef_ The address of the master chef contract.
      * @param token_ The address of the token contract.
      * @param start_ The timestamp at which the vesting starts.
-     * @param duration_ The duration of the vesting.
+     * @param cliffDuration_ The duration of the lock.
+     * @param vestingDuration_ The duration of the vesting.
      */
-    constructor(address masterChef_, IERC20 token_, uint256 start_, uint256 duration_) {
+    constructor(address masterChef_, IERC20 token_, uint256 start_, uint256 cliffDuration_, uint256 vestingDuration_) {
+        if (cliffDuration_ > vestingDuration_) revert VestingContract__InvalidCliffDuration();
+
         _masterChef = masterChef_;
         _token = token_;
         _start = start_;
-        _duration = duration_;
+        _cliffDuration = cliffDuration_;
+        _vestingDuration = vestingDuration_;
     }
 
     /**
@@ -64,11 +73,19 @@ contract VestingContract is IVestingContract {
     }
 
     /**
+     * @dev Returns the duration of the lock.
+     * @return The duration of the lock.
+     */
+    function cliffDuration() public view virtual override returns (uint256) {
+        return _cliffDuration;
+    }
+
+    /**
      * @dev Returns the duration of the vesting.
      * @return The duration of the vesting.
      */
-    function duration() public view virtual override returns (uint256) {
-        return _duration;
+    function vestingDuration() public view virtual override returns (uint256) {
+        return _vestingDuration;
     }
 
     /**
@@ -76,7 +93,7 @@ contract VestingContract is IVestingContract {
      * @return The timestamp at which the vesting ends.
      */
     function end() public view virtual override returns (uint256) {
-        return _start + _duration;
+        return start() + vestingDuration();
     }
 
     /**
@@ -124,7 +141,7 @@ contract VestingContract is IVestingContract {
      * @dev Releases the vested tokens to the beneficiary.
      */
     function release() public virtual override {
-        if (msg.sender != _beneficiary) revert VestingContract__NotBeneficiary();
+        if (msg.sender != beneficiary()) revert VestingContract__NotBeneficiary();
 
         uint256 amount = releasable();
         _released += amount;
@@ -153,11 +170,11 @@ contract VestingContract is IVestingContract {
         address owner = Ownable(_masterChef).owner();
 
         if (msg.sender != owner) revert VestingContract__NotMasterChefOwner();
-        if (_revoked) revert VestingContract__AlreadyRevoked();
+        if (revoked()) revert VestingContract__AlreadyRevoked();
 
         uint256 released_ = released();
         uint256 balance = _token.balanceOf(address(this));
-        uint256 vested = _vestingSchedule(balance + released_, block.timestamp);
+        uint256 vested = _rawVestingSchedule(balance + released_, start(), vestingDuration(), block.timestamp);
 
         _revoked = true;
 
@@ -173,17 +190,37 @@ contract VestingContract is IVestingContract {
      * @return The amount of tokens that have been vested at the specified timestamp.
      */
     function _vestingSchedule(uint256 total, uint256 timestamp) internal view virtual returns (uint256) {
-        if (_revoked) return total;
-
         uint256 start_ = start();
-        uint256 duration_ = duration();
+        uint256 cliffDuration_ = cliffDuration();
+        uint256 vestingDuration_ = vestingDuration();
 
+        if (timestamp <= start_ + cliffDuration_) return 0;
+        if (revoked()) return total;
+
+        return _rawVestingSchedule(total, start_, vestingDuration_, timestamp);
+    }
+
+    /**
+     * @dev Calculates the amount of tokens that have been vested at the specified timestamp without taking into account
+     * whether the vesting contract has a cliff or has been revoked.
+     * @param total The total amount of tokens to be vested.
+     * @param start_ The timestamp at which the vesting starts.
+     * @param vestingDuration_ The duration of the vesting.
+     * @param timestamp The timestamp at which the amount of vested tokens will be calculated.
+     * @return The amount of tokens that have been vested at the specified timestamp.
+     */
+    function _rawVestingSchedule(uint256 total, uint256 start_, uint256 vestingDuration_, uint256 timestamp)
+        internal
+        view
+        virtual
+        returns (uint256)
+    {
         if (timestamp <= start_) {
             return 0;
-        } else if (timestamp >= start_ + duration_) {
+        } else if (timestamp >= start_ + vestingDuration_) {
             return total;
         } else {
-            return (total * (timestamp - start_)) / duration_;
+            return (total * (timestamp - start_)) / vestingDuration_;
         }
     }
 }
