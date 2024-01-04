@@ -87,7 +87,9 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
             futureFundingAmount > 0 ? _moe.mint(address(futureFunding), futureFundingAmount) : 0;
         uint256 mintedToTeam = teamAmount > 0 ? _moe.mint(address(team), teamAmount) : 0;
 
-        require(mintedToFutureFunding == futureFundingAmount && mintedToTeam == teamAmount, "MasterChef: mint failed");
+        if (mintedToFutureFunding != futureFundingAmount || mintedToTeam != teamAmount) {
+            revert MasterChef__MintFailed();
+        }
     }
 
     /**
