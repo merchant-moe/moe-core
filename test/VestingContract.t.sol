@@ -37,10 +37,10 @@ contract VestingContractTest is Test {
         assertEq(vesting.cliffDuration(), cliffDuration, "test_Initialize::4");
         assertEq(vesting.vestingDuration(), vestingDuration, "test_Initialize::5");
         assertEq(vesting.end(), start + vestingDuration, "test_Initialize::6");
-        assertEq(vesting.beneficiary(), address(0), "test_Initialize::6");
-        assertEq(vesting.released(), 0, "test_Initialize::7");
-        assertEq(vesting.releasable(), 0, "test_Initialize::8");
-        assertEq(vesting.vestedAmount(block.timestamp), 0, "test_Initialize::9");
+        assertEq(vesting.beneficiary(), address(0), "test_Initialize::7");
+        assertEq(vesting.released(), 0, "test_Initialize::8");
+        assertEq(vesting.releasable(), 0, "test_Initialize::9");
+        assertEq(vesting.vestedAmount(block.timestamp), 0, "test_Initialize::10");
     }
 
     function test_SetBeneficiary() public {
@@ -200,27 +200,47 @@ contract VestingContractTest is Test {
 
         vm.warp(t0);
 
-        assertEq(vesting.revoked(), false, "test_RevokeAfterStart::1");
+        assertEq(vesting.revoked(), false, "test_Fuzz_RevokeAfterStartBeforeCliff::1");
 
         vesting.revoke();
 
-        assertEq(vesting.released(), 0, "test_RevokeAfterStart::2");
-        assertEq(vesting.releasable(), 0, "test_RevokeAfterStart::3");
-        assertEq(vesting.vestedAmount(block.timestamp), 0, "test_RevokeAfterStart::4");
-        assertEq(token.balanceOf(alice), 0, "test_RevokeAfterStart::5");
-        assertEq(token.balanceOf(address(vesting)), 0, "test_RevokeAfterStart::6");
-        assertEq(token.balanceOf(address(this)), total, "test_RevokeAfterStart::7");
+        uint256 expectedReleasable = (t0 - start) * total / vestingDuration;
+
+        assertEq(vesting.released(), 0, "test_Fuzz_RevokeAfterStartBeforeCliff::2");
+        assertEq(vesting.releasable(), 0, "test_Fuzz_RevokeAfterStartBeforeCliff::3");
+        assertEq(vesting.vestedAmount(block.timestamp), 0, "test_Fuzz_RevokeAfterStartBeforeCliff::4");
+        assertEq(token.balanceOf(alice), 0, "test_Fuzz_RevokeAfterStartBeforeCliff::5");
+        assertEq(token.balanceOf(address(vesting)), expectedReleasable, "test_Fuzz_RevokeAfterStartBeforeCliff::6");
+        assertEq(token.balanceOf(address(this)), total - expectedReleasable, "test_Fuzz_RevokeAfterStartBeforeCliff::7");
 
         vm.prank(alice);
         vesting.release();
 
-        assertEq(vesting.revoked(), true, "test_RevokeAfterStart::8");
-        assertEq(vesting.released(), 0, "test_RevokeAfterStart::9");
-        assertEq(vesting.releasable(), 0, "test_RevokeAfterStart::10");
-        assertEq(vesting.vestedAmount(block.timestamp), 0, "test_RevokeAfterStart::11");
-        assertEq(token.balanceOf(alice), 0, "test_RevokeAfterStart::12");
-        assertEq(token.balanceOf(address(vesting)), 0, "test_RevokeAfterStart::13");
-        assertEq(token.balanceOf(address(this)), total, "test_RevokeAfterStart::14");
+        assertEq(vesting.revoked(), true, "test_Fuzz_RevokeAfterStartBeforeCliff::8");
+        assertEq(vesting.released(), 0, "test_Fuzz_RevokeAfterStartBeforeCliff::9");
+        assertEq(vesting.releasable(), 0, "test_Fuzz_RevokeAfterStartBeforeCliff::10");
+        assertEq(vesting.vestedAmount(block.timestamp), 0, "test_Fuzz_RevokeAfterStartBeforeCliff::11");
+        assertEq(token.balanceOf(alice), 0, "test_Fuzz_RevokeAfterStartBeforeCliff::12");
+        assertEq(token.balanceOf(address(vesting)), expectedReleasable, "test_Fuzz_RevokeAfterStartBeforeCliff::13");
+        assertEq(
+            token.balanceOf(address(this)), total - expectedReleasable, "test_Fuzz_RevokeAfterStartBeforeCliff::14"
+        );
+
+        vm.warp(start + cliffDuration + 1);
+
+        assertEq(vesting.releasable(), expectedReleasable, "test_Fuzz_RevokeAfterStartBeforeCliff::15");
+
+        vm.prank(alice);
+        vesting.release();
+
+        assertEq(vesting.released(), expectedReleasable, "test_Fuzz_RevokeAfterStartBeforeCliff::16");
+        assertEq(vesting.releasable(), 0, "test_Fuzz_RevokeAfterStartBeforeCliff::17");
+        assertEq(vesting.vestedAmount(block.timestamp), expectedReleasable, "test_Fuzz_RevokeAfterStartBeforeCliff::18");
+        assertEq(token.balanceOf(alice), expectedReleasable, "test_Fuzz_RevokeAfterStartBeforeCliff::19");
+        assertEq(token.balanceOf(address(vesting)), 0, "test_Fuzz_RevokeAfterStartBeforeCliff::20");
+        assertEq(
+            token.balanceOf(address(this)), total - expectedReleasable, "test_Fuzz_RevokeAfterStartBeforeCliff::21"
+        );
     }
 
     function test_Fuzz_RevokeAfterStartAfterCliff(uint256 t0) public {
@@ -231,29 +251,29 @@ contract VestingContractTest is Test {
 
         vm.warp(t0);
 
-        assertEq(vesting.revoked(), false, "test_RevokeAfterStart::1");
+        assertEq(vesting.revoked(), false, "test_Fuzz_RevokeAfterStartAfterCliff::1");
 
         vesting.revoke();
 
         uint256 expectedReleasable = (t0 - start) * total / vestingDuration;
 
-        assertEq(vesting.released(), 0, "test_RevokeAfterStart::2");
-        assertEq(vesting.releasable(), expectedReleasable, "test_RevokeAfterStart::3");
-        assertEq(vesting.vestedAmount(block.timestamp), expectedReleasable, "test_RevokeAfterStart::4");
-        assertEq(token.balanceOf(alice), 0, "test_RevokeAfterStart::5");
-        assertEq(token.balanceOf(address(vesting)), expectedReleasable, "test_RevokeAfterStart::6");
-        assertEq(token.balanceOf(address(this)), total - expectedReleasable, "test_RevokeAfterStart::7");
+        assertEq(vesting.released(), 0, "test_Fuzz_RevokeAfterStartAfterCliff::2");
+        assertEq(vesting.releasable(), expectedReleasable, "test_Fuzz_RevokeAfterStartAfterCliff::3");
+        assertEq(vesting.vestedAmount(block.timestamp), expectedReleasable, "test_Fuzz_RevokeAfterStartAfterCliff::4");
+        assertEq(token.balanceOf(alice), 0, "test_Fuzz_RevokeAfterStartAfterCliff::5");
+        assertEq(token.balanceOf(address(vesting)), expectedReleasable, "test_Fuzz_RevokeAfterStartAfterCliff::6");
+        assertEq(token.balanceOf(address(this)), total - expectedReleasable, "test_Fuzz_RevokeAfterStartAfterCliff::7");
 
         vm.prank(alice);
         vesting.release();
 
-        assertEq(vesting.revoked(), true, "test_RevokeAfterStart::8");
-        assertEq(vesting.released(), expectedReleasable, "test_RevokeAfterStart::9");
-        assertEq(vesting.releasable(), 0, "test_RevokeAfterStart::10");
-        assertEq(vesting.vestedAmount(block.timestamp), expectedReleasable, "test_RevokeAfterStart::11");
-        assertEq(token.balanceOf(alice), expectedReleasable, "test_RevokeAfterStart::12");
-        assertEq(token.balanceOf(address(vesting)), 0, "test_RevokeAfterStart::13");
-        assertEq(token.balanceOf(address(this)), total - expectedReleasable, "test_RevokeAfterStart::14");
+        assertEq(vesting.revoked(), true, "test_Fuzz_RevokeAfterStartAfterCliff::8");
+        assertEq(vesting.released(), expectedReleasable, "test_Fuzz_RevokeAfterStartAfterCliff::9");
+        assertEq(vesting.releasable(), 0, "test_Fuzz_RevokeAfterStartAfterCliff::10");
+        assertEq(vesting.vestedAmount(block.timestamp), expectedReleasable, "test_Fuzz_RevokeAfterStartAfterCliff::11");
+        assertEq(token.balanceOf(alice), expectedReleasable, "test_Fuzz_RevokeAfterStartAfterCliff::12");
+        assertEq(token.balanceOf(address(vesting)), 0, "test_Fuzz_RevokeAfterStartAfterCliff::13");
+        assertEq(token.balanceOf(address(this)), total - expectedReleasable, "test_Fuzz_RevokeAfterStartAfterCliff::14");
     }
 
     function test_RevokeAfterEnd() public {
@@ -299,7 +319,8 @@ contract VestingContractTest is Test {
         vm.prank(alice);
         vesting.release();
 
-        uint256 released0 = t0 > cliffDuration ? t0 * total / vestingDuration : 0;
+        uint256 vested0 = t0 * total / vestingDuration;
+        uint256 released0 = t0 > cliffDuration ? vested0 : 0;
 
         assertEq(vesting.revoked(), false, "test_Fuzz_Revoke::2");
         assertEq(vesting.released(), released0, "test_Fuzz_Revoke::3");
@@ -311,7 +332,8 @@ contract VestingContractTest is Test {
 
         vm.warp(start + t1);
 
-        uint256 released1 = t1 > cliffDuration ? t1 * total / vestingDuration : 0;
+        uint256 vested1 = t1 * total / vestingDuration;
+        uint256 released1 = t1 > cliffDuration ? vested1 : 0;
 
         vesting.revoke();
 
@@ -319,8 +341,8 @@ contract VestingContractTest is Test {
         assertEq(vesting.releasable(), released1 - released0, "test_Fuzz_Revoke::10");
         assertEq(vesting.vestedAmount(block.timestamp), released1, "test_Fuzz_Revoke::11");
         assertEq(token.balanceOf(alice), released0, "test_Fuzz_Revoke::12");
-        assertEq(token.balanceOf(address(vesting)), released1 - released0, "test_Fuzz_Revoke::13");
-        assertEq(token.balanceOf(address(this)), total - released1, "test_Fuzz_Revoke::14");
+        assertEq(token.balanceOf(address(vesting)), vested1 - released0, "test_Fuzz_Revoke::13");
+        assertEq(token.balanceOf(address(this)), total - vested1, "test_Fuzz_Revoke::14");
 
         vm.prank(alice);
         vesting.release();
@@ -329,26 +351,40 @@ contract VestingContractTest is Test {
         assertEq(vesting.releasable(), 0, "test_Fuzz_Revoke::16");
         assertEq(vesting.vestedAmount(block.timestamp), released1, "test_Fuzz_Revoke::17");
         assertEq(token.balanceOf(alice), released1, "test_Fuzz_Revoke::18");
-        assertEq(token.balanceOf(address(vesting)), 0, "test_Fuzz_Revoke::19");
-        assertEq(token.balanceOf(address(this)), total - released1, "test_Fuzz_Revoke::20");
+        assertEq(token.balanceOf(address(vesting)), vested1 - released1, "test_Fuzz_Revoke::19");
+        assertEq(token.balanceOf(address(this)), total - vested1, "test_Fuzz_Revoke::20");
 
         MockERC20(address(token)).mint(address(vesting), total);
 
+        uint256 releasable = t1 > cliffDuration ? total : 0;
+
         assertEq(vesting.released(), released1, "test_Fuzz_Revoke::21");
-        assertEq(vesting.releasable(), total, "test_Fuzz_Revoke::22");
-        assertEq(vesting.vestedAmount(block.timestamp), total + released1, "test_Fuzz_Revoke::23");
+        assertEq(vesting.releasable(), releasable, "test_Fuzz_Revoke::22");
+        assertEq(vesting.vestedAmount(block.timestamp), releasable + released1, "test_Fuzz_Revoke::23");
         assertEq(token.balanceOf(alice), released1, "test_Fuzz_Revoke::24");
-        assertEq(token.balanceOf(address(vesting)), total, "test_Fuzz_Revoke::25");
-        assertEq(token.balanceOf(address(this)), total - released1, "test_Fuzz_Revoke::26");
+        assertEq(token.balanceOf(address(vesting)), total + (vested1 - released1), "test_Fuzz_Revoke::25");
+        assertEq(token.balanceOf(address(this)), total - vested1, "test_Fuzz_Revoke::26");
 
         vm.prank(alice);
         vesting.release();
 
-        assertEq(vesting.released(), total + released1, "test_Fuzz_Revoke::27");
+        assertEq(vesting.released(), releasable + released1, "test_Fuzz_Revoke::27");
         assertEq(vesting.releasable(), 0, "test_Fuzz_Revoke::28");
-        assertEq(vesting.vestedAmount(block.timestamp), total + released1, "test_Fuzz_Revoke::29");
-        assertEq(token.balanceOf(alice), total + released1, "test_Fuzz_Revoke::30");
-        assertEq(token.balanceOf(address(vesting)), 0, "test_Fuzz_Revoke::31");
-        assertEq(token.balanceOf(address(this)), total - released1, "test_Fuzz_Revoke::32");
+        assertEq(vesting.vestedAmount(block.timestamp), releasable + released1, "test_Fuzz_Revoke::29");
+        assertEq(token.balanceOf(alice), releasable + released1, "test_Fuzz_Revoke::30");
+        assertEq(token.balanceOf(address(vesting)), total - releasable + (vested1 - released1), "test_Fuzz_Revoke::31");
+        assertEq(token.balanceOf(address(this)), total - vested1, "test_Fuzz_Revoke::32");
+
+        vm.warp(start + cliffDuration + 1);
+
+        vm.prank(alice);
+        vesting.release();
+
+        assertEq(vesting.released(), total + vested1, "test_Fuzz_Revoke::33");
+        assertEq(vesting.releasable(), 0, "test_Fuzz_Revoke::34");
+        assertEq(vesting.vestedAmount(block.timestamp), total + vested1, "test_Fuzz_Revoke::35");
+        assertEq(token.balanceOf(alice), total + vested1, "test_Fuzz_Revoke::36");
+        assertEq(token.balanceOf(address(vesting)), 0, "test_Fuzz_Revoke::37");
+        assertEq(token.balanceOf(address(this)), total - vested1, "test_Fuzz_Revoke::38");
     }
 }

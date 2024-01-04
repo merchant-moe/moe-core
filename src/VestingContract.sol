@@ -176,7 +176,7 @@ contract VestingContract is IVestingContract {
 
         uint256 released_ = released();
         uint256 balance = _token.balanceOf(address(this));
-        uint256 vested = _vestingSchedule(balance + released_, block.timestamp);
+        uint256 vested = _rawVestingSchedule(balance + released_, start(), vestingDuration(), block.timestamp);
 
         _revoked = true;
 
@@ -192,13 +192,32 @@ contract VestingContract is IVestingContract {
      * @return The amount of tokens that have been vested at the specified timestamp.
      */
     function _vestingSchedule(uint256 total, uint256 timestamp) internal view virtual returns (uint256) {
-        if (revoked()) return total;
-
         uint256 start_ = start();
         uint256 cliffDuration_ = cliffDuration();
         uint256 vestingDuration_ = vestingDuration();
 
-        if (timestamp <= start_ + cliffDuration_) {
+        if (timestamp <= start_ + cliffDuration_) return 0;
+        if (revoked()) return total;
+
+        return _rawVestingSchedule(total, start_, vestingDuration_, timestamp);
+    }
+
+    /**
+     * @dev Calculates the amount of tokens that have been vested at the specified timestamp without taking into account
+     * whether the vesting contract has a cliff or has been revoked.
+     * @param total The total amount of tokens to be vested.
+     * @param start_ The timestamp at which the vesting starts.
+     * @param vestingDuration_ The vestingDuration_ of the vesting.
+     * @param timestamp The timestamp at which the amount of vested tokens will be calculated.
+     * @return The amount of tokens that have been vested at the specified timestamp.
+     */
+    function _rawVestingSchedule(uint256 total, uint256 start_, uint256 vestingDuration_, uint256 timestamp)
+        internal
+        view
+        virtual
+        returns (uint256)
+    {
+        if (timestamp <= start_) {
             return 0;
         } else if (timestamp >= start_ + vestingDuration_) {
             return total;
