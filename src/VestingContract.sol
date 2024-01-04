@@ -12,10 +12,8 @@ import {IVestingContract} from "./interfaces/IVestingContract.sol";
  * and only the beneficiary can release the vested tokens.
  * The vesting contract can be revoked by the owner of the master chef contract.
  * The vesting schedule is as follows:
- * - vesting starts at the `start` timestamp
- * - no tokens can be claimed before the `start + lockDuration` timestamp
- * - all vested tokens can be claimed at the `start + duration` timestamp
- * -
+ * - tokens vest linearly from the `start` to the `start + vestingDuration` timestamp
+ * - vested tokens can only be claimed after the `start + lockDuration` timestamp
  */
 contract VestingContract is IVestingContract {
     using SafeERC20 for IERC20;
