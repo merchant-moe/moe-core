@@ -9,13 +9,16 @@ This repository contains the contracts, tests and deploy scripts for the Moe pro
 The `Moe` contract is the governance token of the protocol. It is a standard ERC20 token where only the `minter` can mint tokens up to the maximum supply, which is set at 500M MOE.
 The distribution of the tokens is as follows:
 
-- 15% to seed investors, using vesting contracts with a 1 year cliff and 3 year vesting (total 4 years). (pre-minted)
-- 15% to future investors, using locking contracts with a 1 year cliff. (emissions)
-- 15% to the team, using locking contracts with a 1 year cliff. (emissions)
+- 15% to seed investors, using vesting contracts. (pre-minted)
+- 15% to future investors, using vesting contracts. (pre-minted)
+- 15% to the team, using vesting contracts. (pre-minted)
 - 2.5% to Joe stakers as an airdrop, distributed at the start of the protocol. (pre-minted)
 - 5% to Joe stakers, distributed over 1 year. (pre-minted)
 - 30% to liquidity mining incentives, distributed over 4 years. (emissions)
 - 17.5% to the treasury, distributed over 4 years. (emissions)
+
+The different vesting contracts all starts 8 months after the TGE and are vesting linearly over 40 months.
+Additionally, there will be a 4 months cliff preventing any tokens to be withdrawn before the first year.
 
 ![Tokenomics](./assets/tokenomics.png)
 
