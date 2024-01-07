@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "moe-core"
+version = "0.1.0"
+description = ""
+authors = ["0x0Louis <louis@joepegs.com>"]
+readme = "README.md"
+packages = [{include = "encode_transactions"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+web3 = "^6.13.0"
+
+[tool.poetry.scripts]
+encode = "encode_transactions.main:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
