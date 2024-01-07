@@ -29,13 +29,6 @@ contract DeployProtocolScript is Script {
         address sMoe;
     }
 
-    struct Vestings {
-        address futureFunding;
-        address team;
-        address seed1;
-        address seed2;
-    }
-
     mapping(IRewarderFactory.RewarderType => IBaseRewarder) _implementations;
 
     uint256 nonce;
@@ -51,7 +44,6 @@ contract DeployProtocolScript is Script {
             IBaseRewarder[3] memory rewarders,
             Addresses memory proxies,
             Addresses memory implementations,
-            Vestings memory vestings,
             MoeLens lens
         )
     {
@@ -78,7 +70,6 @@ contract DeployProtocolScript is Script {
         rewarderAddresses[2] = computeCreateAddress(deployer, nonce++);
 
         implementations = _computeAddresses(deployer);
-        vestings = _computeVestings(deployer);
         proxies = _computeAddresses(deployer);
 
         address moeLensAddress = computeCreateAddress(deployer, nonce++);
@@ -142,16 +133,13 @@ contract DeployProtocolScript is Script {
         }
 
         {
-            uint256 sumEmissionShare = Parameters.liquidityMiningPercent + Parameters.treasuryPercent
-                + Parameters.futureFundingPercent + Parameters.teamPercent;
+            uint256 sumEmissionShare = Parameters.liquidityMiningPercent + Parameters.treasuryPercent;
 
             MasterChef masterChefImplementation = new MasterChef(
                 IMoe(moeAddress),
                 IVeMoe(proxies.veMoe),
                 IRewarderFactory(proxies.rewarderFactory),
-                Parameters.treasuryPercent * 1e18 / sumEmissionShare,
-                Parameters.futureFundingPercent * 1e18 / sumEmissionShare,
-                Parameters.teamPercent * 1e18 / sumEmissionShare
+                Parameters.treasuryPercent * 1e18 / sumEmissionShare
             );
 
             require(implementations.masterChef == address(masterChefImplementation), "run::8");
@@ -188,49 +176,6 @@ contract DeployProtocolScript is Script {
             require(implementations.sMoe == address(sMoeImplementation), "run::12");
         }
 
-        // Deploy Vestings
-
-        {
-            VestingContract futureFundingVesting = new VestingContract(
-                proxies.masterChef,
-                IERC20(moeAddress),
-                Parameters.start + Parameters.futureFundingCliff,
-                Parameters.futureFundingDuration
-            );
-
-            require(vestings.futureFunding == address(futureFundingVesting), "run::12");
-        }
-
-        {
-            VestingContract teamVesting = new VestingContract(
-                proxies.masterChef, IERC20(moeAddress), Parameters.start + Parameters.teamCliff, Parameters.teamDuration
-            );
-
-            require(vestings.team == address(teamVesting), "run::13");
-        }
-
-        {
-            VestingContract seed1Vesting = new VestingContract(
-                proxies.masterChef,
-                IERC20(moeAddress),
-                Parameters.start + Parameters.seed1Cliff,
-                Parameters.seed1Duration
-            );
-
-            require(vestings.seed1 == address(seed1Vesting), "run::14");
-        }
-
-        {
-            VestingContract seed2Vesting = new VestingContract(
-                proxies.masterChef,
-                IERC20(moeAddress),
-                Parameters.start + Parameters.seed2Cliff,
-                Parameters.seed2Duration
-            );
-
-            require(vestings.seed2 == address(seed2Vesting), "run::15");
-        }
-
         // Deploy Proxies
 
         {
@@ -264,8 +209,10 @@ contract DeployProtocolScript is Script {
                     MasterChef.initialize.selector,
                     Parameters.multisig,
                     Parameters.treasury,
-                    vestings.futureFunding,
-                    vestings.team
+                    Parameters.futureFunding,
+                    Parameters.team,
+                    Parameters.futureFundingPercent * Parameters.maxSupply / 1e18,
+                    Parameters.teamPercent * Parameters.maxSupply / 1e18
                 )
             );
 
@@ -318,17 +265,19 @@ contract DeployProtocolScript is Script {
             require(moeLensAddress == address(lens), "run::19");
         }
 
-        moe.transfer(vestings.seed1, Parameters.seed1Percent * Parameters.maxSupply / 1e18);
-        moe.transfer(vestings.seed2, Parameters.seed2Percent * Parameters.maxSupply / 1e18);
-
         require(
             moe.balanceOf(deployer)
                 == Parameters.maxSupply * Parameters.airdropPercent / 1e18
-                    + Parameters.maxSupply * Parameters.stakingPercent / 1e18,
+                    + Parameters.maxSupply * Parameters.stakingPercent / 1e18
+                    + Parameters.maxSupply * Parameters.seed1Percent / 1e18
+                    + Parameters.maxSupply * Parameters.seed2Percent / 1e18,
             "run::20"
         );
 
-        moe.transfer(Parameters.treasury, moe.balanceOf(deployer));
+        moe.transfer(Parameters.seed1, Parameters.seed1Percent * Parameters.maxSupply / 1e18);
+        moe.transfer(Parameters.seed2, Parameters.seed2Percent * Parameters.maxSupply / 1e18);
+
+        moe.transfer(Parameters.multisig, moe.balanceOf(deployer));
 
         vm.stopBroadcast();
     }
@@ -340,12 +289,5 @@ contract DeployProtocolScript is Script {
         addresses.joeStaking = computeCreateAddress(deployer_, nonce++);
         addresses.veMoe = computeCreateAddress(deployer_, nonce++);
         addresses.sMoe = computeCreateAddress(deployer_, nonce++);
-    }
-
-    function _computeVestings(address deployer_) internal returns (Vestings memory vestings) {
-        vestings.futureFunding = computeCreateAddress(deployer_, nonce++);
-        vestings.team = computeCreateAddress(deployer_, nonce++);
-        vestings.seed1 = computeCreateAddress(deployer_, nonce++);
-        vestings.seed2 = computeCreateAddress(deployer_, nonce++);
     }
 }

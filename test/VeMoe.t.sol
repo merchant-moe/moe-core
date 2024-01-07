@@ -50,23 +50,23 @@ contract VeMoeTest is Test {
         address factoryAddress = computeCreateAddress(address(this), nonce + 6);
 
         staking = new MoeStaking(moe, IVeMoe(veMoeAddress), IStableMoe(sMoe));
-        masterChef = new MasterChef(moe, IVeMoe(veMoeAddress), IRewarderFactory(factoryAddress), 0, 0, 0);
+        masterChef = new MasterChef(moe, IVeMoe(veMoeAddress), IRewarderFactory(factoryAddress), 0);
         veMoe = new VeMoe(
-            IMoeStaking(stakingAddress),
-            IMasterChef(masterChefAddress),
-            IRewarderFactory(factoryAddress), 100e18
+            IMoeStaking(stakingAddress), IMasterChef(masterChefAddress), IRewarderFactory(factoryAddress), 100e18
         );
 
         TransparentUpgradeableProxy2Step masterChefProxy = new TransparentUpgradeableProxy2Step(
             address(masterChef),
             ProxyAdmin2Step(address(1)),
-            abi.encodeWithSelector(MasterChef.initialize.selector, address(this), address(this), address(this), address(this))
+            abi.encodeWithSelector(
+                MasterChef.initialize.selector, address(this), address(this), address(this), address(this), 0, 0
+            )
         );
 
         TransparentUpgradeableProxy2Step veMoeProxy = new TransparentUpgradeableProxy2Step(
             address(veMoe),
             ProxyAdmin2Step(address(1)),
-            abi.encodeWithSelector(VeMoe.initialize.selector, address(this))    
+            abi.encodeWithSelector(VeMoe.initialize.selector, address(this))
         );
 
         veMoe = VeMoe(address(veMoeProxy));
@@ -78,7 +78,9 @@ contract VeMoeTest is Test {
                 new TransparentUpgradeableProxy2Step(
                     factoryImpl,
                     ProxyAdmin2Step(address(1)),
-                    abi.encodeWithSelector(RewarderFactory.initialize.selector, address(this), new uint8[](0), new address[](0))
+                    abi.encodeWithSelector(
+                        RewarderFactory.initialize.selector, address(this), new uint8[](0), new address[](0)
+                    )
                 )
             )
         );
