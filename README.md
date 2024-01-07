@@ -2,79 +2,32 @@
 
 This repository contains the contracts, tests and deploy scripts for the Moe protocol.
 
-## Contracts
+After having pasted the `Transaction Batch.json` in the `./encode_transactions/utils/` folder, run the following commands to test the batch transactions:
 
-### [Moe](./src/Moe.sol)
+```shell
+$ poetry install
+$ forge test --match-contract TestBatchTransactions --ffi -vvvv
+```
 
-The `Moe` contract is the governance token of the protocol. It is a standard ERC20 token where only the `minter` can mint tokens up to the maximum supply, which is set at 500M MOE.
-The distribution of the tokens is as follows:
+## Poetry
 
-- 15% to seed investors, using vesting contracts. (pre-minted)
-- 15% to future investors, using vesting contracts. (pre-minted)
-- 15% to the team, using vesting contracts. (pre-minted)
-- 2.5% to Joe stakers as an airdrop, distributed at the start of the protocol. (pre-minted)
-- 5% to Joe stakers, distributed over 1 year. (pre-minted)
-- 30% to liquidity mining incentives, distributed over 4 years. (emissions)
-- 17.5% to the treasury, distributed over 4 years. (emissions)
+This repository uses Poetry. The documentation can be found [here](https://python-poetry.org/docs/).
 
-The different vesting contracts all starts 8 months after the TGE and are vesting linearly over 40 months.
-Additionally, there will be a 4 months cliff preventing any tokens to be withdrawn before the first year.
+### Install
 
-![Tokenomics](./assets/tokenomics.png)
+To install the dependencies, run:
 
-### [MasterChef](./src/MasterChef.sol)
+```shell
+$ poetry install
+```
 
-The `MasterChef` contract is the only contract that can mint MOE tokens. It will be used to distribute the liquidity mining rewards to the farms.
-Users can stake their LP tokens to earn MOE rewards. The rewards are distributed based on the votes in the VeMoe contract.
-Admins can open farms, update the MOE per second and add extra rewarders to the farms. They can also update the treasury address.
+### Update
 
-### [MasterChefRewarder](./src/rewarders/MasterChefRewarder.sol)
+To update the dependencies, run:
 
-The `MasterChefRewarder` contract is the rewarder that will be used on top of the `MasterChef` contract to distribute extra rewards to the farms.
-Only the `MasterChef` contract can call `onModify` to update the user's rewards.
-Admins can set the start, end and extra reward per second. The adminds can also sweep any non active reward tokens.
-
-### [MoeStaking](./src/MoeStaking.sol)
-
-The `MoeStaking` contract is the staking contract for the MOE token. Users can stake their MOE tokens to receive `veMOE` tokens and rewards from `sMoe`.
-
-### [StableMoe](./src/StableMoe.sol)
-
-The `StableMoe` contract will distribute the protocol fees from the dex to the MOE stakers. They are firstly converted to a single reward token (most liely a stablecoin) and then distributed to the stakers. Users can call `claim` to get their rewards.
-Admins can add/remove rewards (each token can be added only once, removal is permanent) and sweep any non active reward tokens.
-
-### [VeMoe](./src/VeMoe.sol)
-
-The `VeMoe` contract is the vesting escrow contract for the `veMOE` tokens. The `veMOE` tokens are non-transferable and can be used to vote on pools to increase their weight. If user wants to unstake from `MoeStaking`, they need to have 0 votes on pools and will loose their entire `veMOE` balance.
-The weight will be used to calculate the share of the MOE rewards going to that pool in the `MasterChef`. To avoid gas issues, only pools that are in the top pools list will receive rewards. This list will be updated every week or so.
-Anyone can create a bribe pool to incentivize people to vote on a pool. After having voted, users can select to which bribes they want to receive rewards from (only one per pool id).
-Admins can set the top pools ids and the veMOE per second per MOE ratio.
-
-### [VeMoeRewarder](./src/rewarders/VeMoeRewarder.sol)
-
-The `VeMoeRewarder` contract is the rewarder that should be used for bribes pool to distribute rewards to voters of a pool. Only the `VeMoe` contract can call `onModify` to update the user's rewards.
-
-### [BaseRewarder](./src/rewarders/BaseRewarder.sol")
-
-The `BaseRewarder` contract is the base contract for the rewarders. It is used by the `VeMoeRewarder` and `MasterChefRewarder` contracts.
-
-### [Dex](./src/dex)
-
-The dex contracts are a fork of [Uniswap v2](https://github.com/Uniswap/v2-core) with some modifications:
-
-- bump solidity version from 0.5.16 to 0.8.20
-- pairs are deployed as immutable clones instead of redeploying the entire pair. This will greatly reduce the gas cost of creating pairs.
-- instead of minting protocol fees as LP tokens, they are directly sent to the feeTo address. This will reduce the gas cost of SMoe conversion and increase the rewards by summing the fees from all pairs.
-
-## Order of operations
-
-1. Fill and verify the [parameters](./script/parameters.json).
-2. Deploy the Moe protocol contracts using the [protocol script](./script/0_DeployProtocol.s.sol).
-3. Deploy the dex contracts using the [dex script](./script/1_DeployDex.sol).
-4. Set the beneficiary addresses on the different vesting contracts
-5. Create default pools and farms.
-6. Set the `veMoePerSecPerMoe` on the `VeMoe` contract to start the veMOE distribution.
-7. Once there is some votes on the top pools, set the `moePerSec` on the `MasterChef` contract to start the MOE distribution.
+```shell
+$ poetry update
+```
 
 ## Foundry
 
