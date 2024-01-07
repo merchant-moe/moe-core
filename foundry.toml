@@ -7,6 +7,8 @@ evm_version = 'paris'
 optimizer = true
 optimizer_runs = 600
 
+fs_permissions = [{ access = "read", path = "./encode_transactions/utils" }]
+
 [rpc_endpoints]
 avalanche_fuji = "https://api.avax-test.network/ext/bc/C/rpc"
 mantle = "https://rpc.mantle.xyz"
