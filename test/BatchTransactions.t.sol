@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 
 import "../script/mantle/Parameters.sol";
+import "../script/mantle/Addresses.sol";
 
 contract TestBatchTransactions is Test {
     using stdJson for string;
@@ -16,7 +17,7 @@ contract TestBatchTransactions is Test {
         uint256 value;
     }
 
-    function test_BatchTransactions() public {
+    function setUp() public {
         // add the custom chain
         setChain(
             Parameters.chainAlias,
@@ -25,6 +26,42 @@ contract TestBatchTransactions is Test {
 
         vm.createSelectFork(StdChains.getChain(Parameters.chainAlias).rpcUrl);
 
+        vm.label(Addresses.moeFactory, "MoeFactory");
+        vm.label(Addresses.moePairImplementation, "MoePairImplementation");
+        vm.label(Addresses.moeRouter, "MoeRouter");
+        vm.label(Addresses.wmantle, "Wmantle");
+        vm.label(Addresses.moe, "Moe");
+        vm.label(Addresses.joe, "Joe");
+        vm.label(Addresses.masterChefImplementation, "MasterChefImplementation");
+        vm.label(Addresses.moeStakingImplementation, "MoeStakingImplementation");
+        vm.label(Addresses.veMoeImplementation, "VeMoeImplementation");
+        vm.label(Addresses.stableMoeImplementation, "StableMoeImplementation");
+        vm.label(Addresses.joeStakingImplementation, "JoeStakingImplementation");
+        vm.label(Addresses.rewarderFactoryImplementation, "RewarderFactoryImplementation");
+        vm.label(Addresses.masterChefRewarderImplementation, "MasterChefRewarderImplementation");
+        vm.label(Addresses.veMoeRewarderImplementation, "VeMoeRewarderImplementation");
+        vm.label(Addresses.joeStakingRewarderImplementation, "JoeStakingRewarderImplementation");
+        vm.label(Addresses.masterChefProxy, "MasterChefProxy");
+        vm.label(Addresses.moeStakingProxy, "MoeStakingProxy");
+        vm.label(Addresses.veMoeProxy, "VeMoeProxy");
+        vm.label(Addresses.stableMoeProxy, "StableMoeProxy");
+        vm.label(Addresses.joeStakingProxy, "JoeStakingProxy");
+        vm.label(Addresses.rewarderFactoryProxy, "RewarderFactoryProxy");
+        vm.label(Addresses.devMultisig, "DevMultisig");
+        vm.label(Addresses.treasury, "Treasury");
+        vm.label(Addresses.futureFunding, "FutureFunding");
+        vm.label(Addresses.team, "Team");
+        vm.label(Addresses.seed1, "Seed1");
+        vm.label(Addresses.seed2, "Seed2");
+        vm.label(Addresses.joeStakingRewarder, "JoeStakingRewarder");
+        vm.label(Addresses.moeQuoter, "MoeQuoter");
+        vm.label(Addresses.moeLens, "MoeLens");
+        vm.label(Addresses.moeHelper, "MoeHelper");
+        vm.label(Addresses.feeManager, "FeeManager");
+        vm.label(Addresses.feeBank, "FeeBank");
+    }
+
+    function test_BatchTransactions() public {
         string[] memory inputs = new string[](3);
 
         inputs[0] = "poetry";
