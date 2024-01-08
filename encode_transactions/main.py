@@ -34,9 +34,9 @@ def encode_tx_data(transaction):
         if "[]" in type:
             value = value[1:-1].split(",")
 
-            if "uint" in type:
+            if "int" in type:
                 value = [int(v) for v in value]
-        elif "uint" in type:
+        elif "int" in type:
             value = int(value)
 
         types.append(type)
