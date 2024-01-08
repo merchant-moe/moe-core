@@ -16,6 +16,7 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
     using SafeERC20 for IERC20;
     using Rewarder for Rewarder.Parameter;
 
+    address public immutable implementation;
     address internal immutable _caller;
 
     uint256 internal _rewardsPerSecond;
@@ -32,6 +33,7 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
      */
     constructor(address caller) {
         _caller = caller;
+        implementation = address(this);
 
         _disableInitializers();
     }
