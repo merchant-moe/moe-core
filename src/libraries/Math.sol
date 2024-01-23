@@ -29,6 +29,11 @@ library Math {
         if (success == 0) revert Math__UnderOverflow();
     }
 
+    /**
+     * @dev Safely converts an unsigned integer to a signed integer.
+     * @param x Unsigned integer to convert.
+     * @return y Signed integer result.
+     */
     function toInt256(uint256 x) internal pure returns (int256 y) {
         if (x > MAX_INT256) revert Math__UnderOverflow();
 
