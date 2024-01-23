@@ -5,10 +5,12 @@ import "forge-std/Script.sol";
 
 import "./Parameters.sol";
 import "./Addresses.sol";
-import "../../src/VeMoe.sol";
 
-contract DeployVeMoeScript is Script {
-    function run() public returns (VeMoe veMoe) {
+import "../../src/VeMoe.sol";
+import "../../src/MasterChef.sol";
+
+contract DeployScript is Script {
+    function run() public returns (VeMoe veMoe, MasterChef masterChef) {
         // add the custom chain
         setChain(
             Parameters.chainAlias,
@@ -26,6 +28,15 @@ contract DeployVeMoeScript is Script {
             IMasterChef(Addresses.masterChefProxy),
             IRewarderFactory(Addresses.rewarderFactoryProxy),
             Parameters.maxVeMoePerMoe
+        );
+
+        uint256 sumEmissionShare = Parameters.liquidityMiningPercent + Parameters.treasuryPercent;
+
+        masterChef = new MasterChef(
+            IMoe(Addresses.moe),
+            IVeMoe(Addresses.veMoeProxy),
+            IRewarderFactory(Addresses.rewarderFactoryProxy),
+            Parameters.treasuryPercent * 1e18 / sumEmissionShare
         );
 
         vm.stopBroadcast();
