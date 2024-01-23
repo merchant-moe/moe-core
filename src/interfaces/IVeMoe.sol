@@ -36,6 +36,11 @@ interface IVeMoe {
         uint256 reserve;
     }
 
+    struct BribeReward {
+        IVeMoeRewarder bribe;
+        uint256 rewardAmount;
+    }
+
     event BribesSet(address indexed account, uint256[] pids, IVeMoeRewarder[] bribes);
 
     event Claim(address indexed account, int256 deltaVeMoe);

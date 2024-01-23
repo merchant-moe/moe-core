@@ -324,20 +324,20 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
         uint256 topPidsTotalVotes = _topPidsTotalVotes;
         uint256 topPidsTotalWeights = _topPidsTotalWeights;
 
-        IVeMoeRewarder[] memory bribes = new IVeMoeRewarder[](length);
-        uint256[] memory amounts = new uint256[](length);
+        BribeReward[] memory bribes = new BribeReward[](length);
 
-        uint256 newTotalVotes;
+        uint256 poolVotes;
+        uint256 alpha = _alpha;
         for (uint256 i; i < length; ++i) {
             uint256 pid = pids[i];
 
             if (pid >= numberOfFarm) revert VeMoe__InvalidPid(pid);
 
-            (bribes[i], amounts[i], newTotalVotes) = _vote(user, pid, deltaAmounts[i], userTotalVeMoe);
+            (bribes[i], poolVotes) = _vote(user, pid, deltaAmounts[i], userTotalVeMoe);
 
             if (_topPids.contains(pid)) {
                 uint256 oldWeight = _weights[pid];
-                uint256 newWeight = _calculateWeight(newTotalVotes);
+                uint256 newWeight = _calculateWeight(poolVotes, alpha);
 
                 _weights[pid] = newWeight;
 
@@ -350,9 +350,9 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
         _topPidsTotalWeights = topPidsTotalWeights;
 
         for (uint256 i; i < length; ++i) {
-            uint256 amount = amounts[i];
+            uint256 rewardAmount = bribes[i].rewardAmount;
 
-            if (amount > 0) bribes[i].claim(msg.sender, amount);
+            if (rewardAmount > 0) bribes[i].bribe.claim(msg.sender, rewardAmount);
         }
 
         emit Vote(msg.sender, pids, deltaAmounts);
@@ -475,24 +475,12 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
             }
         }
 
-        uint256 totalVotes;
-        uint256 totalWeights;
         for (uint256 i; i < length; ++i) {
             uint256 pid = pids[i];
-
             if (!_topPids.add(pid)) revert VeMoe__DuplicatePoolId(pid);
-
-            uint256 votes = _votes.getAmountOf(pid);
-            uint256 weight = _calculateWeight(votes);
-
-            _weights[pid] = weight;
-
-            totalVotes += votes;
-            totalWeights += weight;
         }
 
-        _topPidsTotalVotes = totalVotes;
-        _topPidsTotalWeights = totalWeights;
+        _updateWeights(pids, _alpha);
 
         emit TopPoolIdsSet(pids);
     }
@@ -505,6 +493,7 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
         if (alpha == 0 || alpha > Constants.PRECISION) revert VeMoe__InvalidAlpha();
 
         _alpha = alpha;
+        _updateWeights(_topPids.values(), alpha);
 
         emit AlphaSet(alpha);
     }
@@ -532,16 +521,17 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
 
     /**
      * @dev Returns the weight from a number of votes.
-     * @param totalVote The number of votes.
+     * @param poolVotes The number of votes of a pool.
+     * @param alpha The alpha value.
      * @return weight The weight.
      */
-    function _calculateWeight(uint256 totalVote) private view returns (uint256 weight) {
-        if (totalVote == 0) return 0;
+    function _calculateWeight(uint256 poolVotes, uint256 alpha) private pure returns (uint256 weight) {
+        if (poolVotes <= Constants.PRECISION || alpha == Constants.PRECISION) return poolVotes;
 
-        int256 sweight = FixedPointMathLib.powWad(Math.toInt256(totalVote), int256(_alpha));
-        weight = uint256(sweight);
+        int256 sweight = FixedPointMathLib.powWad(Math.toInt256(poolVotes), int256(alpha));
+        if (sweight < 0) return 0;
 
-        if (sweight < 0 || weight > totalVote) revert VeMoe__InvalidWeight();
+        weight = uint256(sweight) > poolVotes ? poolVotes : uint256(sweight);
     }
 
     /**
@@ -564,32 +554,60 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
     }
 
     /**
+     * @dev Updates the weights of the pools in the pids list.
+     * @param pids The list of pool IDs.
+     * @param alpha The alpha value.
+     */
+    function _updateWeights(uint256[] memory pids, uint256 alpha) private {
+        uint256 totalVotes;
+        uint256 totalWeights;
+
+        uint256 length = pids.length;
+        for (uint256 i; i < length; ++i) {
+            uint256 pid = pids[i];
+
+            uint256 votes = _votes.getAmountOf(pid);
+            uint256 weight = _calculateWeight(votes, alpha);
+
+            _weights[pid] = weight;
+
+            totalVotes += votes;
+            totalWeights += weight;
+        }
+
+        _topPidsTotalVotes = totalVotes;
+        _topPidsTotalWeights = totalWeights;
+    }
+
+    /**
      * @dev Votes for a pool.
      * @param user The storage pointer to the user.
      * @param pid The pool ID.
      * @param deltaAmount The delta amount to vote.
      * @param userTotalVeMoe The total veMOE of the user.
-     * @return bribe The bribe contract.
-     * @return amount The amount of rewards to claim from the bribe contract.
-     * @return newTotalVotes The new total votes of the pool.
+     * @return bribeReward The pending bribe reward.
+     * @return newPoolVotes The total votes of the pool.
      */
     function _vote(User storage user, uint256 pid, int256 deltaAmount, uint256 userTotalVeMoe)
         private
-        returns (IVeMoeRewarder bribe, uint256 amount, uint256 newTotalVotes)
+        returns (BribeReward memory bribeReward, uint256 newPoolVotes)
     {
         (uint256 userOldVotes, uint256 userNewVotes,, uint256 userNewTotalVotes) = user.votes.update(pid, deltaAmount);
 
         if (userNewTotalVotes > userTotalVeMoe) revert VeMoe__InsufficientVeMoe(userTotalVeMoe, userNewTotalVotes);
 
-        (,,, newTotalVotes) = _votes.update(pid, deltaAmount);
+        (, newPoolVotes,,) = _votes.update(pid, deltaAmount);
 
-        bribe = user.bribes[pid];
+        IVeMoeRewarder bribe = user.bribes[pid];
 
         if (address(bribe) != address(0)) {
             uint256 totalVotes = _bribesTotalVotes[bribe][pid];
             _bribesTotalVotes[bribe][pid] = totalVotes.addDelta(deltaAmount);
 
-            amount = bribe.onModify(msg.sender, pid, userOldVotes, userNewVotes, totalVotes);
+            bribeReward = BribeReward({
+                bribe: bribe,
+                rewardAmount: bribe.onModify(msg.sender, pid, userOldVotes, userNewVotes, totalVotes)
+            });
         }
     }
 
