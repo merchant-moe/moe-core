@@ -76,7 +76,7 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
     function initialize(address initialOwner) external reinitializer(2) {
         __Ownable_init(initialOwner);
 
-        _alpha = 1e18;
+        _setAlpha(Constants.PRECISION);
     }
 
     /**
@@ -490,12 +490,7 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
      * @param alpha The alpha value.
      */
     function setAlpha(uint256 alpha) external override onlyOwner {
-        if (alpha == 0 || alpha > Constants.PRECISION) revert VeMoe__InvalidAlpha();
-
-        _alpha = alpha;
-        _updateWeights(_topPids.values(), alpha);
-
-        emit AlphaSet(alpha);
+        _setAlpha(alpha);
     }
 
     /**
@@ -577,6 +572,19 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
 
         _topPidsTotalVotes = totalVotes;
         _topPidsTotalWeights = totalWeights;
+    }
+
+    /**
+     * @dev Sets the alpha value and updates the weights of the pools in the top pool IDs.
+     * @param alpha The alpha value.
+     */
+    function _setAlpha(uint256 alpha) private {
+        if (alpha == 0 || alpha > Constants.PRECISION) revert VeMoe__InvalidAlpha();
+
+        _alpha = alpha;
+        _updateWeights(_topPids.values(), alpha);
+
+        emit AlphaSet(alpha);
     }
 
     /**
