@@ -170,7 +170,7 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
     }
 
     /**
-     * @dev Returns the alpha value, used to calculate the weight of a pool (weight = votes^alpha).
+     * @dev Returns the alpha value, used to calculate the weight of a pool (weight = min(votes, votes^alpha)).
      * @return The alpha value.
      */
     function getAlpha() external view override returns (uint256) {
@@ -486,7 +486,7 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
     }
 
     /**
-     * @dev Sets the alpha value, used to calculate the weight of a pool (weight = votes^alpha).
+     * @dev Sets the alpha value, used to calculate the weight of a pool (weight = min(votes, votes^alpha)).
      * @param alpha The alpha value.
      */
     function setAlpha(uint256 alpha) external override onlyOwner {
