@@ -73,7 +73,7 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
      * @dev Initializes the contract.
      * @param initialOwner The initial owner of the contract.
      */
-    function initialize(address initialOwner) external initializer {
+    function initialize(address initialOwner) external reinitializer(2) {
         __Ownable_init(initialOwner);
 
         _alpha = 1e18;
