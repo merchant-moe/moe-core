@@ -141,6 +141,10 @@ contract VeMoeTest is Test {
         veMoePerSecondPerMoe = veMoe.getVeMoePerSecondPerMoe();
 
         assertEq(veMoePerSecondPerMoe, 0, "test_SetVeMoePerSecondPerMoe::4");
+
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, alice));
+        vm.prank(alice);
+        veMoe.setVeMoePerSecondPerMoe(1);
     }
 
     function test_OnModifyAndClaim() public {
@@ -783,6 +787,198 @@ contract VeMoeTest is Test {
 
         assertEq(token18d.balanceOf(address(maliciousBribe)), 0, "test_ReenterBribes::1");
         assertEq(token18d.balanceOf(address(bribes0)), 100e18, "test_ReenterBribes::2");
+    }
+
+    function test_SetAlpha(uint256 alpha) public {
+        alpha = bound(alpha, 1, 1e18);
+
+        assertEq(veMoe.getAlpha(), 1e18, "test_SetAlpha::1");
+
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, alice));
+        vm.prank(alice);
+        veMoe.setAlpha(alpha);
+
+        veMoe.setAlpha(alpha);
+
+        assertEq(veMoe.getAlpha(), alpha, "test_SetAlpha::2");
+
+        vm.expectRevert(IVeMoe.VeMoe__InvalidAlpha.selector);
+        veMoe.setAlpha(0);
+
+        vm.expectRevert(IVeMoe.VeMoe__InvalidAlpha.selector);
+        veMoe.setAlpha(1e18 + 1);
+
+        vm.expectRevert(IVeMoe.VeMoe__InvalidAlpha.selector);
+        veMoe.setAlpha(bound(alpha, 1e18 + 1, type(uint256).max));
+    }
+
+    function test_VoteOnTopPoolsWithWeight() public {
+        veMoe.setVeMoePerSecondPerMoe(1e18);
+
+        vm.prank(alice);
+        staking.stake(1e18);
+
+        vm.prank(bob);
+        staking.stake(9e18);
+
+        vm.warp(block.timestamp + 100);
+
+        uint256[] memory pids = new uint256[](2);
+
+        pids[0] = 0;
+        pids[1] = 1;
+
+        int256[] memory deltaAmounts = new int256[](2);
+
+        deltaAmounts[0] = 50e18;
+        deltaAmounts[1] = 50e18;
+
+        uint256[] memory topPids = new uint256[](1);
+
+        vm.prank(alice);
+        veMoe.vote(pids, deltaAmounts);
+
+        veMoe.setTopPoolIds(topPids);
+
+        assertEq(veMoe.getTopPidsTotalVotes(), 50e18, "test_VoteOnTopPoolsWithWeight::1");
+        assertEq(veMoe.getVotes(0), 50e18, "test_VoteOnTopPoolsWithWeight::2");
+        assertEq(veMoe.getVotes(1), 50e18, "test_VoteOnTopPoolsWithWeight::3");
+        assertEq(veMoe.getTotalWeight(), 50e18, "test_VoteOnTopPoolsWithWeight::4");
+        assertEq(veMoe.getWeight(0), 50e18, "test_VoteOnTopPoolsWithWeight::5");
+        assertEq(veMoe.getWeight(1), 0, "test_VoteOnTopPoolsWithWeight::6");
+        assertTrue(veMoe.isInTopPoolIds(0), "test_VoteOnTopPoolsWithWeight::7");
+        assertFalse(veMoe.isInTopPoolIds(1), "test_VoteOnTopPoolsWithWeight::8");
+
+        uint256[] memory topPoolIds = veMoe.getTopPoolIds();
+
+        assertEq(topPoolIds.length, 1, "test_VoteOnTopPoolsWithWeight::9");
+        assertEq(topPoolIds[0], 0, "test_VoteOnTopPoolsWithWeight::10");
+
+        deltaAmounts[0] = 350e18;
+        deltaAmounts[1] = 50e18;
+
+        vm.prank(bob);
+        veMoe.vote(pids, deltaAmounts);
+
+        assertEq(veMoe.getTopPidsTotalVotes(), 400e18, "test_VoteOnTopPoolsWithWeight::11");
+        assertEq(veMoe.getVotes(0), 400e18, "test_VoteOnTopPoolsWithWeight::12");
+        assertEq(veMoe.getVotes(1), 100e18, "test_VoteOnTopPoolsWithWeight::13");
+        assertEq(veMoe.getTotalWeight(), 400e18, "test_VoteOnTopPoolsWithWeight::14");
+        assertEq(veMoe.getWeight(0), 400e18, "test_VoteOnTopPoolsWithWeight::15");
+        assertEq(veMoe.getWeight(1), 0, "test_VoteOnTopPoolsWithWeight::16");
+        assertTrue(veMoe.isInTopPoolIds(0), "test_VoteOnTopPoolsWithWeight::17");
+        assertFalse(veMoe.isInTopPoolIds(1), "test_VoteOnTopPoolsWithWeight::18");
+
+        veMoe.setAlpha(1e18 / 2); // sqrt
+
+        assertEq(veMoe.getTopPidsTotalVotes(), 400e18, "test_VoteOnTopPoolsWithWeight::19");
+        assertEq(veMoe.getVotes(0), 400e18, "test_VoteOnTopPoolsWithWeight::20");
+        assertEq(veMoe.getVotes(1), 100e18, "test_VoteOnTopPoolsWithWeight::21");
+        assertApproxEqRel(veMoe.getTotalWeight(), 20e18, 1e9, "test_VoteOnTopPoolsWithWeight::22");
+        assertApproxEqRel(veMoe.getWeight(0), 20e18, 1e9, "test_VoteOnTopPoolsWithWeight::23");
+        assertEq(veMoe.getWeight(1), 0, "test_VoteOnTopPoolsWithWeight::24");
+        assertTrue(veMoe.isInTopPoolIds(0), "test_VoteOnTopPoolsWithWeight::25");
+        assertFalse(veMoe.isInTopPoolIds(1), "test_VoteOnTopPoolsWithWeight::26");
+
+        topPids[0] = 1;
+        veMoe.setTopPoolIds(topPids);
+
+        assertEq(veMoe.getTopPidsTotalVotes(), 100e18, "test_VoteOnTopPoolsWithWeight::27");
+        assertEq(veMoe.getVotes(0), 400e18, "test_VoteOnTopPoolsWithWeight::28");
+        assertEq(veMoe.getVotes(1), 100e18, "test_VoteOnTopPoolsWithWeight::29");
+        assertApproxEqRel(veMoe.getTotalWeight(), 10e18, 1e9, "test_VoteOnTopPoolsWithWeight::30");
+        assertEq(veMoe.getWeight(0), 0, "test_VoteOnTopPoolsWithWeight::31");
+        assertApproxEqRel(veMoe.getWeight(1), 10e18, 1e9, "test_VoteOnTopPoolsWithWeight::32");
+        assertFalse(veMoe.isInTopPoolIds(0), "test_VoteOnTopPoolsWithWeight::33");
+        assertTrue(veMoe.isInTopPoolIds(1), "test_VoteOnTopPoolsWithWeight::34");
+
+        topPids = new uint256[](2);
+
+        topPids[0] = 0;
+        topPids[1] = 1;
+
+        veMoe.setTopPoolIds(topPids);
+
+        assertEq(veMoe.getTopPidsTotalVotes(), 500e18, "test_VoteOnTopPoolsWithWeight::35");
+        assertEq(veMoe.getVotes(0), 400e18, "test_VoteOnTopPoolsWithWeight::36");
+        assertEq(veMoe.getVotes(1), 100e18, "test_VoteOnTopPoolsWithWeight::37");
+        assertApproxEqRel(veMoe.getTotalWeight(), 30e18, 1e9, "test_VoteOnTopPoolsWithWeight::38");
+        assertApproxEqRel(veMoe.getWeight(0), 20e18, 1e9, "test_VoteOnTopPoolsWithWeight::39");
+        assertApproxEqRel(veMoe.getWeight(1), 10e18, 1e9, "test_VoteOnTopPoolsWithWeight::40");
+        assertTrue(veMoe.isInTopPoolIds(0), "test_VoteOnTopPoolsWithWeight::41");
+        assertTrue(veMoe.isInTopPoolIds(1), "test_VoteOnTopPoolsWithWeight::42");
+
+        deltaAmounts[0] = -175e18;
+        deltaAmounts[1] = -36e18;
+
+        vm.prank(bob);
+        veMoe.vote(pids, deltaAmounts);
+
+        assertEq(veMoe.getTopPidsTotalVotes(), 289e18, "test_VoteOnTopPoolsWithWeight::43");
+        assertEq(veMoe.getVotes(0), 225e18, "test_VoteOnTopPoolsWithWeight::44");
+        assertEq(veMoe.getVotes(1), 64e18, "test_VoteOnTopPoolsWithWeight::45");
+        assertApproxEqRel(veMoe.getTotalWeight(), 23e18, 1e9, "test_VoteOnTopPoolsWithWeight::46");
+        assertApproxEqRel(veMoe.getWeight(0), 15e18, 1e9, "test_VoteOnTopPoolsWithWeight::47");
+        assertApproxEqRel(veMoe.getWeight(1), 8e18, 1e9, "test_VoteOnTopPoolsWithWeight::48");
+        assertTrue(veMoe.isInTopPoolIds(0), "test_VoteOnTopPoolsWithWeight::49");
+        assertTrue(veMoe.isInTopPoolIds(1), "test_VoteOnTopPoolsWithWeight::50");
+
+        deltaAmounts[0] = -175e18;
+        deltaAmounts[1] = 0;
+
+        vm.prank(bob);
+        veMoe.vote(pids, deltaAmounts);
+
+        deltaAmounts[0] = -50e18;
+        deltaAmounts[1] = 0;
+
+        vm.prank(alice);
+        veMoe.vote(pids, deltaAmounts);
+
+        assertEq(veMoe.getTopPidsTotalVotes(), 64e18, "test_VoteOnTopPoolsWithWeight::51");
+        assertEq(veMoe.getVotes(0), 0, "test_VoteOnTopPoolsWithWeight::52");
+        assertEq(veMoe.getVotes(1), 64e18, "test_VoteOnTopPoolsWithWeight::53");
+        assertApproxEqRel(veMoe.getTotalWeight(), 8e18, 1e9, "test_VoteOnTopPoolsWithWeight::54");
+        assertEq(veMoe.getWeight(0), 0, "test_VoteOnTopPoolsWithWeight::55");
+        assertApproxEqRel(veMoe.getWeight(1), 8e18, 1e9, "test_VoteOnTopPoolsWithWeight::56");
+        assertTrue(veMoe.isInTopPoolIds(0), "test_VoteOnTopPoolsWithWeight::57");
+        assertTrue(veMoe.isInTopPoolIds(1), "test_VoteOnTopPoolsWithWeight::58");
+
+        deltaAmounts[0] = 0;
+        deltaAmounts[1] = -14e18;
+
+        vm.prank(bob);
+        veMoe.vote(pids, deltaAmounts);
+
+        deltaAmounts[0] = 0;
+        deltaAmounts[1] = -49.5e18;
+
+        vm.prank(alice);
+        veMoe.vote(pids, deltaAmounts);
+
+        assertEq(veMoe.getTopPidsTotalVotes(), 0.5e18, "test_VoteOnTopPoolsWithWeight::59");
+        assertEq(veMoe.getVotes(0), 0, "test_VoteOnTopPoolsWithWeight::60");
+        assertEq(veMoe.getVotes(1), 0.5e18, "test_VoteOnTopPoolsWithWeight::61");
+        assertEq(veMoe.getTotalWeight(), 0.5e18, "test_VoteOnTopPoolsWithWeight::62");
+        assertEq(veMoe.getWeight(0), 0, "test_VoteOnTopPoolsWithWeight::63");
+        assertEq(veMoe.getWeight(1), 0.5e18, "test_VoteOnTopPoolsWithWeight::64");
+        assertTrue(veMoe.isInTopPoolIds(0), "test_VoteOnTopPoolsWithWeight::65");
+        assertTrue(veMoe.isInTopPoolIds(1), "test_VoteOnTopPoolsWithWeight::66");
+
+        deltaAmounts[0] = 0;
+        deltaAmounts[1] = -0.5e18;
+
+        vm.prank(alice);
+        veMoe.vote(pids, deltaAmounts);
+
+        assertEq(veMoe.getTopPidsTotalVotes(), 0, "test_VoteOnTopPoolsWithWeight::67");
+        assertEq(veMoe.getVotes(0), 0, "test_VoteOnTopPoolsWithWeight::68");
+        assertEq(veMoe.getVotes(1), 0, "test_VoteOnTopPoolsWithWeight::69");
+        assertEq(veMoe.getTotalWeight(), 0, "test_VoteOnTopPoolsWithWeight::70");
+        assertEq(veMoe.getWeight(0), 0, "test_VoteOnTopPoolsWithWeight::71");
+        assertEq(veMoe.getWeight(1), 0, "test_VoteOnTopPoolsWithWeight::72");
+        assertTrue(veMoe.isInTopPoolIds(0), "test_VoteOnTopPoolsWithWeight::73");
+        assertTrue(veMoe.isInTopPoolIds(1), "test_VoteOnTopPoolsWithWeight::74");
     }
 }
 
