@@ -2,7 +2,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import "../script/mantle/2_Deploy.s.sol";
+import "../script/mantle/3_Deploy.s.sol";
 
 import "../src/transparent/ProxyAdmin2Step.sol";
 import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
@@ -11,7 +11,7 @@ contract UpgradeTest is Test {
     function test_UpgradeVeMoe() public {
         DeployScript deployer = new DeployScript();
 
-        (VeMoe newVeMoeImplementation, MasterChef newMasterChefImplementation) = deployer.run();
+        (VeMoe newVeMoeImplementation, MasterChef newMasterChefImplementation,) = deployer.run();
 
         assertEq(
             address(IVeMoe(Addresses.veMoeProxy).getMoeStaking()),
@@ -89,20 +89,20 @@ contract UpgradeTest is Test {
         assertEq(IVeMoe(Addresses.veMoeProxy).getTopPidsTotalVotes(), topPidsTotalVotes, "test_UpgradeVeMoe::14");
         assertEq(IVeMoe(Addresses.veMoeProxy).getVeMoePerSecondPerMoe(), veMoePerSecond, "test_UpgradeVeMoe::15");
 
-        assertEq(address(IMasterChef(Addresses.masterChefProxy).getMoe()), moe, "test_UpgradeVeMoe::17");
-        assertEq(address(IMasterChef(Addresses.masterChefProxy).getVeMoe()), veMoe, "test_UpgradeVeMoe::18");
+        assertEq(address(IMasterChef(Addresses.masterChefProxy).getMoe()), moe, "test_UpgradeVeMoe::16");
+        assertEq(address(IMasterChef(Addresses.masterChefProxy).getVeMoe()), veMoe, "test_UpgradeVeMoe::17");
         assertEq(
             address(IMasterChef(Addresses.masterChefProxy).getRewarderFactory()),
             rewarderFactory,
-            "test_UpgradeVeMoe::19"
+            "test_UpgradeVeMoe::18"
         );
-        assertEq(IMasterChef(Addresses.masterChefProxy).getTreasuryShare(), treasuryShare, "test_UpgradeVeMoe::20");
+        assertEq(IMasterChef(Addresses.masterChefProxy).getTreasuryShare(), treasuryShare, "test_UpgradeVeMoe::19");
 
         uint256 nbFarm = IMasterChef(Addresses.masterChefProxy).getNumberOfFarms();
         uint256 totalWeight = IVeMoe(Addresses.veMoeProxy).getTotalWeight();
         uint256 moePerSecond = IMasterChef(Addresses.masterChefProxy).getMoePerSecond();
 
-        assertEq(totalWeight, topPidsTotalVotes, "test_UpgradeVeMoe::16");
+        assertEq(totalWeight, topPidsTotalVotes, "test_UpgradeVeMoe::20");
 
         for (uint256 i = 0; i < nbFarm; i++) {
             uint256 expectedWeight =

@@ -8,9 +8,10 @@ import "./Addresses.sol";
 
 import "../../src/VeMoe.sol";
 import "../../src/MasterChef.sol";
+import "../../src/MoeLens.sol";
 
 contract DeployScript is Script {
-    function run() public returns (VeMoe veMoe, MasterChef masterChef) {
+    function run() public returns (VeMoe veMoe, MasterChef masterChef, MoeLens moeLens) {
         // add the custom chain
         setChain(
             Parameters.chainAlias,
@@ -37,6 +38,10 @@ contract DeployScript is Script {
             IVeMoe(Addresses.veMoeProxy),
             IRewarderFactory(Addresses.rewarderFactoryProxy),
             Parameters.treasuryPercent * 1e18 / sumEmissionShare
+        );
+
+        moeLens = new MoeLens(
+            IMasterChef(Addresses.masterChefProxy), IJoeStaking(Addresses.joeStakingProxy), Parameters.nativeSymbol
         );
 
         vm.stopBroadcast();
