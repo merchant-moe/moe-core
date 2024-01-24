@@ -240,7 +240,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     /**
      * @dev Returns the MOE per second for a given pool ID.
      * If the pool ID is not in the top pool IDs, it will return 0.
-     * Else, it will return the MOE per second multiplied by the proportion of votes for this pool ID.
+     * Else, it will return the MOE per second multiplied by the weight of the pool ID over the total weight.
      * @param pid The pool ID.
      * @return The MOE per second for the pool ID.
      */
@@ -367,7 +367,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     /**
      * @dev Returns the reward for a given pool ID.
      * If the pool ID is not in the top pool IDs, it will return 0.
-     * Else, it will return the reward multiplied by the proportion of votes for this pool ID.
+     * Else, it will return the reward multiplied by the weight of the pool ID over the total weight.
      * @param rewarder The storage pointer to the rewarder.
      * @param pid The pool ID.
      * @param totalSupply The total supply.
@@ -383,7 +383,8 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
 
     /**
      * @dev Returns the reward for a given pool ID.
-     * The weight of the pool ID is determined by the proportion of votes for this pool ID.
+     * If the pool ID is not in the top pool IDs, it will return 0.
+     * Else, it will return the reward multiplied by the weight of the pool ID over the total weight.
      * @param pid The pool ID.
      * @param totalRewards The total rewards.
      * @param totalWeight The total weight.
