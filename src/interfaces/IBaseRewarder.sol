@@ -46,10 +46,13 @@ interface IBaseRewarder {
 
     function initialize(address initialOwner) external;
 
-    function setRewardPerSecond(uint256 maxRewardPerSecond, uint256 expectedDuration) external;
+    function setRewardPerSecond(uint256 maxRewardPerSecond, uint256 expectedDuration)
+        external
+        returns (uint256 rewardPerSecond);
 
     function setRewarderParameters(uint256 maxRewardPerSecond, uint256 startTimestamp, uint256 expectedDuration)
-        external;
+        external
+        returns (uint256 rewardPerSecond);
 
     function stop() external;
 

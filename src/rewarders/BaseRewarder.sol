@@ -146,13 +146,16 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
      * @param maxRewardPerSecond The maximum reward per second.
      * @param startTimestamp The start timestamp.
      * @param expectedDuration The expected duration of the reward distribution.
+     * @return rewardPerSecond The actual reward per second.
      */
     function setRewarderParameters(uint256 maxRewardPerSecond, uint256 startTimestamp, uint256 expectedDuration)
         public
         virtual
+        override
         onlyOwner
+        returns (uint256 rewardPerSecond)
     {
-        _setRewardParameters(maxRewardPerSecond, startTimestamp, expectedDuration);
+        return _setRewardParameters(maxRewardPerSecond, startTimestamp, expectedDuration);
     }
 
     /**
@@ -160,17 +163,19 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
      * If the expected duration is 0, the reward distribution will be stopped.
      * @param maxRewardPerSecond The maximum reward per second.
      * @param expectedDuration The expected duration of the reward distribution.
+     * @return rewardPerSecond The actual reward per second.
      */
     function setRewardPerSecond(uint256 maxRewardPerSecond, uint256 expectedDuration)
         public
         virtual
         override
         onlyOwner
+        returns (uint256 rewardPerSecond)
     {
         uint256 lastUpdateTimestamp = _rewarder.lastUpdateTimestamp;
         uint256 startTimestamp = lastUpdateTimestamp > block.timestamp ? lastUpdateTimestamp : block.timestamp;
 
-        _setRewardParameters(maxRewardPerSecond, startTimestamp, expectedDuration);
+        return _setRewardParameters(maxRewardPerSecond, startTimestamp, expectedDuration);
     }
 
     /**
@@ -316,10 +321,12 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
      * @param maxRewardPerSecond The maximum reward per second.
      * @param startTimestamp The start timestamp.
      * @param expectedDuration The expected duration of the reward distribution.
+     * @return rewardPerSecond The actual reward per second.
      */
     function _setRewardParameters(uint256 maxRewardPerSecond, uint256 startTimestamp, uint256 expectedDuration)
         internal
         virtual
+        returns (uint256 rewardPerSecond)
     {
         if (startTimestamp < block.timestamp) revert BaseRewarder__InvalidStartTimestamp(startTimestamp);
         if (_isStopped) revert BaseRewarder__Stopped();
@@ -335,8 +342,7 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
         uint256 remainingReward = _balanceOfThis(_token()) - totalUnclaimedRewards;
         uint256 maxExpectedReward = maxRewardPerSecond * expectedDuration;
 
-        uint256 rewardPerSecond =
-            maxExpectedReward > remainingReward ? remainingReward / expectedDuration : maxRewardPerSecond;
+        rewardPerSecond = maxExpectedReward > remainingReward ? remainingReward / expectedDuration : maxRewardPerSecond;
         uint256 expectedReward = rewardPerSecond * expectedDuration;
 
         if (expectedDuration != 0 && expectedReward == 0) revert BaseRewarder__ZeroReward();
