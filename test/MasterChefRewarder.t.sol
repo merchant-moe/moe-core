@@ -98,21 +98,23 @@ contract MasterChefRewarderTest is Test {
 
         MockERC20(address(rewardToken)).mint(address(rewarder), 100e18);
 
-        rewarder.setRewardPerSecond(1e18, 100);
+        uint256 actualRewardPerSecond = rewarder.setRewardPerSecond(1e18, 100);
 
         (, uint256 rewardPerSecond,, uint256 endTimestamp) = rewarder.getRewarderParameter();
 
         assertEq(rewardPerSecond, 1e18, "test_SetRewardPerSecond::1");
-        assertEq(endTimestamp, block.timestamp + 100, "test_SetRewardPerSecond::2");
+        assertEq(actualRewardPerSecond, 1e18, "test_SetRewardPerSecond::2");
+        assertEq(endTimestamp, block.timestamp + 100, "test_SetRewardPerSecond::3");
 
         vm.warp(block.timestamp + 50);
 
-        rewarder.setRewardPerSecond(1e18, 100);
+        actualRewardPerSecond = rewarder.setRewardPerSecond(1e18, 100);
 
         (, rewardPerSecond,, endTimestamp) = rewarder.getRewarderParameter();
 
-        assertEq(rewardPerSecond, 0.5e18, "test_SetRewardPerSecond::3");
-        assertEq(endTimestamp, block.timestamp + 100, "test_SetRewardPerSecond::4");
+        assertEq(rewardPerSecond, 0.5e18, "test_SetRewardPerSecond::4");
+        assertEq(actualRewardPerSecond, 0.5e18, "test_SetRewardPerSecond::5");
+        assertEq(endTimestamp, block.timestamp + 100, "test_SetRewardPerSecond::6");
 
         rewarder.setRewardPerSecond(0, 0);
 
