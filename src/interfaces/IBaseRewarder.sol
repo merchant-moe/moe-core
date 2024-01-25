@@ -35,6 +35,8 @@ interface IBaseRewarder {
         view
         returns (IERC20 token, uint256 rewardPerSecond, uint256 lastUpdateTimestamp, uint256 endTimestamp);
 
+    function getRemainingReward() external view returns (uint256);
+
     function getPendingReward(address account, uint256 balance, uint256 totalSupply)
         external
         view

@@ -102,6 +102,19 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
     }
 
     /**
+     * @dev Returns the remaining reward.
+     * @return The remaining reward.
+     */
+    function getRemainingReward() public view virtual override returns (uint256) {
+        uint256 totalSupply = _getTotalSupply();
+        uint256 totalRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp, totalSupply);
+
+        uint256 totalUnclaimedRewards = _totalUnclaimedRewards + totalRewards;
+
+        return _balanceOfThis(_token()) - totalUnclaimedRewards;
+    }
+
+    /**
      * @dev Returns the pending rewards for a given account.
      * @param account The account to check for pending rewards.
      * @param balance The balance of the account.
