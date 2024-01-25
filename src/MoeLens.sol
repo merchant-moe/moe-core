@@ -103,6 +103,7 @@ contract MoeLens {
         uint256 pid;
         uint256 totalDeposited;
         Reward reward;
+        uint256 remainingReward;
         uint256 rewardPerSec;
         uint256 lastUpdateTimestamp;
         uint256 endUpdateTimestamp;
@@ -214,6 +215,11 @@ contract MoeLens {
                 reward = r;
             } catch {}
 
+            uint256 remainingReward;
+            try rewarder.getRemainingReward() returns (uint256 remaining) {
+                remainingReward = remaining;
+            } catch {}
+
             farm.rewarder = Rewarder({
                 isSet: true,
                 isStarted: lastUpdateTimestamp <= block.timestamp,
@@ -222,6 +228,7 @@ contract MoeLens {
                 totalDeposited: farm.totalStaked,
                 reward: reward,
                 rewardPerSec: rewardPerSecond,
+                remainingReward: remainingReward,
                 lastUpdateTimestamp: lastUpdateTimestamp,
                 endUpdateTimestamp: endTimestamp
             });
@@ -335,14 +342,20 @@ contract MoeLens {
                 bribe.getRewarderParameter();
 
             Reward memory reward;
+            {
+                uint256[] memory pids = new uint256[](1);
+                pids[0] = pid;
 
-            uint256[] memory pids = new uint256[](1);
-            pids[0] = pid;
+                (, uint256[] memory extraRewards) = _veMoe.getPendingRewards(user, pids);
 
-            (, uint256[] memory extraRewards) = _veMoe.getPendingRewards(user, pids);
+                try this.getRewardData(address(token), extraRewards[0]) returns (Reward memory r) {
+                    reward = r;
+                } catch {}
+            }
 
-            try this.getRewardData(address(token), extraRewards[0]) returns (Reward memory r) {
-                reward = r;
+            uint256 remainingReward;
+            try bribe.getRemainingReward() returns (uint256 remaining) {
+                remainingReward = remaining;
             } catch {}
 
             vote.rewarder = Rewarder({
@@ -353,6 +366,7 @@ contract MoeLens {
                 totalDeposited: _veMoe.getBribesTotalVotes(bribe, pid),
                 reward: reward,
                 rewardPerSec: rewardPerSecond,
+                remainingReward: remainingReward,
                 lastUpdateTimestamp: lastUpdateTimestamp,
                 endUpdateTimestamp: endTimestamp
             });
@@ -391,6 +405,11 @@ contract MoeLens {
             reward = r;
         } catch {}
 
+        uint256 remainingReward;
+        try rewarderContract.getRemainingReward() returns (uint256 remaining) {
+            remainingReward = remaining;
+        } catch {}
+
         rewarder = Rewarder({
             isSet: false, // Placeholder
             isStarted: lastUpdateTimestamp <= block.timestamp,
@@ -399,6 +418,7 @@ contract MoeLens {
             totalDeposited: _veMoe.getBribesTotalVotes(IVeMoeRewarder(address(rewarderContract)), pid),
             reward: reward,
             rewardPerSec: rewardPerSecond,
+            remainingReward: remainingReward,
             lastUpdateTimestamp: lastUpdateTimestamp,
             endUpdateTimestamp: endTimestamp
         });
