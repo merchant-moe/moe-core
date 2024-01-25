@@ -10,7 +10,7 @@ interface IBaseRewarder {
     error BaseRewarder__AlreadyStopped();
     error BaseRewarder__NotNativeRewarder();
     error BaseRewarder__ZeroAmount();
-    error BaseRewarder__InsufficientReward(uint256 remainingReward, uint256 expectedReward);
+    error BaseRewarder__ZeroReward();
     error BaseRewarder__InvalidDuration();
     error BaseRewarder__InvalidPid(uint256 pid);
     error BaseRewarder__InvalidStartTimestamp(uint256 startTimestamp);
@@ -46,9 +46,9 @@ interface IBaseRewarder {
 
     function initialize(address initialOwner) external;
 
-    function setRewardPerSecond(uint256 rewardPerSecond, uint256 expectedDuration) external;
+    function setRewardPerSecond(uint256 maxRewardPerSecond, uint256 expectedDuration) external;
 
-    function setRewarderParameters(uint256 rewardPerSecond, uint256 startTimestamp, uint256 expectedDuration)
+    function setRewarderParameters(uint256 maxRewardPerSecond, uint256 startTimestamp, uint256 expectedDuration)
         external;
 
     function stop() external;
