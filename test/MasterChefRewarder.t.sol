@@ -93,7 +93,7 @@ contract MasterChefRewarderTest is Test {
         vm.expectRevert(IBaseRewarder.BaseRewarder__InvalidDuration.selector);
         rewarder.setRewardPerSecond(1, 0);
 
-        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InsufficientReward.selector, 0, 1));
+        vm.expectRevert(IBaseRewarder.BaseRewarder__ZeroReward.selector);
         rewarder.setRewardPerSecond(1, 1);
 
         MockERC20(address(rewardToken)).mint(address(rewarder), 100e18);
@@ -107,10 +107,7 @@ contract MasterChefRewarderTest is Test {
 
         vm.warp(block.timestamp + 50);
 
-        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InsufficientReward.selector, 50e18, 51e18));
-        rewarder.setRewardPerSecond(1e18, 51);
-
-        rewarder.setRewardPerSecond(0.5e18, 100);
+        rewarder.setRewardPerSecond(1e18, 100);
 
         (, rewardPerSecond,, endTimestamp) = rewarder.getRewarderParameter();
 
@@ -196,52 +193,71 @@ contract MasterChefRewarderTest is Test {
 
         assertEq(rewardA, 50e18, "test_OnModify::1");
         assertEq(rewardB, 100e18, "test_OnModify::2");
+        assertEq(rewarder.getRemainingReward(), 150e18, "test_OnModify::3");
 
         vm.startPrank(address(masterchef));
 
         rewarder.onModify(alice, 0, 1e18, 1e18, 3e18);
 
-        assertEq(rewardToken.balanceOf(alice), 50e18, "test_OnModify::3");
-        assertEq(rewardToken.balanceOf(address(rewarder)), 250e18, "test_OnModify::4");
+        assertEq(rewardToken.balanceOf(alice), 50e18, "test_OnModify::4");
+        assertEq(rewardToken.balanceOf(address(rewarder)), 250e18, "test_OnModify::5");
+        assertEq(rewarder.getRemainingReward(), 150e18, "test_OnModify::6");
 
         vm.warp(block.timestamp + 50);
 
         (, rewardA) = rewarder.getPendingReward(alice, 1e18, 3e18);
         (, rewardB) = rewarder.getPendingReward(bob, 2e18, 3e18);
 
-        assertEq(rewardA, 50e18, "test_OnModify::5");
-        assertEq(rewardB, 200e18, "test_OnModify::6");
+        assertEq(rewardA, 50e18, "test_OnModify::7");
+        assertEq(rewardB, 200e18, "test_OnModify::8");
+        assertEq(rewarder.getRemainingReward(), 0, "test_OnModify::9");
 
         vm.warp(block.timestamp + 100);
 
         (, rewardA) = rewarder.getPendingReward(alice, 1e18, 3e18);
         (, rewardB) = rewarder.getPendingReward(bob, 2e18, 3e18);
 
-        assertEq(rewardA, 50e18, "test_OnModify::7");
-        assertEq(rewardB, 200e18, "test_OnModify::8");
+        assertEq(rewardA, 50e18, "test_OnModify::10");
+        assertEq(rewardB, 200e18, "test_OnModify::11");
+        assertEq(rewarder.getRemainingReward(), 0, "test_OnModify::12");
 
         vm.stopPrank();
 
-        assertGt(rewardToken.balanceOf(address(rewarder)), 0, "test_OnModify::9");
+        assertGt(rewardToken.balanceOf(address(rewarder)), 0, "test_OnModify::13");
 
-        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InsufficientReward.selector, 0, 1));
+        vm.expectRevert(IBaseRewarder.BaseRewarder__ZeroReward.selector);
         rewarder.setRewardPerSecond(1, 1);
+
+        assertEq(rewardToken.balanceOf(address(rewarder)), 250e18, "test_OnModify::14");
 
         MockERC20(address(rewardToken)).mint(address(rewarder), 30e18);
 
+        assertEq(rewardToken.balanceOf(address(rewarder)), 280e18, "test_OnModify::15");
+        assertEq(rewarder.getRemainingReward(), 30e18, "test_OnModify::16");
+
         rewarder.setRewardPerSecond(0.3e18, 50);
+
+        assertEq(rewardToken.balanceOf(address(rewarder)), 280e18, "test_OnModify::17");
+        assertEq(rewarder.getRemainingReward(), 30e18, "test_OnModify::18");
 
         vm.warp(block.timestamp + 25);
 
+        assertEq(rewardToken.balanceOf(address(rewarder)), 280e18, "test_OnModify::19");
+        assertEq(rewarder.getRemainingReward(), 22.5e18, "test_OnModify::20");
+
         rewarder.setRewardPerSecond(0.1e18, 3 * 75);
+
+        assertEq(rewardToken.balanceOf(address(rewarder)), 280e18, "test_OnModify::21");
+        assertEq(rewarder.getRemainingReward(), 22.5e18, "test_OnModify::22");
 
         vm.warp(block.timestamp + 3 * 75);
 
         (, rewardA) = rewarder.getPendingReward(alice, 1e18, 3e18);
         (, rewardB) = rewarder.getPendingReward(bob, 2e18, 3e18);
 
-        assertEq(rewardA, 60e18, "test_OnModify::10");
-        assertEq(rewardB, 220e18, "test_OnModify::11");
+        assertEq(rewardA, 60e18, "test_OnModify::23");
+        assertEq(rewardB, 220e18, "test_OnModify::24");
+        assertEq(rewarder.getRemainingReward(), 0, "test_OnModify::25");
 
         rewarder.setRewardPerSecond(0, 0);
 
@@ -250,20 +266,23 @@ contract MasterChefRewarderTest is Test {
         (, rewardA) = rewarder.getPendingReward(alice, 1e18, 3e18);
         (, rewardB) = rewarder.getPendingReward(bob, 2e18, 3e18);
 
-        assertEq(rewardA, 60e18, "test_OnModify::12");
-        assertEq(rewardB, 220e18, "test_OnModify::13");
+        assertEq(rewardA, 60e18, "test_OnModify::26");
+        assertEq(rewardB, 220e18, "test_OnModify::27");
+        assertEq(rewarder.getRemainingReward(), 0, "test_OnModify::28");
 
         vm.startPrank(address(masterchef));
 
         rewarder.onModify(alice, 0, 1e18, 1e18, 3e18);
 
-        assertEq(rewardToken.balanceOf(alice), 110e18, "test_OnModify::14");
-        assertEq(rewardToken.balanceOf(address(rewarder)), 220e18, "test_OnModify::15");
+        assertEq(rewardToken.balanceOf(alice), 110e18, "test_OnModify::29");
+        assertEq(rewardToken.balanceOf(address(rewarder)), 220e18, "test_OnModify::30");
+        assertEq(rewarder.getRemainingReward(), 0, "test_OnModify::31");
 
         rewarder.onModify(bob, 0, 2e18, 2e18, 3e18);
 
-        assertEq(rewardToken.balanceOf(bob), 220e18, "test_OnModify::16");
-        assertEq(rewardToken.balanceOf(address(rewarder)), 0, "test_OnModify::17");
+        assertEq(rewardToken.balanceOf(bob), 220e18, "test_OnModify::32");
+        assertEq(rewardToken.balanceOf(address(rewarder)), 0, "test_OnModify::33");
+        assertEq(rewarder.getRemainingReward(), 0, "test_OnModify::34");
 
         vm.stopPrank();
     }
@@ -359,7 +378,7 @@ contract MasterChefRewarderTest is Test {
         vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InvalidDuration.selector));
         rewarder.setRewarderParameters(1e18, block.timestamp, 0);
 
-        vm.expectRevert(abi.encodeWithSelector(IBaseRewarder.BaseRewarder__InsufficientReward.selector, 0, 1));
+        vm.expectRevert(IBaseRewarder.BaseRewarder__ZeroReward.selector);
         rewarder.setRewarderParameters(1, block.timestamp, 1);
 
         vm.startPrank(address(masterchef));
