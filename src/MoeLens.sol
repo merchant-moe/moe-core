@@ -218,14 +218,7 @@ contract MoeLens {
                 reward = r;
             } catch {}
 
-            uint256 remainingReward;
-            uint256 version;
-            try rewarder.getRemainingReward() returns (uint256 remaining) {
-                remainingReward = remaining;
-                version = 2;
-            } catch {
-                version = 1;
-            }
+            (uint256 remainingReward, uint256 version) = _getRemainingRewardAndVersion(address(rewarder));
 
             farm.rewarder = Rewarder({
                 version: version,
@@ -361,14 +354,7 @@ contract MoeLens {
                 } catch {}
             }
 
-            uint256 remainingReward;
-            uint256 version;
-            try bribe.getRemainingReward() returns (uint256 remaining) {
-                remainingReward = remaining;
-                version = 2;
-            } catch {
-                version = 1;
-            }
+            (uint256 remainingReward, uint256 version) = _getRemainingRewardAndVersion(address(bribe));
 
             vote.rewarder = Rewarder({
                 version: version,
@@ -418,14 +404,7 @@ contract MoeLens {
             reward = r;
         } catch {}
 
-        uint256 remainingReward;
-        uint256 version;
-        try rewarderContract.getRemainingReward() returns (uint256 remaining) {
-            remainingReward = remaining;
-            version = 2;
-        } catch {
-            version = 1;
-        }
+        (uint256 remainingReward, uint256 version) = _getRemainingRewardAndVersion(address(rewarderContract));
 
         rewarder = Rewarder({
             version: version,
@@ -459,5 +438,20 @@ contract MoeLens {
             userStaked: _joeStaking.getDeposit(user),
             userReward: reward
         });
+    }
+
+    function _getRemainingRewardAndVersion(address rewarder)
+        private
+        view
+        returns (uint256 remainingReward, uint256 version)
+    {
+        (, bytes memory data) = rewarder.staticcall(abi.encodeWithSelector(IBaseRewarder.getRemainingReward.selector));
+
+        if (data.length > 31) {
+            remainingReward = abi.decode(data, (uint256));
+            version = 2;
+        } else {
+            version = 1;
+        }
     }
 }
