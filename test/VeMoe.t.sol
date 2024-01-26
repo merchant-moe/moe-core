@@ -980,6 +980,157 @@ contract VeMoeTest is Test {
         assertTrue(veMoe.isInTopPoolIds(0), "test_VoteOnTopPoolsWithWeight::73");
         assertTrue(veMoe.isInTopPoolIds(1), "test_VoteOnTopPoolsWithWeight::74");
     }
+
+    function test_SweepBribe() public {
+        veMoe.setVeMoePerSecondPerMoe(1e18);
+
+        vm.prank(alice);
+        staking.stake(5e18);
+
+        vm.prank(bob);
+        staking.stake(10e18);
+
+        vm.warp(block.timestamp + 100);
+
+        uint256[] memory pids = new uint256[](2);
+        int256[] memory deltaAmounts = new int256[](2);
+        IVeMoeRewarder[] memory bribes = new IVeMoeRewarder[](2);
+
+        pids[0] = 0;
+        pids[1] = 1;
+        deltaAmounts[0] = 100e18;
+        deltaAmounts[1] = 100e18;
+        bribes[0] = bribes0;
+        bribes[1] = bribes1;
+
+        vm.startPrank(alice);
+        veMoe.vote(pids, deltaAmounts);
+        veMoe.setBribes(pids, bribes);
+        vm.stopPrank();
+
+        pids = new uint256[](1);
+        deltaAmounts = new int256[](1);
+        bribes = new IVeMoeRewarder[](1);
+
+        pids[0] = 1;
+        deltaAmounts[0] = 900e18;
+        bribes[0] = bribes1;
+
+        vm.startPrank(bob);
+        veMoe.vote(pids, deltaAmounts);
+        veMoe.setBribes(pids, bribes);
+        vm.stopPrank();
+
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, alice));
+        bribes0.sweep(token6d, address(this));
+
+        vm.expectRevert(IBaseRewarder.BaseRewarder__ZeroAmount.selector);
+        bribes0.sweep(token6d, address(this));
+
+        MockERC20(address(token6d)).mint(address(bribes0), 100e18);
+
+        bribes0.sweep(token6d, address(this));
+
+        assertEq(token6d.balanceOf(address(this)), 100e18, "test_SweepBribe::1");
+        assertEq(token6d.balanceOf(address(bribes0)), 0, "test_SweepBribe::2");
+
+        token6d.transfer(address(1), 100e18); // burn
+
+        vm.expectRevert(IBaseRewarder.BaseRewarder__ZeroAmount.selector);
+        bribes0.sweep(token18d, address(this));
+
+        MockERC20(address(token18d)).mint(address(bribes0), 100e18);
+
+        bribes0.setRewardPerSecond(1e18, 99);
+        bribes0.sweep(token18d, address(this));
+
+        assertEq(token18d.balanceOf(address(this)), 1e18, "test_SweepBribe::3");
+        assertEq(token18d.balanceOf(address(bribes0)), 99e18, "test_SweepBribe::4");
+
+        vm.deal(address(bribes0), 1e18);
+
+        vm.expectRevert(IBaseRewarder.BaseRewarder__NativeTransferFailed.selector);
+        bribes0.sweep(IERC20(address(0)), address(bribes0));
+
+        bribes0.sweep(IERC20(address(0)), alice);
+
+        assertEq(address(bribes0).balance, 0, "test_SweepBribe::5");
+        assertEq(address(alice).balance, 1e18, "test_SweepBribe::6");
+
+        vm.warp(block.timestamp + 10);
+
+        bribes0.stop();
+        bribes0.sweep(token18d, address(this));
+
+        assertEq(token18d.balanceOf(address(this)), 90e18, "test_SweepBribe::7");
+        assertEq(token18d.balanceOf(address(bribes0)), 10e18, "test_SweepBribe::8");
+
+        pids[0] = 0;
+
+        vm.prank(alice);
+        veMoe.emergencyUnsetBribes(pids);
+
+        assertEq(token18d.balanceOf(alice), 0, "test_SweepBribe::9");
+        assertEq(token18d.balanceOf(address(bribes0)), 10e18, "test_SweepBribe::10");
+
+        bribes0.sweep(token18d, address(this));
+
+        assertEq(token18d.balanceOf(address(this)), 100e18, "test_SweepBribe::11");
+        assertEq(token18d.balanceOf(address(bribes0)), 0, "test_SweepBribe::12");
+
+        MockERC20(address(token6d)).mint(address(bribes1), 100e6);
+
+        bribes1.setRewardPerSecond(1e6, 100);
+
+        vm.expectRevert(IBaseRewarder.BaseRewarder__ZeroAmount.selector);
+        bribes1.sweep(token6d, address(this));
+
+        vm.warp(block.timestamp + 50);
+
+        vm.expectRevert(IBaseRewarder.BaseRewarder__ZeroAmount.selector);
+        bribes1.sweep(token6d, address(this));
+
+        bribes1.stop();
+        bribes1.sweep(token6d, address(this));
+
+        assertEq(token6d.balanceOf(address(this)), 50e6, "test_SweepBribe::13");
+        assertEq(token6d.balanceOf(address(bribes1)), 50e6, "test_SweepBribe::14");
+
+        pids[0] = 1;
+        deltaAmounts[0] = 0;
+
+        vm.prank(alice);
+        veMoe.vote(pids, deltaAmounts);
+
+        assertApproxEqAbs(token6d.balanceOf(address(bribes1)), 45e6, 2, "test_SweepBribe::15");
+        assertEq(token6d.balanceOf(bob), 0, "test_SweepBribe::16");
+
+        vm.expectRevert(IBaseRewarder.BaseRewarder__ZeroAmount.selector);
+        bribes1.sweep(token6d, address(this));
+
+        pids[0] = 1;
+
+        vm.prank(bob);
+        veMoe.emergencyUnsetBribes(pids);
+
+        assertApproxEqAbs(token6d.balanceOf(address(bribes1)), 45e6, 2, "test_SweepBribe::17");
+        assertEq(token6d.balanceOf(bob), 0, "test_SweepBribe::18");
+
+        vm.expectRevert(IBaseRewarder.BaseRewarder__ZeroAmount.selector);
+        bribes1.sweep(token6d, address(this));
+
+        pids[0] = 1;
+        bribes[0] = IVeMoeRewarder(address(0));
+
+        vm.prank(alice);
+        veMoe.setBribes(pids, bribes);
+
+        bribes1.sweep(token6d, address(this));
+
+        assertApproxEqAbs(token6d.balanceOf(address(this)), 95e6, 2, "test_SweepBribe::19");
+        assertEq(token6d.balanceOf(address(bribes1)), 0, "test_SweepBribe::20");
+    }
 }
 
 contract MaliciousBribe {
