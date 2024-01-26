@@ -198,7 +198,8 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
     /**
      * @dev Transfers any remaining tokens to the specified account.
      * If the token is the reward token, only the excess amount will be transferred.
-     * If the rewarder is stopped, the entire balance will be transferred.
+     * Even if the rewarder is stopped, the unclaimed rewards will not be transferred; unless the total supply is 0.
+     * (for example if there is leftover because of emergency withdrawal or roundings).
      * @param token The token to transfer.
      * @param account The account to transfer the tokens to.
      */
