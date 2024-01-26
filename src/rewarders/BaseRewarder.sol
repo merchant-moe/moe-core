@@ -184,6 +184,12 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
     function stop() public virtual override onlyOwner {
         if (_isStopped) revert BaseRewarder__AlreadyStopped();
 
+        uint256 totalSupply = _getTotalSupply();
+        uint256 totalPendingRewards = _rewarder.getTotalRewards(_rewardsPerSecond, _endTimestamp, totalSupply);
+
+        _totalUnclaimedRewards += totalPendingRewards;
+        _rewarder.updateAccDebtPerShare(totalSupply, totalPendingRewards);
+
         _isStopped = true;
 
         emit Stopped();
@@ -199,7 +205,13 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
     function sweep(IERC20 token, address account) public virtual override onlyOwner {
         uint256 balance = _balanceOfThis(token);
 
-        if (!_isStopped && token == _token()) balance -= _reserve;
+        if (token == _token()) {
+            if (_isStopped) {
+                if (_getTotalSupply() > 0) balance -= _totalUnclaimedRewards;
+            } else {
+                balance -= _reserve;
+            }
+        }
         if (balance == 0) revert BaseRewarder__ZeroAmount();
 
         _safeTransferTo(token, account, balance);
@@ -223,7 +235,6 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
     {
         if (msg.sender != _caller) revert BaseRewarder__InvalidCaller();
         if (pid != _pid()) revert BaseRewarder__InvalidPid(pid);
-        if (_isStopped) revert BaseRewarder__Stopped();
 
         return _update(account, oldBalance, newBalance, oldTotalSupply);
     }
