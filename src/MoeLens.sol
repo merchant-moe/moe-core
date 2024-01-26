@@ -97,6 +97,7 @@ contract MoeLens {
     }
 
     struct Rewarder {
+        uint256 version;
         bool isSet;
         bool isStarted;
         bool isEnded;
@@ -183,17 +184,19 @@ contract MoeLens {
         farm.totalVotesOnFarm = _veMoe.getVotes(pid);
         farm.totalWeightOnFarm = _veMoe.getWeight(pid);
 
-        address lpToken = address(_masterchef.getToken(pid));
-        uint256 lpDecimals = IERC20Metadata(lpToken).decimals();
+        {
+            address lpToken = address(_masterchef.getToken(pid));
+            uint256 lpDecimals = IERC20Metadata(lpToken).decimals();
 
-        farm.lpToken = Token({token: lpToken, symbol: IERC20Metadata(lpToken).symbol(), decimals: lpDecimals});
+            farm.lpToken = Token({token: lpToken, symbol: IERC20Metadata(lpToken).symbol(), decimals: lpDecimals});
 
-        farm.totalStaked = _masterchef.getTotalDeposit(pid);
-        farm.totalSupply = IERC20Metadata(lpToken).totalSupply();
+            farm.totalStaked = _masterchef.getTotalDeposit(pid);
+            farm.totalSupply = IERC20Metadata(lpToken).totalSupply();
 
-        try this.getPoolDataAt(lpToken) returns (Reserves memory reserves) {
-            farm.reserves = reserves;
-        } catch {}
+            try this.getPoolDataAt(lpToken) returns (Reserves memory reserves) {
+                farm.reserves = reserves;
+            } catch {}
+        }
 
         farm.userVotesOnFarm = _veMoe.getVotesOf(user, pid);
 
@@ -216,11 +219,16 @@ contract MoeLens {
             } catch {}
 
             uint256 remainingReward;
+            uint256 version;
             try rewarder.getRemainingReward() returns (uint256 remaining) {
                 remainingReward = remaining;
-            } catch {}
+                version = 2;
+            } catch {
+                version = 1;
+            }
 
             farm.rewarder = Rewarder({
+                version: version,
                 isSet: true,
                 isStarted: lastUpdateTimestamp <= block.timestamp,
                 isEnded: endTimestamp <= block.timestamp,
@@ -354,11 +362,16 @@ contract MoeLens {
             }
 
             uint256 remainingReward;
+            uint256 version;
             try bribe.getRemainingReward() returns (uint256 remaining) {
                 remainingReward = remaining;
-            } catch {}
+                version = 2;
+            } catch {
+                version = 1;
+            }
 
             vote.rewarder = Rewarder({
+                version: version,
                 isSet: true,
                 isStarted: lastUpdateTimestamp <= block.timestamp,
                 isEnded: endTimestamp <= block.timestamp,
@@ -406,11 +419,16 @@ contract MoeLens {
         } catch {}
 
         uint256 remainingReward;
+        uint256 version;
         try rewarderContract.getRemainingReward() returns (uint256 remaining) {
             remainingReward = remaining;
-        } catch {}
+            version = 2;
+        } catch {
+            version = 1;
+        }
 
         rewarder = Rewarder({
+            version: version,
             isSet: false, // Placeholder
             isStarted: lastUpdateTimestamp <= block.timestamp,
             isEnded: endTimestamp <= block.timestamp,
