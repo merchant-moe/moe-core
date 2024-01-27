@@ -97,12 +97,14 @@ contract MoeLens {
     }
 
     struct Rewarder {
+        uint256 version;
         bool isSet;
         bool isStarted;
         bool isEnded;
         uint256 pid;
         uint256 totalDeposited;
         Reward reward;
+        uint256 remainingReward;
         uint256 rewardPerSec;
         uint256 lastUpdateTimestamp;
         uint256 endUpdateTimestamp;
@@ -182,17 +184,19 @@ contract MoeLens {
         farm.totalVotesOnFarm = _veMoe.getVotes(pid);
         farm.totalWeightOnFarm = _veMoe.getWeight(pid);
 
-        address lpToken = address(_masterchef.getToken(pid));
-        uint256 lpDecimals = IERC20Metadata(lpToken).decimals();
+        {
+            address lpToken = address(_masterchef.getToken(pid));
+            uint256 lpDecimals = IERC20Metadata(lpToken).decimals();
 
-        farm.lpToken = Token({token: lpToken, symbol: IERC20Metadata(lpToken).symbol(), decimals: lpDecimals});
+            farm.lpToken = Token({token: lpToken, symbol: IERC20Metadata(lpToken).symbol(), decimals: lpDecimals});
 
-        farm.totalStaked = _masterchef.getTotalDeposit(pid);
-        farm.totalSupply = IERC20Metadata(lpToken).totalSupply();
+            farm.totalStaked = _masterchef.getTotalDeposit(pid);
+            farm.totalSupply = IERC20Metadata(lpToken).totalSupply();
 
-        try this.getPoolDataAt(lpToken) returns (Reserves memory reserves) {
-            farm.reserves = reserves;
-        } catch {}
+            try this.getPoolDataAt(lpToken) returns (Reserves memory reserves) {
+                farm.reserves = reserves;
+            } catch {}
+        }
 
         farm.userVotesOnFarm = _veMoe.getVotesOf(user, pid);
 
@@ -214,7 +218,10 @@ contract MoeLens {
                 reward = r;
             } catch {}
 
+            (uint256 remainingReward, uint256 version) = _getRemainingRewardAndVersion(address(rewarder));
+
             farm.rewarder = Rewarder({
+                version: version,
                 isSet: true,
                 isStarted: lastUpdateTimestamp <= block.timestamp,
                 isEnded: endTimestamp <= block.timestamp,
@@ -222,6 +229,7 @@ contract MoeLens {
                 totalDeposited: farm.totalStaked,
                 reward: reward,
                 rewardPerSec: rewardPerSecond,
+                remainingReward: remainingReward,
                 lastUpdateTimestamp: lastUpdateTimestamp,
                 endUpdateTimestamp: endTimestamp
             });
@@ -335,17 +343,21 @@ contract MoeLens {
                 bribe.getRewarderParameter();
 
             Reward memory reward;
+            {
+                uint256[] memory pids = new uint256[](1);
+                pids[0] = pid;
 
-            uint256[] memory pids = new uint256[](1);
-            pids[0] = pid;
+                (, uint256[] memory extraRewards) = _veMoe.getPendingRewards(user, pids);
 
-            (, uint256[] memory extraRewards) = _veMoe.getPendingRewards(user, pids);
+                try this.getRewardData(address(token), extraRewards[0]) returns (Reward memory r) {
+                    reward = r;
+                } catch {}
+            }
 
-            try this.getRewardData(address(token), extraRewards[0]) returns (Reward memory r) {
-                reward = r;
-            } catch {}
+            (uint256 remainingReward, uint256 version) = _getRemainingRewardAndVersion(address(bribe));
 
             vote.rewarder = Rewarder({
+                version: version,
                 isSet: true,
                 isStarted: lastUpdateTimestamp <= block.timestamp,
                 isEnded: endTimestamp <= block.timestamp,
@@ -353,6 +365,7 @@ contract MoeLens {
                 totalDeposited: _veMoe.getBribesTotalVotes(bribe, pid),
                 reward: reward,
                 rewardPerSec: rewardPerSecond,
+                remainingReward: remainingReward,
                 lastUpdateTimestamp: lastUpdateTimestamp,
                 endUpdateTimestamp: endTimestamp
             });
@@ -391,7 +404,10 @@ contract MoeLens {
             reward = r;
         } catch {}
 
+        (uint256 remainingReward, uint256 version) = _getRemainingRewardAndVersion(address(rewarderContract));
+
         rewarder = Rewarder({
+            version: version,
             isSet: false, // Placeholder
             isStarted: lastUpdateTimestamp <= block.timestamp,
             isEnded: endTimestamp <= block.timestamp,
@@ -399,6 +415,7 @@ contract MoeLens {
             totalDeposited: _veMoe.getBribesTotalVotes(IVeMoeRewarder(address(rewarderContract)), pid),
             reward: reward,
             rewardPerSec: rewardPerSecond,
+            remainingReward: remainingReward,
             lastUpdateTimestamp: lastUpdateTimestamp,
             endUpdateTimestamp: endTimestamp
         });
@@ -421,5 +438,20 @@ contract MoeLens {
             userStaked: _joeStaking.getDeposit(user),
             userReward: reward
         });
+    }
+
+    function _getRemainingRewardAndVersion(address rewarder)
+        private
+        view
+        returns (uint256 remainingReward, uint256 version)
+    {
+        (, bytes memory data) = rewarder.staticcall(abi.encodeWithSelector(IBaseRewarder.getRemainingReward.selector));
+
+        if (data.length > 31) {
+            remainingReward = abi.decode(data, (uint256));
+            version = 2;
+        } else {
+            version = 1;
+        }
     }
 }
