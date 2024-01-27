@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
+import {FixedPointMathLib} from "@solmate/src/utils/FixedPointMathLib.sol";
 
 import {Math} from "./libraries/Math.sol";
 import {Rewarder} from "./libraries/Rewarder.sol";
@@ -43,6 +44,10 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
     mapping(address => User) private _users;
     mapping(IVeMoeRewarder => mapping(uint256 => uint256)) private _bribesTotalVotes;
 
+    uint256 private _alpha;
+    uint256 private _topPidsTotalWeights;
+    mapping(uint256 => uint256) private _weights;
+
     /**
      * @dev Constructor for VeMoe contract.
      * @param moeStaking The MOE Staking contract.
@@ -68,8 +73,10 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
      * @dev Initializes the contract.
      * @param initialOwner The initial owner of the contract.
      */
-    function initialize(address initialOwner) external initializer {
+    function initialize(address initialOwner) external reinitializer(2) {
         __Ownable_init(initialOwner);
+
+        _setAlpha(Constants.PRECISION);
     }
 
     /**
@@ -143,6 +150,31 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
      */
     function getTotalVotes() external view override returns (uint256) {
         return _votes.getTotalAmount();
+    }
+
+    /**
+     * @dev Returns the weight of a pool.
+     * @param pid The pool ID.
+     * @return The weight of the pool.
+     */
+    function getWeight(uint256 pid) external view override returns (uint256) {
+        return _weights[pid];
+    }
+
+    /**
+     * @dev Returns the total weight of all pools.
+     * @return The total weight of all pools.
+     */
+    function getTotalWeight() external view override returns (uint256) {
+        return _topPidsTotalWeights;
+    }
+
+    /**
+     * @dev Returns the alpha value, used to calculate the weight of a pool (weight = min(votes, votes^alpha)).
+     * @return The alpha value.
+     */
+    function getAlpha() external view override returns (uint256) {
+        return _alpha;
     }
 
     /**
@@ -283,30 +315,44 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
 
         User storage user = _users[msg.sender];
 
-        uint256 balance = _moeStaking.getDeposit(msg.sender);
-
-        _claim(msg.sender, balance, balance);
+        {
+            uint256 balance = _moeStaking.getDeposit(msg.sender);
+            _claim(msg.sender, balance, balance);
+        }
 
         uint256 userTotalVeMoe = user.veMoe;
         uint256 topPidsTotalVotes = _topPidsTotalVotes;
+        uint256 topPidsTotalWeights = _topPidsTotalWeights;
 
-        IVeMoeRewarder[] memory bribes = new IVeMoeRewarder[](length);
-        uint256[] memory amounts = new uint256[](length);
+        BribeReward[] memory bribes = new BribeReward[](length);
 
+        uint256 poolVotes;
+        uint256 alpha = _alpha;
         for (uint256 i; i < length; ++i) {
             uint256 pid = pids[i];
 
-            if (_topPids.contains(pid)) topPidsTotalVotes = topPidsTotalVotes.addDelta(deltaAmounts[i]);
+            if (pid >= numberOfFarm) revert VeMoe__InvalidPid(pid);
 
-            (bribes[i], amounts[i]) = _vote(user, pid, deltaAmounts[i], userTotalVeMoe, numberOfFarm);
+            (bribes[i], poolVotes) = _vote(user, pid, deltaAmounts[i], userTotalVeMoe);
+
+            if (_topPids.contains(pid)) {
+                uint256 oldWeight = _weights[pid];
+                uint256 newWeight = _calculateWeight(poolVotes, alpha);
+
+                _weights[pid] = newWeight;
+
+                topPidsTotalVotes = topPidsTotalVotes.addDelta(deltaAmounts[i]);
+                topPidsTotalWeights = topPidsTotalWeights - oldWeight + newWeight;
+            }
         }
 
         _topPidsTotalVotes = topPidsTotalVotes;
+        _topPidsTotalWeights = topPidsTotalWeights;
 
         for (uint256 i; i < length; ++i) {
-            uint256 amount = amounts[i];
+            uint256 rewardAmount = bribes[i].rewardAmount;
 
-            if (amount > 0) bribes[i].claim(msg.sender, amount);
+            if (rewardAmount > 0) bribes[i].bribe.claim(msg.sender, rewardAmount);
         }
 
         emit Vote(msg.sender, pids, deltaAmounts);
@@ -422,23 +468,29 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
             _masterChef.updateAll(oldIds);
 
             for (uint256 i = oldIds.length; i > 0;) {
-                _topPids.remove(oldIds[--i]);
+                uint256 pid = oldIds[--i];
+
+                _topPids.remove(pid);
+                _weights[pid] = 0;
             }
         }
 
-        uint256 totalVotes;
         for (uint256 i; i < length; ++i) {
             uint256 pid = pids[i];
-
             if (!_topPids.add(pid)) revert VeMoe__DuplicatePoolId(pid);
-
-            uint256 votes = _votes.getAmountOf(pid);
-            totalVotes += votes;
         }
 
-        _topPidsTotalVotes = totalVotes;
+        _updateWeights(pids, _alpha);
 
         emit TopPoolIdsSet(pids);
+    }
+
+    /**
+     * @dev Sets the alpha value, used to calculate the weight of a pool (weight = min(votes, votes^alpha)).
+     * @param alpha The alpha value.
+     */
+    function setAlpha(uint256 alpha) external override onlyOwner {
+        _setAlpha(alpha);
     }
 
     /**
@@ -463,6 +515,21 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
     }
 
     /**
+     * @dev Returns the weight from a number of votes.
+     * @param poolVotes The number of votes of a pool.
+     * @param alpha The alpha value.
+     * @return weight The weight.
+     */
+    function _calculateWeight(uint256 poolVotes, uint256 alpha) private pure returns (uint256 weight) {
+        if (poolVotes <= Constants.PRECISION || alpha == Constants.PRECISION) return poolVotes;
+
+        int256 sweight = FixedPointMathLib.powWad(Math.toInt256(poolVotes), int256(alpha));
+        if (sweight < 0) return 0;
+
+        weight = uint256(sweight) > poolVotes ? poolVotes : uint256(sweight);
+    }
+
+    /**
      * @dev Claims the pending veMOE of an account.
      * @param account The account to claim veMOE for.
      * @param oldBalance The old balance of the account.
@@ -482,34 +549,73 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
     }
 
     /**
+     * @dev Updates the weights of the pools in the pids list.
+     * @param pids The list of pool IDs.
+     * @param alpha The alpha value.
+     */
+    function _updateWeights(uint256[] memory pids, uint256 alpha) private {
+        uint256 totalVotes;
+        uint256 totalWeights;
+
+        uint256 length = pids.length;
+        for (uint256 i; i < length; ++i) {
+            uint256 pid = pids[i];
+
+            uint256 votes = _votes.getAmountOf(pid);
+            uint256 weight = _calculateWeight(votes, alpha);
+
+            _weights[pid] = weight;
+
+            totalVotes += votes;
+            totalWeights += weight;
+        }
+
+        _topPidsTotalVotes = totalVotes;
+        _topPidsTotalWeights = totalWeights;
+    }
+
+    /**
+     * @dev Sets the alpha value and updates the weights of the pools in the top pool IDs.
+     * @param alpha The alpha value.
+     */
+    function _setAlpha(uint256 alpha) private {
+        if (alpha == 0 || alpha > Constants.PRECISION) revert VeMoe__InvalidAlpha();
+
+        _alpha = alpha;
+        _updateWeights(_topPids.values(), alpha);
+
+        emit AlphaSet(alpha);
+    }
+
+    /**
      * @dev Votes for a pool.
      * @param user The storage pointer to the user.
      * @param pid The pool ID.
      * @param deltaAmount The delta amount to vote.
      * @param userTotalVeMoe The total veMOE of the user.
-     * @param numberOfFarm The number of farms in the MasterChef contract.
-     * @return bribe The bribe contract.
-     * @return amount The amount of rewards to claim from the bribe contract.
+     * @return bribeReward The pending bribe reward.
+     * @return newPoolVotes The total votes of the pool.
      */
-    function _vote(User storage user, uint256 pid, int256 deltaAmount, uint256 userTotalVeMoe, uint256 numberOfFarm)
+    function _vote(User storage user, uint256 pid, int256 deltaAmount, uint256 userTotalVeMoe)
         private
-        returns (IVeMoeRewarder bribe, uint256 amount)
+        returns (BribeReward memory bribeReward, uint256 newPoolVotes)
     {
-        if (pid >= numberOfFarm) revert VeMoe__InvalidPid(pid);
-
         (uint256 userOldVotes, uint256 userNewVotes,, uint256 userNewTotalVotes) = user.votes.update(pid, deltaAmount);
 
         if (userNewTotalVotes > userTotalVeMoe) revert VeMoe__InsufficientVeMoe(userTotalVeMoe, userNewTotalVotes);
 
-        _votes.update(pid, deltaAmount);
+        (, newPoolVotes,,) = _votes.update(pid, deltaAmount);
 
-        bribe = user.bribes[pid];
+        IVeMoeRewarder bribe = user.bribes[pid];
 
         if (address(bribe) != address(0)) {
             uint256 totalVotes = _bribesTotalVotes[bribe][pid];
             _bribesTotalVotes[bribe][pid] = totalVotes.addDelta(deltaAmount);
 
-            amount = bribe.onModify(msg.sender, pid, userOldVotes, userNewVotes, totalVotes);
+            bribeReward = BribeReward({
+                bribe: bribe,
+                rewardAmount: bribe.onModify(msg.sender, pid, userOldVotes, userNewVotes, totalVotes)
+            });
         }
     }
 
