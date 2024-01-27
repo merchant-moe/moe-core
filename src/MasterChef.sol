@@ -240,16 +240,12 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     /**
      * @dev Returns the MOE per second for a given pool ID.
      * If the pool ID is not in the top pool IDs, it will return 0.
-     * Else, it will return the MOE per second multiplied by the proportion of votes for this pool ID.
+     * Else, it will return the MOE per second multiplied by the weight of the pool ID over the total weight.
      * @param pid The pool ID.
      * @return The MOE per second for the pool ID.
      */
     function getMoePerSecondForPid(uint256 pid) external view override returns (uint256) {
-        if (!_veMoe.isInTopPoolIds(pid)) return 0;
-
-        uint256 totalVotes = _veMoe.getTopPidsTotalVotes();
-
-        return totalVotes == 0 ? 0 : _moePerSecond * _veMoe.getVotes(pid) / totalVotes;
+        return _getRewardForPid(pid, _moePerSecond, _veMoe.getTotalWeight());
     }
 
     /**
@@ -371,7 +367,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     /**
      * @dev Returns the reward for a given pool ID.
      * If the pool ID is not in the top pool IDs, it will return 0.
-     * Else, it will return the reward multiplied by the proportion of votes for this pool ID.
+     * Else, it will return the reward multiplied by the weight of the pool ID over the total weight.
      * @param rewarder The storage pointer to the rewarder.
      * @param pid The pool ID.
      * @param totalSupply The total supply.
@@ -382,22 +378,20 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
         view
         returns (uint256)
     {
-        if (!_veMoe.isInTopPoolIds(pid)) return 0;
-
-        return
-            _getRewardForPid(pid, rewarder.getTotalRewards(_moePerSecond, totalSupply), _veMoe.getTopPidsTotalVotes());
+        return _getRewardForPid(pid, rewarder.getTotalRewards(_moePerSecond, totalSupply), _veMoe.getTotalWeight());
     }
 
     /**
      * @dev Returns the reward for a given pool ID.
-     * The weight of the pool ID is determined by the proportion of votes for this pool ID.
+     * If the pool ID is not in the top pool IDs, it will return 0.
+     * Else, it will return the reward multiplied by the weight of the pool ID over the total weight.
      * @param pid The pool ID.
      * @param totalRewards The total rewards.
-     * @param totalVotes The total votes.
+     * @param totalWeight The total weight.
      * @return The reward for the pool ID.
      */
-    function _getRewardForPid(uint256 pid, uint256 totalRewards, uint256 totalVotes) private view returns (uint256) {
-        return totalVotes == 0 ? 0 : totalRewards * _veMoe.getVotes(pid) / totalVotes;
+    function _getRewardForPid(uint256 pid, uint256 totalRewards, uint256 totalWeight) private view returns (uint256) {
+        return totalWeight == 0 ? 0 : totalRewards * _veMoe.getWeight(pid) / totalWeight;
     }
 
     /**

@@ -10,7 +10,7 @@ interface IBaseRewarder {
     error BaseRewarder__AlreadyStopped();
     error BaseRewarder__NotNativeRewarder();
     error BaseRewarder__ZeroAmount();
-    error BaseRewarder__InsufficientReward(uint256 remainingReward, uint256 expectedReward);
+    error BaseRewarder__ZeroReward();
     error BaseRewarder__InvalidDuration();
     error BaseRewarder__InvalidPid(uint256 pid);
     error BaseRewarder__InvalidStartTimestamp(uint256 startTimestamp);
@@ -35,6 +35,8 @@ interface IBaseRewarder {
         view
         returns (IERC20 token, uint256 rewardPerSecond, uint256 lastUpdateTimestamp, uint256 endTimestamp);
 
+    function getRemainingReward() external view returns (uint256);
+
     function getPendingReward(address account, uint256 balance, uint256 totalSupply)
         external
         view
@@ -44,10 +46,13 @@ interface IBaseRewarder {
 
     function initialize(address initialOwner) external;
 
-    function setRewardPerSecond(uint256 rewardPerSecond, uint256 expectedDuration) external;
+    function setRewardPerSecond(uint256 maxRewardPerSecond, uint256 expectedDuration)
+        external
+        returns (uint256 rewardPerSecond);
 
-    function setRewarderParameters(uint256 rewardPerSecond, uint256 startTimestamp, uint256 expectedDuration)
-        external;
+    function setRewarderParameters(uint256 maxRewardPerSecond, uint256 startTimestamp, uint256 expectedDuration)
+        external
+        returns (uint256 rewardPerSecond);
 
     function stop() external;
 

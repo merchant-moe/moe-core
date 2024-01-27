@@ -10,3 +10,6 @@
 [submodule "lib/dexv2"]
 	path = lib/dexv2
 	url = https://github.com/traderjoe-xyz/dexv2
+[submodule "lib/solmate"]
+	path = lib/solmate
+	url = https://github.com/transmissions11/solmate
