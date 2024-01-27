@@ -38,6 +38,8 @@ def encode_tx_data(transaction):
                 value = [int(v) for v in value]
         elif "int" in type:
             value = int(value)
+        elif type == "bytes" and len(value) >= 2:
+            value = bytes.fromhex(value[2:])
 
         types.append(type)
         values.append(value)
