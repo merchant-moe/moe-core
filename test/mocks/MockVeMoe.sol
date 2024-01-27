@@ -11,11 +11,11 @@ contract MockVeMoe {
 
     EnumerableSet.UintSet private _topPoolIds;
 
-    function getTopPoolIds() external view returns (uint256[] memory) {
+    function getTopPoolIds() public view returns (uint256[] memory) {
         return _topPoolIds.values();
     }
 
-    function getTopPidsTotalVotes() external view returns (uint256) {
+    function getTopPidsTotalVotes() public view returns (uint256) {
         uint256 totalVotes;
 
         for (uint256 i = 0; i < _topPoolIds.length(); i++) {
@@ -25,11 +25,19 @@ contract MockVeMoe {
         return totalVotes;
     }
 
-    function isInTopPoolIds(uint256 pid) external view returns (bool) {
+    function getTotalWeight() public view returns (uint256) {
+        return getTopPidsTotalVotes();
+    }
+
+    function getWeight(uint256 pid) public view returns (uint256) {
+        return isInTopPoolIds(pid) ? getVotes[pid] : 0;
+    }
+
+    function isInTopPoolIds(uint256 pid) public view returns (bool) {
         return _topPoolIds.contains(pid);
     }
 
-    function setTopPoolIds(uint256[] memory pids) external {
+    function setTopPoolIds(uint256[] memory pids) public {
         require(pids.length <= 10, "VeMoe__TooManyPoolIds");
 
         for (uint256 i = 0; i < pids.length; i++) {
@@ -37,7 +45,7 @@ contract MockVeMoe {
         }
     }
 
-    function setVotes(uint256 pid, uint256 votes) external {
+    function setVotes(uint256 pid, uint256 votes) public {
         getTotalVotes += votes - getVotes[pid];
 
         getVotes[pid] = votes;

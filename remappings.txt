@@ -3,3 +3,4 @@ forge-std/=lib/forge-std/src/
 @openzeppelin/=lib/openzeppelin-contracts/
 @openzeppelin-upgradeable/=lib/openzeppelin-contracts-upgradeable/
 @tj-dexv2/=lib/dexv2/
+@solmate/=lib/solmate/

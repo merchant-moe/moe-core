@@ -72,6 +72,9 @@ contract MasterChefTest is Test {
             IRewarderFactory.RewarderType.MasterChefRewarder, new MasterChefRewarder(address(masterChef))
         );
 
+        require(address(masterChef) == masterChefAddress, "MasterChefTest::setUp::1");
+        require(address(factory) == factoryAddress, "MasterChefTest::setUp::2");
+
         vm.label(address(moe), "moe");
         vm.label(address(veMoe), "veMoe");
         vm.label(address(tokenA), "tokenA");
@@ -210,7 +213,7 @@ contract MasterChefTest is Test {
             topPids[0] = 0;
             topPids[1] = 1;
 
-            veMoe.setTopPoolIds(topPids);
+            IVeMoe(address(veMoe)).setTopPoolIds(topPids);
         }
 
         vm.startPrank(alice);
@@ -308,7 +311,7 @@ contract MasterChefTest is Test {
         masterChef.setMoePerSecond(1e18);
 
         veMoe.setVotes(0, 1e18);
-        veMoe.setTopPoolIds(new uint256[](1));
+        IVeMoe(address(veMoe)).setTopPoolIds(new uint256[](1));
 
         assertEq(masterChef.getMoePerSecondForPid(0), 1e18, "test_EmergencyWithdrawal::1");
         assertEq(masterChef.getMoePerSecondForPid(1), 0, "test_EmergencyWithdrawal::2");
@@ -355,7 +358,7 @@ contract MasterChefTest is Test {
 
     function test_TreasuryShare() public {
         veMoe.setVotes(0, 1e18);
-        veMoe.setTopPoolIds(new uint256[](1));
+        IVeMoe(address(veMoe)).setTopPoolIds(new uint256[](1));
 
         address treasury = makeAddr("treasury");
         address futureFunding = makeAddr("futureFunding");
@@ -460,7 +463,7 @@ contract MasterChefTest is Test {
         veMoe.setVotes(0, 1e18);
         veMoe.setVotes(1, 1e18);
 
-        veMoe.setTopPoolIds(new uint256[](1));
+        IVeMoe(address(veMoe)).setTopPoolIds(new uint256[](1));
 
         vm.startPrank(alice);
         masterChef.deposit(0, 1e18);
