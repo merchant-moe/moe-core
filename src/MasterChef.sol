@@ -338,8 +338,8 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      * @param extraRewarder The extra rewarder of the farm.
      */
     function add(IERC20 token, IMasterChefRewarder extraRewarder) external override {
-        if (address(_lbFactory) != address(0) && _lbFactory.isDefaultLBHooks(ILBHooks(msg.sender))) {
-            if (address(token) != msg.sender) revert MasterChef__InvalidToken();
+        if (address(token) == msg.sender && address(_lbFactory) != address(0)) {
+            if (!_lbFactory.isDefaultLBHooks(ILBHooks(msg.sender))) revert MasterChef__NotDefaultLBHooks();
         } else {
             _checkOwner();
         }

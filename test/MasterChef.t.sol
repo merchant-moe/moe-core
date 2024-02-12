@@ -307,17 +307,21 @@ contract MasterChefTest is Test {
         vm.prank(alice);
         masterChef.add(tokenA, IMasterChefRewarder(address(0)));
 
+        vm.prank(address(tokenA));
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, tokenA));
+        masterChef.add(tokenA, IMasterChefRewarder(address(0)));
+
         ILBFactory lbFactory = ILBFactory(address(new MockLBFactory()));
         masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), factory, lbFactory, 0);
 
         vm.prank(address(tokenA));
-        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, tokenA));
+        vm.expectRevert(IMasterChef.MasterChef__NotDefaultLBHooks.selector);
         masterChef.add(tokenA, IMasterChefRewarder(address(0)));
 
         MockLBFactory(address(lbFactory)).setDefaultLBHooks(ILBHooks(address(tokenA)), true);
 
         vm.prank(address(tokenA));
-        vm.expectRevert(IMasterChef.MasterChef__InvalidToken.selector);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, tokenA));
         masterChef.add(tokenB, IMasterChefRewarder(address(0)));
 
         vm.prank(address(tokenA));
@@ -326,7 +330,7 @@ contract MasterChefTest is Test {
         MockLBFactory(address(lbFactory)).setDefaultLBHooks(ILBHooks(address(tokenA)), false);
 
         vm.prank(address(tokenA));
-        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, tokenA));
+        vm.expectRevert(IMasterChef.MasterChef__NotDefaultLBHooks.selector);
         masterChef.add(tokenA, IMasterChefRewarder(address(0)));
     }
 
