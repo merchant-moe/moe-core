@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
+import {ILBFactory, ILBHooks} from "@tj-dexv2/src/interfaces/ILBFactory.sol";
 
 import {Math} from "./libraries/Math.sol";
 import {Rewarder} from "./libraries/Rewarder.sol";
@@ -32,6 +33,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     IMoe private immutable _moe;
     IVeMoe private immutable _veMoe;
     IRewarderFactory private immutable _rewarderFactory;
+    ILBFactory private immutable _lbFactory;
 
     uint256 private immutable _treasuryShare;
 
@@ -47,17 +49,19 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      * @dev Constructor for the MasterChef contract.
      * @param moe The address of the MOE token.
      * @param veMoe The address of the VeMOE contract.
-     * @param factory The address of the rewarder factory.
+     * @param rewarderFactory The address of the rewarder factory.
+     * @param lbFactory The address of the LB factory.
      * @param treasuryShare The share of the rewards that will be sent to the treasury.
      */
-    constructor(IMoe moe, IVeMoe veMoe, IRewarderFactory factory, uint256 treasuryShare) {
+    constructor(IMoe moe, IVeMoe veMoe, IRewarderFactory rewarderFactory, ILBFactory lbFactory, uint256 treasuryShare) {
         _disableInitializers();
 
         if (treasuryShare > Constants.PRECISION) revert MasterChef__InvalidShares();
 
         _moe = moe;
         _veMoe = veMoe;
-        _rewarderFactory = factory;
+        _rewarderFactory = rewarderFactory;
+        _lbFactory = lbFactory;
 
         _treasuryShare = treasuryShare;
     }
@@ -114,6 +118,14 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      */
     function getRewarderFactory() external view override returns (IRewarderFactory) {
         return _rewarderFactory;
+    }
+
+    /**
+     * @dev Returns the address of the LB factory.
+     * @return The address of the LB factory.
+     */
+    function getLBFactory() external view override returns (ILBFactory) {
+        return _lbFactory;
     }
 
     /**
@@ -325,7 +337,13 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      * @param token The token of the farm.
      * @param extraRewarder The extra rewarder of the farm.
      */
-    function add(IERC20 token, IMasterChefRewarder extraRewarder) external override onlyOwner {
+    function add(IERC20 token, IMasterChefRewarder extraRewarder) external override {
+        if (address(_lbFactory) != address(0) && _lbFactory.isDefaultLBHooks(ILBHooks(msg.sender))) {
+            if (address(token) != msg.sender) revert MasterChef__InvalidToken();
+        } else {
+            _checkOwner();
+        }
+
         uint256 pid = _farms.length;
 
         Farm storage farm = _farms.push();

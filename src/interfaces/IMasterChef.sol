@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ILBFactory} from "@tj-dexv2/src/interfaces/ILBFactory.sol";
 
 import {IMasterChefRewarder} from "./IMasterChefRewarder.sol";
 import {IMoe} from "./IMoe.sol";
@@ -17,6 +18,7 @@ interface IMasterChef {
     error MasterChef__NotMasterchefRewarder();
     error MasterChef__CannotRenounceOwnership();
     error MasterChef__MintFailed();
+    error MasterChef__InvalidToken();
 
     struct Farm {
         Amounts.Parameter amounts;
@@ -71,6 +73,8 @@ interface IMasterChef {
     function getTreasuryShare() external view returns (uint256);
 
     function getRewarderFactory() external view returns (IRewarderFactory);
+
+    function getLBFactory() external view returns (ILBFactory);
 
     function getVeMoe() external view returns (IVeMoe);
 
