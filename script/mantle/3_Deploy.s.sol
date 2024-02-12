@@ -9,16 +9,27 @@ import "./Addresses.sol";
 import "../../src/VeMoe.sol";
 import "../../src/MasterChef.sol";
 import "../../src/MoeLens.sol";
+import "../../src/rewarders/VeMoeRewarder.sol";
+import "../../src/rewarders/MasterChefRewarder.sol";
 
 contract DeployScript is Script {
-    function run() public returns (VeMoe veMoe, MasterChef masterChef, MoeLens moeLens) {
+    function run()
+        public
+        returns (
+            VeMoe veMoe,
+            MasterChef masterChef,
+            MoeLens moeLens,
+            VeMoeRewarder veMoeRewarder,
+            MasterChefRewarder masterChefRewarder
+        )
+    {
         // add the custom chain
         setChain(
             Parameters.chainAlias,
             StdChains.ChainData({name: Parameters.chainName, chainId: Parameters.chainId, rpcUrl: Parameters.rpcUrl})
         );
 
-        vm.createSelectFork(StdChains.getChain(Parameters.chainAlias).rpcUrl, 49731291);
+        vm.createSelectFork(StdChains.getChain(Parameters.chainAlias).rpcUrl, 51235190);
 
         uint256 pk = vm.envUint("DEPLOYER_PRIVATE_KEY");
 
@@ -37,12 +48,17 @@ contract DeployScript is Script {
             IMoe(Addresses.moe),
             IVeMoe(Addresses.veMoeProxy),
             IRewarderFactory(Addresses.rewarderFactoryProxy),
+            ILBFactory(address(0)),
             Parameters.treasuryPercent * 1e18 / sumEmissionShare
         );
 
         moeLens = new MoeLens(
             IMasterChef(Addresses.masterChefProxy), IJoeStaking(Addresses.joeStakingProxy), Parameters.nativeSymbol
         );
+
+        veMoeRewarder = new VeMoeRewarder(Addresses.veMoeProxy);
+
+        masterChefRewarder = new MasterChefRewarder(Addresses.masterChefProxy);
 
         vm.stopBroadcast();
     }
