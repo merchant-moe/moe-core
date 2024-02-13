@@ -48,7 +48,7 @@ contract DeployScript is Script {
             IMoe(Addresses.moe),
             IVeMoe(Addresses.veMoeProxy),
             IRewarderFactory(Addresses.rewarderFactoryProxy),
-            ILBFactory(address(0)),
+            address(0),
             Parameters.treasuryPercent * 1e18 / sumEmissionShare
         );
 

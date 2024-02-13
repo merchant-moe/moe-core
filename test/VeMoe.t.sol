@@ -50,8 +50,7 @@ contract VeMoeTest is Test {
         address factoryAddress = computeCreateAddress(address(this), nonce + 6);
 
         staking = new MoeStaking(moe, IVeMoe(veMoeAddress), IStableMoe(sMoe));
-        masterChef =
-            new MasterChef(moe, IVeMoe(veMoeAddress), IRewarderFactory(factoryAddress), ILBFactory(address(0)), 0);
+        masterChef = new MasterChef(moe, IVeMoe(veMoeAddress), IRewarderFactory(factoryAddress), address(0), 0);
         veMoe = new VeMoe(
             IMoeStaking(stakingAddress), IMasterChef(masterChefAddress), IRewarderFactory(factoryAddress), 100e18
         );

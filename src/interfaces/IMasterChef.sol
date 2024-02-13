@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ILBFactory} from "@tj-dexv2/src/interfaces/ILBFactory.sol";
 
 import {IMasterChefRewarder} from "./IMasterChefRewarder.sol";
 import {IMoe} from "./IMoe.sol";
@@ -74,7 +73,7 @@ interface IMasterChef {
 
     function getRewarderFactory() external view returns (IRewarderFactory);
 
-    function getLBFactory() external view returns (ILBFactory);
+    function getLBHooksManager() external view returns (address);
 
     function getVeMoe() external view returns (IVeMoe);
 

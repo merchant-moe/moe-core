@@ -44,8 +44,7 @@ contract MasterChefTest is Test {
 
         moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
 
-        masterChef =
-            new MasterChef(moe, IVeMoe(address(veMoe)), IRewarderFactory(factoryAddress), ILBFactory(address(0)), 0);
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), IRewarderFactory(factoryAddress), address(0), 0);
 
         TransparentUpgradeableProxy2Step proxy = new TransparentUpgradeableProxy2Step(
             address(masterChef),
@@ -311,26 +310,14 @@ contract MasterChefTest is Test {
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, tokenA));
         masterChef.add(tokenA, IMasterChefRewarder(address(0)));
 
-        ILBFactory lbFactory = ILBFactory(address(new MockLBFactory()));
-        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), factory, lbFactory, 0);
+        address lbHooksManager = makeAddr("lbHooksManager");
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), factory, lbHooksManager, 0);
 
-        vm.prank(address(tokenA));
-        vm.expectRevert(IMasterChef.MasterChef__NotDefaultLBHooks.selector);
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, alice));
         masterChef.add(tokenA, IMasterChefRewarder(address(0)));
 
-        MockLBFactory(address(lbFactory)).setDefaultLBHooks(ILBHooks(address(tokenA)), true);
-
-        vm.prank(address(tokenA));
-        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, tokenA));
-        masterChef.add(tokenB, IMasterChefRewarder(address(0)));
-
-        vm.prank(address(tokenA));
-        masterChef.add(tokenA, IMasterChefRewarder(address(0)));
-
-        MockLBFactory(address(lbFactory)).setDefaultLBHooks(ILBHooks(address(tokenA)), false);
-
-        vm.prank(address(tokenA));
-        vm.expectRevert(IMasterChef.MasterChef__NotDefaultLBHooks.selector);
+        vm.prank(lbHooksManager);
         masterChef.add(tokenA, IMasterChefRewarder(address(0)));
     }
 
@@ -395,7 +382,7 @@ contract MasterChefTest is Test {
         address masterChefAddress = computeCreateAddress(address(this), nonce + 2);
 
         moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
-        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), factory, ILBFactory(address(0)), 0.3e18);
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), factory, address(0), 0.3e18);
 
         TransparentUpgradeableProxy2Step proxy = new TransparentUpgradeableProxy2Step(
             address(masterChef),
@@ -460,9 +447,9 @@ contract MasterChefTest is Test {
         assertEq(masterChef.getTreasury(), address(1), "test_TreasuryShare::22");
 
         vm.expectRevert(IMasterChef.MasterChef__InvalidShares.selector);
-        new MasterChef(moe, IVeMoe(address(veMoe)), factory, ILBFactory(address(0)), 1e18 + 1);
+        new MasterChef(moe, IVeMoe(address(veMoe)), factory, address(0), 1e18 + 1);
 
-        new MasterChef(moe, IVeMoe(address(veMoe)), factory, ILBFactory(address(0)), 1e18);
+        new MasterChef(moe, IVeMoe(address(veMoe)), factory, address(0), 1e18);
     }
 
     function test_ExtraRewarder() public {
@@ -548,13 +535,5 @@ contract MasterChefTest is Test {
         assertEq(moe.balanceOf(address(bob)), moeRewardBob[0], "test_ExtraRewarder::22");
         assertEq(rewardToken0.balanceOf(address(bob)), extraRewardBob[0], "test_ExtraRewarder::23");
         assertEq(rewardToken1.balanceOf(address(bob)), extraRewardBob[1], "test_ExtraRewarder::24");
-    }
-}
-
-contract MockLBFactory {
-    mapping(ILBHooks => bool) public isDefaultLBHooks;
-
-    function setDefaultLBHooks(ILBHooks hooks, bool isDefault) external {
-        isDefaultLBHooks[hooks] = isDefault;
     }
 }

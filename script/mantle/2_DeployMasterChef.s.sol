@@ -40,7 +40,7 @@ contract DeployMasterChefScript is Script {
         uint256 sumEmissionShare = Parameters.liquidityMiningPercent + Parameters.treasuryPercent;
 
         masterChefImplementation = new MasterChef(
-            moe, veMoe, rewarderFactory, ILBFactory(address(0)), Parameters.treasuryPercent * 1e18 / sumEmissionShare
+            moe, veMoe, rewarderFactory, address(0), Parameters.treasuryPercent * 1e18 / sumEmissionShare
         );
 
         vm.stopBroadcast();
