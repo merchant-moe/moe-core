@@ -17,7 +17,6 @@ interface IMasterChef {
     error MasterChef__NotMasterchefRewarder();
     error MasterChef__CannotRenounceOwnership();
     error MasterChef__MintFailed();
-    error MasterChef__NotDefaultLBHooks();
 
     struct Farm {
         Amounts.Parameter amounts;
