@@ -190,6 +190,8 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
         _totalUnclaimedRewards += totalPendingRewards;
         _rewarder.updateAccDebtPerShare(totalSupply, totalPendingRewards);
 
+        _setRewardParameters(0, block.timestamp, 0);
+
         _isStopped = true;
 
         emit Stopped();
@@ -368,8 +370,7 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
         _totalUnclaimedRewards = totalUnclaimedRewards;
 
         _rewarder.updateAccDebtPerShare(totalSupply, totalRewards);
-
-        if (startTimestamp != block.timestamp) _rewarder.lastUpdateTimestamp = startTimestamp;
+        _rewarder.lastUpdateTimestamp = startTimestamp;
 
         emit RewardParameterUpdated(rewardPerSecond, startTimestamp, endTimestamp);
     }

@@ -445,7 +445,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     function _updateAll(uint256[] memory pids) private {
         uint256 length = pids.length;
 
-        uint256 totalVotes = _veMoe.getTopPidsTotalVotes();
+        uint256 totalWeight = _veMoe.getTotalWeight();
         uint256 moePerSecond = _moePerSecond;
 
         for (uint256 i; i < length; ++i) {
@@ -457,7 +457,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
             uint256 totalSupply = farm.amounts.getTotalAmount();
             uint256 totalRewards = rewarder.getTotalRewards(moePerSecond, totalSupply);
 
-            uint256 totalMoeRewardForPid = _getRewardForPid(pid, totalRewards, totalVotes);
+            uint256 totalMoeRewardForPid = _getRewardForPid(pid, totalRewards, totalWeight);
             uint256 moeRewardForPid = _mintMoe(totalMoeRewardForPid);
 
             rewarder.updateAccDebtPerShare(totalSupply, moeRewardForPid);
