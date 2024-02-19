@@ -1120,6 +1120,8 @@ contract VeMoeTest is Test {
         vm.expectRevert(IBaseRewarder.BaseRewarder__ZeroAmount.selector);
         bribes1.sweep(token6d, address(this));
 
+        vm.warp(block.timestamp + 1 days);
+
         pids[0] = 1;
         bribes[0] = IVeMoeRewarder(address(0));
 
