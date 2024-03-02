@@ -8,6 +8,7 @@ pragma solidity ^0.8.20;
 library Constants {
     uint256 internal constant ACC_PRECISION_BITS = 64;
     uint256 internal constant PRECISION = 1e18;
+    uint8 internal constant NEW_ACC_PRECISION_BITS = 128;
 
     uint256 internal constant MAX_NUMBER_OF_FARMS = 32;
     uint256 internal constant MAX_NUMBER_OF_REWARDS = 32;
