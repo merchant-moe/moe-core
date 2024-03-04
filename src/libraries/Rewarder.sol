@@ -8,6 +8,7 @@ import {Constants} from "./Constants.sol";
  * @title Rewarder Library
  * @dev A library that defines various functions for calculating rewards.
  * It takes care about the reward debt and the accumulated debt per share.
+ * The version 2 should be used as it offers more precision and avoid potential rounding errors.
  */
 library Rewarder {
     using Amounts for Amounts.Parameter;
