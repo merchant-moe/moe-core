@@ -5,7 +5,7 @@ import {Ownable2StepUpgradeable} from "@openzeppelin-upgradeable/contracts/acces
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Clone} from "@tj-dexv2/src/libraries/Clone.sol";
 
-import {Rewarder} from "../libraries/Rewarder.sol";
+import {RewarderV2} from "../libraries/RewarderV2.sol";
 import {IBaseRewarder} from "../interfaces/IBaseRewarder.sol";
 
 /**
@@ -14,7 +14,7 @@ import {IBaseRewarder} from "../interfaces/IBaseRewarder.sol";
  */
 abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder {
     using SafeERC20 for IERC20;
-    using Rewarder for Rewarder.Parameter;
+    using RewarderV2 for RewarderV2.Parameter;
 
     address public immutable implementation;
     address internal immutable _caller;
@@ -25,7 +25,7 @@ abstract contract BaseRewarder is Ownable2StepUpgradeable, Clone, IBaseRewarder 
     uint256 internal _endTimestamp;
     bool internal _isStopped;
 
-    Rewarder.Parameter internal _rewarder;
+    RewarderV2.Parameter internal _rewarder;
 
     /**
      * @dev Constructor for BaseRewarder contract.
