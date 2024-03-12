@@ -11,7 +11,7 @@ contract UpgradeTest is Test {
     function test_UpgradeVeMoe() public {
         DeployScript deployer = new DeployScript();
 
-        (VeMoe newVeMoeImplementation, MasterChef newMasterChefImplementation,) = deployer.run();
+        (VeMoe newVeMoeImplementation, MasterChef newMasterChefImplementation,,,) = deployer.run();
 
         assertEq(
             address(IVeMoe(Addresses.veMoeProxy).getMoeStaking()),

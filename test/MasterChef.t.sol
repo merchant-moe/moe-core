@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import "@openzeppelin-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
 import "../src/MasterChef.sol";
@@ -44,7 +44,7 @@ contract MasterChefTest is Test {
 
         moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
 
-        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), IRewarderFactory(factoryAddress), 0);
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), IRewarderFactory(factoryAddress), address(0), 0);
 
         TransparentUpgradeableProxy2Step proxy = new TransparentUpgradeableProxy2Step(
             address(masterChef),
@@ -305,6 +305,20 @@ contract MasterChefTest is Test {
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, alice));
         vm.prank(alice);
         masterChef.add(tokenA, IMasterChefRewarder(address(0)));
+
+        vm.prank(address(tokenA));
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, tokenA));
+        masterChef.add(tokenA, IMasterChefRewarder(address(0)));
+
+        address lbHooksManager = makeAddr("lbHooksManager");
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), factory, lbHooksManager, 0);
+
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, alice));
+        masterChef.add(tokenA, IMasterChefRewarder(address(0)));
+
+        vm.prank(lbHooksManager);
+        masterChef.add(tokenA, IMasterChefRewarder(address(0)));
     }
 
     function test_EmergencyWithdrawal() public {
@@ -368,7 +382,7 @@ contract MasterChefTest is Test {
         address masterChefAddress = computeCreateAddress(address(this), nonce + 2);
 
         moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
-        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), factory, 0.3e18);
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), factory, address(0), 0.3e18);
 
         TransparentUpgradeableProxy2Step proxy = new TransparentUpgradeableProxy2Step(
             address(masterChef),
@@ -433,9 +447,9 @@ contract MasterChefTest is Test {
         assertEq(masterChef.getTreasury(), address(1), "test_TreasuryShare::22");
 
         vm.expectRevert(IMasterChef.MasterChef__InvalidShares.selector);
-        new MasterChef(moe, IVeMoe(address(veMoe)), factory, 1e18 + 1);
+        new MasterChef(moe, IVeMoe(address(veMoe)), factory, address(0), 1e18 + 1);
 
-        new MasterChef(moe, IVeMoe(address(veMoe)), factory, 1e18);
+        new MasterChef(moe, IVeMoe(address(veMoe)), factory, address(0), 1e18);
     }
 
     function test_ExtraRewarder() public {
