@@ -1,17 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {Uint256x256Math} from "@tj-dexv2/src/libraries/math/Uint256x256Math.sol";
+
 import {Amounts} from "./Amounts.sol";
 import {Constants} from "./Constants.sol";
 
 /**
- * @title Rewarder Library
+ * @title Rewarder Library V2
  * @dev A library that defines various functions for calculating rewards.
  * It takes care about the reward debt and the accumulated debt per share.
- * The version 2 should be used as it offers more precision and avoid potential rounding errors.
+ * Uses 128 bits of precision for the accumulated debt per share.
  */
-library Rewarder {
+library RewarderV2 {
     using Amounts for Amounts.Parameter;
+    using Uint256x256Math for uint256;
 
     struct Parameter {
         uint256 lastUpdateTimestamp;
@@ -26,7 +29,7 @@ library Rewarder {
      * @return The debt associated with the amount.
      */
     function getDebt(uint256 accDebtPerShare, uint256 deposit) internal pure returns (uint256) {
-        return (deposit * accDebtPerShare) >> Constants.ACC_PRECISION_BITS;
+        return deposit.mulShiftRoundDown(accDebtPerShare, Constants.NEW_ACC_PRECISION_BITS);
     }
 
     /**
@@ -36,7 +39,7 @@ library Rewarder {
      * @return The debt per share associated with the total deposit and total rewards.
      */
     function getDebtPerShare(uint256 totalDeposit, uint256 totalRewards) internal pure returns (uint256) {
-        return totalDeposit == 0 ? 0 : (totalRewards << Constants.ACC_PRECISION_BITS) / totalDeposit;
+        return totalDeposit == 0 ? 0 : totalRewards.shiftDivRoundDown(Constants.NEW_ACC_PRECISION_BITS, totalDeposit);
     }
 
     /**
