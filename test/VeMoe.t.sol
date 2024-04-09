@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../src/transparent/TransparentUpgradeableProxy2Step.sol";
 import "../src/VeMoe.sol";
@@ -50,7 +50,7 @@ contract VeMoeTest is Test {
         address factoryAddress = computeCreateAddress(address(this), nonce + 6);
 
         staking = new MoeStaking(moe, IVeMoe(veMoeAddress), IStableMoe(sMoe));
-        masterChef = new MasterChef(moe, IVeMoe(veMoeAddress), IRewarderFactory(factoryAddress), 0);
+        masterChef = new MasterChef(moe, IVeMoe(veMoeAddress), IRewarderFactory(factoryAddress), address(0), 0);
         veMoe = new VeMoe(
             IMoeStaking(stakingAddress), IMasterChef(masterChefAddress), IRewarderFactory(factoryAddress), 100e18
         );

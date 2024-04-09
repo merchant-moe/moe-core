@@ -13,14 +13,14 @@ library Addresses {
     address public constant joe = 0x371c7ec6D8039ff7933a2AA28EB827Ffe1F52f07;
 
     // Implementations
-    address public constant masterChefImplementation = 0x76D8d0e37F697Cc95c87F0Ba9512701cf19b0Cb5;
+    address public constant masterChefImplementation = 0xEB1D0861f15675F6550F167388479491fA73cE2a;
     address public constant moeStakingImplementation = 0xE92249760e1443FbBeA45B03f607Ba84471Fa793;
-    address public constant veMoeImplementation = 0x240616e2448e078934863fB6eb5133834BF14Ef1;
+    address public constant veMoeImplementation = 0x4CEabD15438b52CE553d740b27Ec2cd27f920E4C;
     address public constant stableMoeImplementation = 0x5Ab84d68892E565a8bF077A39481D5f69edAAC02;
     address public constant joeStakingImplementation = 0x7fb0Fc8514D817c655276A2895307176F253D303;
     address public constant rewarderFactoryImplementation = 0x18d3F4Df4959503C5F2C8B562da3118939890025;
-    address public constant masterChefRewarderImplementation = 0xcc076c7c657DCAfC738991297903610896d2E938;
-    address public constant veMoeRewarderImplementation = 0x151B82CA3a0c9dA9Dfde200F9C527cD89dd6aea8;
+    address public constant masterChefRewarderImplementation = 0x6B9B717e56bB1C432115d748FC6Cf40cbd132B33;
+    address public constant veMoeRewarderImplementation = 0x8Eb08451b9062fFFc0FC62aD9d54669c931ee254;
     address public constant joeStakingRewarderImplementation = 0x1D16326BA904546b4DA88d357Dd556Ebe1f08dD6;
 
     // Proxies
@@ -45,7 +45,7 @@ library Addresses {
 
     // Helpers
     address public constant moeQuoter = 0x72B507A4799815aDc30083925f748210E92B59f4;
-    address public constant moeLens = 0xAa61e8db8983582BfD7786FEa681E7bB237698ba;
+    address public constant moeLens = 0xDAB59901C1CD2C43A63b575704d150c777DA1F55;
     address public constant moeHelper = 0x3f0E209213d93508a451d521fD758cBc3B78cA90;
 
     // FeeManager

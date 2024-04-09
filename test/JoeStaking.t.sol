@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin-upgradeable/contracts/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "../src/JoeStaking.sol";
 import "../src/rewarders/JoeStakingRewarder.sol";

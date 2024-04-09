@@ -72,6 +72,8 @@ interface IMasterChef {
 
     function getRewarderFactory() external view returns (IRewarderFactory);
 
+    function getLBHooksManager() external view returns (address);
+
     function getVeMoe() external view returns (IVeMoe);
 
     function setExtraRewarder(uint256 pid, IMasterChefRewarder extraRewarder) external;

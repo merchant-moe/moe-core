@@ -139,6 +139,7 @@ contract DeployProtocolScript is Script {
                 IMoe(moeAddress),
                 IVeMoe(proxies.veMoe),
                 IRewarderFactory(proxies.rewarderFactory),
+                address(0),
                 Parameters.treasuryPercent * 1e18 / sumEmissionShare
             );
 
