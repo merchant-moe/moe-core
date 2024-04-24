@@ -57,19 +57,19 @@ contract UpgradeTest is Test {
 
         MoeLens.FarmData memory farms = moeLens.getFarmData(3, 5, address(0));
 
-        assertEq(farms.farms[0].reserves.token0.symbol, "test_GetReserves::1");
-        assertEq(farms.farms[0].reserves.token1.symbol, "test_GetReserves::2");
+        assertEq(farms.farms[0].reserves.token0.symbol, "Mock COIN", "test_GetReserves::1");
+        assertEq(farms.farms[0].reserves.token1.symbol, "Mock USDC", "test_GetReserves::2");
         assertEq(farms.farms[0].reserves.binStep, 0, "test_GetReserves::3");
-        assertEq(farms.farms[0].lpToken.symbol, "test_GetReserves::4");
+        assertEq(farms.farms[0].lpToken.symbol, "MoeLP", "test_GetReserves::4");
 
-        assertEq(farms.farms[1].reserves.token0.symbol, "test_GetReserves::5");
-        assertEq(farms.farms[1].reserves.token1.symbol, "test_GetReserves::6");
+        assertEq(farms.farms[1].reserves.token0.symbol, "USDT", "test_GetReserves::5");
+        assertEq(farms.farms[1].reserves.token1.symbol, "USDC", "test_GetReserves::6");
         assertEq(farms.farms[1].reserves.binStep, 1, "test_GetReserves::7");
-        assertEq(farms.farms[1].lpToken.symbol, "test_GetReserves::8");
+        assertEq(farms.farms[1].lpToken.symbol, "Vote LB USDT-USDC:1", "test_GetReserves::8");
 
-        assertEq(farms.farms[2].reserves.token0.symbol, "test_GetReserves::9");
-        assertEq(farms.farms[2].reserves.token1.symbol, "test_GetReserves::10");
+        assertEq(farms.farms[2].reserves.token0.symbol, "WAVAX", "test_GetReserves::9");
+        assertEq(farms.farms[2].reserves.token1.symbol, "USDC", "test_GetReserves::10");
         assertEq(farms.farms[2].reserves.binStep, 15, "test_GetReserves::11");
-        assertEq(farms.farms[2].lpToken.symbol, "test_GetReserves::12");
+        assertEq(farms.farms[2].lpToken.symbol, "Vote LB WAVAX-USDC:15", "test_GetReserves::12");
     }
 }
