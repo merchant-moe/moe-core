@@ -2,6 +2,8 @@
 pragma solidity ^0.8.20;
 
 import {IERC20Metadata, IERC20} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {ILBPair} from "@tj-dexv2/src/interfaces/ILBPair.sol";
+import {ILBHooks} from "@tj-dexv2/src/interfaces/ILBHooks.sol";
 
 import {IMoePair} from "./dex/interfaces/IMoePair.sol";
 import {IMoe} from "./interfaces/IMoe.sol";
@@ -118,6 +120,7 @@ contract MoeLens {
     struct Reserves {
         Token token0;
         Token token1;
+        uint256 binStep;
         uint256 reserve0;
         uint256 reserve1;
     }
@@ -237,22 +240,44 @@ contract MoeLens {
     }
 
     function getPoolDataAt(address lpToken) external view returns (Reserves memory reserves) {
-        (uint256 reserve0, uint256 reserve1,) = IMoePair(lpToken).getReserves();
+        try ILBHooks(lpToken).getLBPair() returns (ILBPair lbPair) {
+            uint16 binStep = lbPair.getBinStep();
+            (uint256 reserveX, uint256 reserveY) = lbPair.getReserves();
 
-        address token0Address = IMoePair(lpToken).token0();
-        address token1Address = IMoePair(lpToken).token1();
+            address tokenXAddress = address(lbPair.getTokenX());
+            address tokenYAddress = address(lbPair.getTokenY());
 
-        uint256 decimals0 = IERC20Metadata(token0Address).decimals();
-        uint256 decimals1 = IERC20Metadata(token1Address).decimals();
+            uint256 decimalsX = IERC20Metadata(tokenXAddress).decimals();
+            uint256 decimalsY = IERC20Metadata(tokenYAddress).decimals();
 
-        reserves.token0 =
-            Token({token: token0Address, symbol: IERC20Metadata(token0Address).symbol(), decimals: decimals0});
+            reserves.token0 =
+                Token({token: tokenXAddress, symbol: IERC20Metadata(tokenXAddress).symbol(), decimals: decimalsX});
 
-        reserves.token1 =
-            Token({token: token1Address, symbol: IERC20Metadata(token1Address).symbol(), decimals: decimals1});
+            reserves.token1 =
+                Token({token: tokenYAddress, symbol: IERC20Metadata(tokenYAddress).symbol(), decimals: decimalsY});
 
-        reserves.reserve0 = reserve0;
-        reserves.reserve1 = reserve1;
+            reserves.binStep = binStep;
+
+            reserves.reserve0 = reserveX;
+            reserves.reserve1 = reserveY;
+        } catch {
+            (uint256 reserve0, uint256 reserve1,) = IMoePair(lpToken).getReserves();
+
+            address token0Address = IMoePair(lpToken).token0();
+            address token1Address = IMoePair(lpToken).token1();
+
+            uint256 decimals0 = IERC20Metadata(token0Address).decimals();
+            uint256 decimals1 = IERC20Metadata(token1Address).decimals();
+
+            reserves.token0 =
+                Token({token: token0Address, symbol: IERC20Metadata(token0Address).symbol(), decimals: decimals0});
+
+            reserves.token1 =
+                Token({token: token1Address, symbol: IERC20Metadata(token1Address).symbol(), decimals: decimals1});
+
+            reserves.reserve0 = reserve0;
+            reserves.reserve1 = reserve1;
+        }
     }
 
     function getMasterChefPendingRewardsAt(address user, uint256 pid)
