@@ -9,7 +9,7 @@ import {Addresses as fujiAddresses} from "../script/fuji/Addresses.sol";
 import "../src/MoeLens.sol";
 import "../src/rewarders/VeMoeRewarder.sol";
 
-contract UpgradeTest is Test {
+contract MoeLensTest is Test {
     MoeLens moeLens;
 
     function test_GetVersion() public {
@@ -60,16 +60,25 @@ contract UpgradeTest is Test {
         assertEq(farms.farms[0].reserves.token0.symbol, "Mock COIN", "test_GetReserves::1");
         assertEq(farms.farms[0].reserves.token1.symbol, "Mock USDC", "test_GetReserves::2");
         assertEq(farms.farms[0].reserves.binStep, 0, "test_GetReserves::3");
-        assertEq(farms.farms[0].lpToken.symbol, "MoeLP", "test_GetReserves::4");
+        assertEq(farms.farms[0].reserves.baseFee, 0.003e18, "test_GetReserves::4");
+        assertEq(farms.farms[0].reserves.variableFee, 0, "test_GetReserves::5");
+        assertEq(farms.farms[0].reserves.protocolShare, uint256(1e18) / 6, "test_GetReserves::6");
+        assertEq(farms.farms[0].lpToken.symbol, "MoeLP", "test_GetReserves::7");
 
-        assertEq(farms.farms[1].reserves.token0.symbol, "USDT", "test_GetReserves::5");
-        assertEq(farms.farms[1].reserves.token1.symbol, "USDC", "test_GetReserves::6");
-        assertEq(farms.farms[1].reserves.binStep, 1, "test_GetReserves::7");
-        assertEq(farms.farms[1].lpToken.symbol, "Vote LB USDT-USDC:1", "test_GetReserves::8");
+        assertEq(farms.farms[1].reserves.token0.symbol, "USDT", "test_GetReserves::8");
+        assertEq(farms.farms[1].reserves.token1.symbol, "USDC", "test_GetReserves::9");
+        assertEq(farms.farms[1].reserves.binStep, 1, "test_GetReserves::10");
+        assertEq(farms.farms[1].reserves.baseFee, 0.0002e18, "test_GetReserves::11");
+        assertEq(farms.farms[1].reserves.variableFee, 0, "test_GetReserves::12");
+        assertEq(farms.farms[1].reserves.protocolShare, 0.05e18, "test_GetReserves::13");
+        assertEq(farms.farms[1].lpToken.symbol, "Vote LB USDT-USDC:1", "test_GetReserves::14");
 
-        assertEq(farms.farms[2].reserves.token0.symbol, "WAVAX", "test_GetReserves::9");
-        assertEq(farms.farms[2].reserves.token1.symbol, "USDC", "test_GetReserves::10");
-        assertEq(farms.farms[2].reserves.binStep, 15, "test_GetReserves::11");
-        assertEq(farms.farms[2].lpToken.symbol, "Vote LB WAVAX-USDC:15", "test_GetReserves::12");
+        assertEq(farms.farms[2].reserves.token0.symbol, "WAVAX", "test_GetReserves::15");
+        assertEq(farms.farms[2].reserves.token1.symbol, "USDC", "test_GetReserves::16");
+        assertEq(farms.farms[2].reserves.binStep, 15, "test_GetReserves::17");
+        assertEq(farms.farms[2].reserves.baseFee, 0.0015e18, "test_GetReserves::18");
+        assertEq(farms.farms[2].reserves.variableFee, 0, "test_GetReserves::19");
+        assertEq(farms.farms[2].reserves.protocolShare, 0.1e18, "test_GetReserves::20");
+        assertEq(farms.farms[2].lpToken.symbol, "Vote LB WAVAX-USDC:15", "test_GetReserves::21");
     }
 }

@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {IERC20Metadata, IERC20} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {ILBPair} from "@tj-dexv2/src/interfaces/ILBPair.sol";
 import {ILBHooks} from "@tj-dexv2/src/interfaces/ILBHooks.sol";
+import {PairParameterHelper} from "@tj-dexv2/src/libraries/PairParameterHelper.sol";
 
 import {IMoePair} from "./dex/interfaces/IMoePair.sol";
 import {IMoe} from "./interfaces/IMoe.sol";
@@ -121,6 +122,9 @@ contract MoeLens {
         Token token0;
         Token token1;
         uint256 binStep;
+        uint256 baseFee;
+        uint256 variableFee;
+        uint256 protocolShare;
         uint256 reserve0;
         uint256 reserve1;
     }
@@ -258,6 +262,12 @@ contract MoeLens {
 
             reserves.binStep = binStep;
 
+            bytes32 parameters = getLBPairParameters(lbPair);
+
+            reserves.baseFee = PairParameterHelper.getBaseFee(parameters, binStep);
+            reserves.variableFee = PairParameterHelper.getVariableFee(parameters, binStep);
+            reserves.protocolShare = uint256(PairParameterHelper.getProtocolShare(parameters)) * 1e14;
+
             reserves.reserve0 = reserveX;
             reserves.reserve1 = reserveY;
         } catch {
@@ -275,9 +285,49 @@ contract MoeLens {
             reserves.token1 =
                 Token({token: token1Address, symbol: IERC20Metadata(token1Address).symbol(), decimals: decimals1});
 
+            reserves.baseFee = 0.003e18;
+            reserves.protocolShare = 166666666666666666; // 1e18 / 6
+
             reserves.reserve0 = reserve0;
             reserves.reserve1 = reserve1;
         }
+    }
+
+    function getLBPairParameters(ILBPair lbPair) public view returns (bytes32 parameters) {
+        (
+            uint16 baseFactor,
+            uint16 filterPeriod,
+            uint16 decayPeriod,
+            uint16 reductionFactor,
+            uint24 variableFeeControl,
+            uint16 protocolShare,
+            uint24 maxVolatilityAccumulator
+        ) = lbPair.getStaticFeeParameters();
+
+        (uint24 volatilityAccumulator, uint24 volatilityReference, uint24 idReference, uint40 timeOfLastUpdate) =
+            lbPair.getVariableFeeParameters();
+
+        parameters = PairParameterHelper.setStaticFeeParameters(
+            parameters,
+            baseFactor,
+            filterPeriod,
+            decayPeriod,
+            reductionFactor,
+            variableFeeControl,
+            protocolShare,
+            maxVolatilityAccumulator
+        );
+
+        uint24 activeId = lbPair.getActiveId();
+
+        parameters = PairParameterHelper.setVolatilityReference(parameters, volatilityReference);
+        parameters = PairParameterHelper.setVolatilityAccumulator(parameters, volatilityAccumulator);
+        parameters = PairParameterHelper.setActiveId(parameters, idReference);
+        parameters = PairParameterHelper.updateIdReference(parameters);
+        parameters = PairParameterHelper.updateTimeOfLastUpdate(parameters, timeOfLastUpdate);
+        parameters = PairParameterHelper.setActiveId(parameters, activeId);
+
+        return parameters;
     }
 
     function getMasterChefPendingRewardsAt(address user, uint256 pid)

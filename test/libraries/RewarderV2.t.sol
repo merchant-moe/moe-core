@@ -205,12 +205,12 @@ contract RewarderV2Test is Test {
 
         // Due to rounding down
         assertEq(RewarderV2.getDebt(accDebtPerShare1, MAX_VALUE), 0, "test_RewarderRounding::7");
-        assertEq(RewarderV2.getDebt(accDebtPerShare1, 1), 0, "test_RewarderRounding::11");
+        assertEq(RewarderV2.getDebt(accDebtPerShare1, 1), 0, "test_RewarderRounding::8");
 
         assertGt(RewarderV2.getDebt(accDebtPerShare2, MAX_VALUE), 1e6, "test_RewarderRounding::9");
-        assertGt(RewarderV2.getDebt(accDebtPerShare2, 1), 0, "test_RewarderRounding::12");
+        assertGt(RewarderV2.getDebt(accDebtPerShare2, 1), 0, "test_RewarderRounding::10");
 
-        assertGt(RewarderV2.getDebt(accDebtPerShare3, MAX_VALUE), 1e6, "test_RewarderRounding::10");
-        assertGt(RewarderV2.getDebt(accDebtPerShare3, 1), 0, "test_RewarderRounding::13");
+        assertGt(RewarderV2.getDebt(accDebtPerShare3, MAX_VALUE), 1e6, "test_RewarderRounding::11");
+        assertGt(RewarderV2.getDebt(accDebtPerShare3, 1), 0, "test_RewarderRounding::12");
     }
 }
