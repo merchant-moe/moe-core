@@ -30,7 +30,8 @@ contract ExchangeTest is Test {
         address moeFactoryAddress = computeCreateAddress(address(this), nonce);
         address moePairImplentationAddress = computeCreateAddress(address(this), nonce + 1);
 
-        factory = new MoeFactory(treasury, address(this), moePairImplentationAddress);
+        factory =
+            new MoeFactory(MoeLibrary.SWAP_FEES > 0 ? treasury : address(0), address(this), moePairImplentationAddress);
         new MoePair(moeFactoryAddress);
 
         vm.label(address(token18d), "token18d");
@@ -138,7 +139,7 @@ contract ExchangeTest is Test {
         assertEq(token9d.balanceOf(pair18_9), reserve0 - amount0Out, "test_Swap::3");
         assertEq(token18d.balanceOf(pair18_9), reserve1 + amount1In, "test_Swap::4");
 
-        uint256 amount0In = (amount0Out * 1.003e18 - 1) / 1e18 + 1;
+        uint256 amount0In = (amount0Out * (1000 + MoeLibrary.SWAP_FEES) - 1) / 1000 + 1;
 
         (uint256 reserve0After, uint256 reserve1After,) = IMoePair(pair18_9).getReserves();
 
@@ -163,10 +164,16 @@ contract ExchangeTest is Test {
         assertEq(MoePair(pair18_9).balanceOf(alice), 0, "test_Swap::7");
         assertEq(MoePair(pair18_9).totalSupply(), 1e3, "test_Swap::8");
 
-        assertGt(token9d.balanceOf(treasury), 0, "test_Swap::9");
-        assertGt(token18d.balanceOf(treasury), 0, "test_Swap::10");
-
-        assertGt(token9d.balanceOf(alice), reserve0, "test_Swap::11");
-        assertGt(token18d.balanceOf(alice), reserve1, "test_Swap::12");
+        if (MoeLibrary.SWAP_FEES > 0) {
+            assertGt(token9d.balanceOf(treasury), 0, "test_Swap::9");
+            assertGt(token18d.balanceOf(treasury), 0, "test_Swap::10");
+            assertGt(token9d.balanceOf(alice), reserve0, "test_Swap::11");
+            assertGt(token18d.balanceOf(alice), reserve1, "test_Swap::12");
+        } else {
+            assertEq(token9d.balanceOf(treasury), 0, "test_Swap::13");
+            assertEq(token18d.balanceOf(treasury), 0, "test_Swap::14");
+            assertGe(token9d.balanceOf(alice), reserve0 - 1, "test_Swap::15");
+            assertGe(token18d.balanceOf(alice), reserve1 - 1, "test_Swap::16");
+        }
     }
 }

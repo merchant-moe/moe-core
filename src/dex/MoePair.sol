@@ -7,6 +7,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Clone} from "@tj-dexv2/src/libraries/Clone.sol";
 
 import {MoeERC20} from "./MoeERC20.sol";
+import {MoeLibrary} from "./libraries/MoeLibrary.sol";
 import {IMoePair} from "./interfaces/IMoePair.sol";
 import {IMoeFactory} from "./interfaces/IMoeFactory.sol";
 import {IMoeCallee} from "./interfaces/IMoeCallee.sol";
@@ -206,8 +207,8 @@ contract MoePair is IMoePair, MoeERC20, Clone {
         require(amount0In > 0 || amount1In > 0, "Moe: INSUFFICIENT_INPUT_AMOUNT");
         {
             // scope for reserve{0,1}Adjusted, avoids stack too deep errors
-            uint256 balance0Adjusted = balance0 * 1000 - amount0In * 3;
-            uint256 balance1Adjusted = balance1 * 1000 - amount1In * 3;
+            uint256 balance0Adjusted = balance0 * 1000 - amount0In * MoeLibrary.SWAP_FEES;
+            uint256 balance1Adjusted = balance1 * 1000 - amount1In * MoeLibrary.SWAP_FEES;
             require(balance0Adjusted * balance1Adjusted >= uint256(_reserve0) * _reserve1 * 1000 ** 2, "Moe: K");
         }
 

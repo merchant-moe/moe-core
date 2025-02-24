@@ -7,6 +7,8 @@ import {IMoePair} from ".././interfaces/IMoePair.sol";
 import {IMoeFactory} from ".././interfaces/IMoeFactory.sol";
 
 library MoeLibrary {
+    uint256 constant SWAP_FEES = 0;
+
     // returns sorted token addresses, used to handle return values from pairs sorted in this order
     function sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
         require(tokenA != tokenB, "MoeLibrary: IDENTICAL_ADDRESSES");
@@ -58,7 +60,7 @@ library MoeLibrary {
     {
         require(amountIn > 0, "MoeLibrary: INSUFFICIENT_INPUT_AMOUNT");
         require(reserveIn > 0 && reserveOut > 0, "MoeLibrary: INSUFFICIENT_LIQUIDITY");
-        uint256 amountInWithFee = amountIn * 997;
+        uint256 amountInWithFee = amountIn * (1000 - SWAP_FEES);
         uint256 numerator = amountInWithFee * reserveOut;
         uint256 denominator = reserveIn * 1000 + amountInWithFee;
         amountOut = numerator / denominator;
@@ -73,7 +75,7 @@ library MoeLibrary {
         require(amountOut > 0, "MoeLibrary: INSUFFICIENT_OUTPUT_AMOUNT");
         require(reserveIn > 0 && reserveOut > 0, "MoeLibrary: INSUFFICIENT_LIQUIDITY");
         uint256 numerator = reserveIn * amountOut * 1000;
-        uint256 denominator = (reserveOut - amountOut) * 997;
+        uint256 denominator = (reserveOut - amountOut) * (1000 - SWAP_FEES);
         amountIn = ((numerator - 1) / denominator) + 1;
     }
 
