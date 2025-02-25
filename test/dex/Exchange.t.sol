@@ -110,70 +110,88 @@ contract ExchangeTest is Test {
         assertEq(MoePair(pair9_6).implementation(), factory.moePairImplementation(), "test_CreatePair::21");
     }
 
-    function test_Swap() public {
-        assertGt(uint160(address(token18d)), uint160(address(token9d)), "test_Swap::1");
+    function test_Fuzz_Swap(uint256 reserve0, uint256 reserve1, uint256 amount0In, uint256 amount1In) public {
+        assertGt(uint160(address(token18d)), uint160(address(token9d)), "test_Fuzz_Swap::1");
 
         address pair18_9 = factory.createPair(address(token18d), address(token9d));
 
-        uint256 reserve0 = 10e9;
-        uint256 reserve1 = 10e18;
+        reserve0 = bound(reserve0, 1e6, 1e32);
+        reserve1 = bound(reserve1, 1e6, 1e32);
+        amount0In = bound(amount0In, 1, reserve0 * 99 / 100);
+        amount1In = bound(amount1In, 1, reserve1 * 99 / 100);
 
         MockERC20(address(token9d)).mint(pair18_9, reserve0);
         MockERC20(address(token18d)).mint(pair18_9, reserve1);
 
         MoePair(pair18_9).mint(alice);
 
-        assertEq(MoePair(pair18_9).balanceOf(alice), MoePair(pair18_9).totalSupply() - 1e3, "test_Swap::2");
-
-        uint256 amount1In = 1e18;
+        assertEq(MoePair(pair18_9).balanceOf(alice), MoePair(pair18_9).totalSupply() - 1e3, "test_Fuzz_Swap::2");
 
         MockERC20(address(token18d)).mint(pair18_9, amount1In);
 
         uint256 amount0Out = MoeLibrary.getAmountOut(amount1In, reserve1, reserve0);
+        vm.assume(amount0Out > 0);
+        assertEq(
+            MoeLibrary.getAmountOut(MoeLibrary.getAmountIn(amount0Out, reserve1, reserve0), reserve1, reserve0),
+            amount0Out,
+            "test_Fuzz_Swap::3"
+        );
 
         vm.expectRevert("Moe: K");
         MoePair(pair18_9).swap(amount0Out + 1, 0, bob, "");
 
         MoePair(pair18_9).swap(amount0Out, 0, bob, "");
 
-        assertEq(token9d.balanceOf(pair18_9), reserve0 - amount0Out, "test_Swap::3");
-        assertEq(token18d.balanceOf(pair18_9), reserve1 + amount1In, "test_Swap::4");
-
-        uint256 amount0In = (amount0Out * (1000 + MoeLibrary.SWAP_FEES) - 1) / 1000 + 1;
+        assertEq(token9d.balanceOf(pair18_9), reserve0 - amount0Out, "test_Fuzz_Swap::4");
+        assertEq(token18d.balanceOf(pair18_9), reserve1 + amount1In, "test_Fuzz_Swap::5");
 
         (uint256 reserve0After, uint256 reserve1After,) = IMoePair(pair18_9).getReserves();
+
+        assertEq(reserve0After, reserve0 - amount0Out, "test_Fuzz_Swap::6");
+        assertEq(reserve1After, reserve1 + amount1In, "test_Fuzz_Swap::7");
 
         MockERC20(address(token9d)).mint(pair18_9, amount0In);
 
         uint256 amount1Out = MoeLibrary.getAmountOut(amount0In, reserve0After, reserve1After);
+        vm.assume(amount1Out > 0);
+        assertEq(
+            MoeLibrary.getAmountOut(
+                MoeLibrary.getAmountIn(amount1Out, reserve0After, reserve1After), reserve0After, reserve1After
+            ),
+            amount1Out,
+            "test_Fuzz_Swap::8"
+        );
 
         vm.expectRevert("Moe: K");
         MoePair(pair18_9).swap(0, amount1Out + 1, bob, "");
 
         MoePair(pair18_9).swap(0, amount1Out, bob, "");
 
-        assertEq(token9d.balanceOf(pair18_9), reserve0After + amount0In, "test_Swap::5");
-        assertEq(token18d.balanceOf(pair18_9), reserve1After - amount1Out, "test_Swap::6");
+        assertEq(token9d.balanceOf(pair18_9), reserve0After + amount0In, "test_Fuzz_Swap::9");
+        assertEq(token18d.balanceOf(pair18_9), reserve1After - amount1Out, "test_Fuzz_Swap::10");
 
         uint256 balance = MoePair(pair18_9).balanceOf(alice);
 
         vm.prank(alice);
         MoePair(pair18_9).transfer(pair18_9, balance);
+
         MoePair(pair18_9).burn(alice);
 
-        assertEq(MoePair(pair18_9).balanceOf(alice), 0, "test_Swap::7");
-        assertEq(MoePair(pair18_9).totalSupply(), 1e3, "test_Swap::8");
+        assertEq(MoePair(pair18_9).balanceOf(alice), 0, "test_Fuzz_Swap::11");
+        assertEq(MoePair(pair18_9).totalSupply(), 1e3, "test_Fuzz_Swap::12");
 
-        if (MoeLibrary.SWAP_FEES > 0) {
-            assertGt(token9d.balanceOf(treasury), 0, "test_Swap::9");
-            assertGt(token18d.balanceOf(treasury), 0, "test_Swap::10");
-            assertGt(token9d.balanceOf(alice), reserve0, "test_Swap::11");
-            assertGt(token18d.balanceOf(alice), reserve1, "test_Swap::12");
-        } else {
-            assertEq(token9d.balanceOf(treasury), 0, "test_Swap::13");
-            assertEq(token18d.balanceOf(treasury), 0, "test_Swap::14");
-            assertGe(token9d.balanceOf(alice), reserve0 - 1, "test_Swap::15");
-            assertGe(token18d.balanceOf(alice), reserve1 - 1, "test_Swap::16");
+        uint256 pFees0 = token9d.balanceOf(treasury);
+        uint256 pFees1 = token18d.balanceOf(treasury);
+
+        if (IMoeFactory(factory).feeTo() != address(0) && MoeLibrary.SWAP_FEES > 0) {
+            assertGt(pFees0, 0, "test_Fuzz_Swap::13");
+            assertGt(pFees1, 0, "test_Fuzz_Swap::14");
         }
+
+        reserve0 = reserve0 + amount0In - amount0Out - pFees0;
+        reserve1 = reserve1 + amount1In - amount1Out - pFees1;
+
+        assertEq(token9d.balanceOf(alice), reserve0 * balance / (balance + 1e3), "test_Fuzz_Swap::15");
+        assertEq(token18d.balanceOf(alice), reserve1 * balance / (balance + 1e3), "test_Fuzz_Swap::16");
     }
 }
