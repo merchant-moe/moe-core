@@ -10,8 +10,10 @@ optimizer_runs = 600
 [rpc_endpoints]
 avalanche_fuji = "https://api.avax-test.network/ext/bc/C/rpc"
 mantle = "https://rpc.mantle.xyz"
+avalanche = "https://api.avax.network/ext/bc/C/rpc"
 
 [etherscan]
 mantle = { key = "$MANTLESCAN_API_KEY", chain=5000 }
+avalanche = { key = "$SNOWSCAN_API_KEY", chain=43114 }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
