@@ -17,7 +17,7 @@ contract MathTest is Test {
             else y = x - uint256(-delta);
         }
 
-        assertEq(Math.addDelta(x, delta), y, "test_fuzz_AddDelta::1");
+        assertEq(this.addDelta(x, delta), y, "test_fuzz_AddDelta::1");
     }
 
     function test_fuzz_revert_AddDelta(uint256 x, int256 delta) public {
@@ -31,11 +31,15 @@ contract MathTest is Test {
         }
 
         vm.expectRevert(Math.Math__UnderOverflow.selector);
-        Math.addDelta(x, delta);
+        this.addDelta(x, delta);
     }
 
     function _abs(int256 x) internal pure returns (uint256) {
         if (x < 0) return x == type(int256).min ? uint256(type(int256).max) + 1 : uint256(-x);
         else return uint256(x);
+    }
+
+    function addDelta(uint256 x, int256 delta) external pure returns (uint256) {
+        return Math.addDelta(x, delta);
     }
 }
