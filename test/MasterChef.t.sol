@@ -44,7 +44,7 @@ contract MasterChefTest is Test {
 
         moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
 
-        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), IRewarderFactory(factoryAddress), address(0), 0);
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), IRewarderFactory(factoryAddress), address(0), 0.5e18);
 
         TransparentUpgradeableProxy2Step proxy = new TransparentUpgradeableProxy2Step(
             address(masterChef),
@@ -202,7 +202,7 @@ contract MasterChefTest is Test {
     }
 
     function test_Claim() public {
-        masterChef.setMoePerSecond(1e18);
+        masterChef.setMoePerSecond(2e18);
 
         {
             veMoe.setVotes(0, 1e18);
@@ -234,11 +234,13 @@ contract MasterChefTest is Test {
         masterChef.deposit(0, 0);
 
         assertEq(moe.balanceOf(address(alice)), 0.5e18, "test_Claim::1");
+        assertEq(moe.balanceOf(address(this)), 5e18, "test_Claim::2");
 
         vm.prank(bob);
         masterChef.deposit(0, 0);
 
-        assertEq(moe.balanceOf(address(bob)), 4.5e18, "test_Claim::2");
+        assertEq(moe.balanceOf(address(bob)), 4.5e18, "test_Claim::3");
+        assertEq(moe.balanceOf(address(this)), 5e18, "test_Claim::4");
 
         vm.warp(block.timestamp + 10);
 
@@ -248,22 +250,26 @@ contract MasterChefTest is Test {
         vm.prank(alice);
         masterChef.claim(pids);
 
-        assertEq(moe.balanceOf(address(alice)), 3e18, "test_Claim::3");
+        assertEq(moe.balanceOf(address(alice)), 3e18, "test_Claim::5");
+        assertEq(moe.balanceOf(address(this)), 20e18, "test_Claim::6");
 
         vm.prank(bob);
         masterChef.claim(pids);
 
-        assertEq(moe.balanceOf(address(bob)), 17e18, "test_Claim::4");
+        assertEq(moe.balanceOf(address(bob)), 17e18, "test_Claim::7");
+        assertEq(moe.balanceOf(address(this)), 20e18, "test_Claim::8");
 
         vm.prank(alice);
         masterChef.claim(pids);
 
-        assertEq(moe.balanceOf(address(alice)), 3e18, "test_Claim::5");
+        assertEq(moe.balanceOf(address(alice)), 3e18, "test_Claim::9");
+        assertEq(moe.balanceOf(address(this)), 20e18, "test_Claim::10");
 
         vm.prank(bob);
         masterChef.claim(pids);
 
-        assertEq(moe.balanceOf(address(bob)), 17e18, "test_Claim::6");
+        assertEq(moe.balanceOf(address(bob)), 17e18, "test_Claim::11");
+        assertEq(moe.balanceOf(address(this)), 20e18, "test_Claim::12");
     }
 
     function test_Add() public {
@@ -322,12 +328,12 @@ contract MasterChefTest is Test {
     }
 
     function test_EmergencyWithdrawal() public {
-        masterChef.setMoePerSecond(1e18);
+        masterChef.setMoePerSecond(2e18);
 
         veMoe.setVotes(0, 1e18);
         IVeMoe(address(veMoe)).setTopPoolIds(new uint256[](1));
 
-        assertEq(masterChef.getMoePerSecondForPid(0), 1e18, "test_EmergencyWithdrawal::1");
+        assertEq(masterChef.getMoePerSecondForPid(0), 2e18, "test_EmergencyWithdrawal::1");
         assertEq(masterChef.getMoePerSecondForPid(1), 0, "test_EmergencyWithdrawal::2");
 
         vm.prank(alice);
@@ -348,18 +354,20 @@ contract MasterChefTest is Test {
         masterChef.claim(new uint256[](1));
 
         assertApproxEqAbs(moe.balanceOf(address(bob)), 10e18, 1, "test_EmergencyWithdrawal::5");
+        assertEq(moe.balanceOf(address(this)), 10e18, "test_EmergencyWithdrawal::6");
 
         vm.prank(alice);
         masterChef.deposit(0, 1e18);
 
-        assertEq(moe.balanceOf(address(alice)), 0, "test_EmergencyWithdrawal::6");
+        assertEq(moe.balanceOf(address(alice)), 0, "test_EmergencyWithdrawal::7");
 
         vm.warp(block.timestamp + 10);
 
         vm.prank(alice);
         masterChef.claim(new uint256[](1));
 
-        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::7");
+        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::8");
+        assertEq(moe.balanceOf(address(this)), 20e18, "test_EmergencyWithdrawal::9");
 
         vm.prank(bob);
         masterChef.emergencyWithdraw(0);
@@ -367,7 +375,8 @@ contract MasterChefTest is Test {
         vm.prank(alice);
         masterChef.claim(new uint256[](1));
 
-        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::8");
+        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::10");
+        assertEq(moe.balanceOf(address(this)), 20e18, "test_EmergencyWithdrawal::11");
     }
 
     function test_TreasuryShare() public {
@@ -502,39 +511,43 @@ contract MasterChefTest is Test {
         assertEq(moeRewardAlice.length, 2, "test_ExtraRewarder::1");
         assertEq(extraTokenAlice.length, 2, "test_ExtraRewarder::2");
         assertEq(extraRewardAlice.length, 2, "test_ExtraRewarder::3");
-        assertApproxEqAbs(moeRewardAlice[0], 50e18, 1, "test_ExtraRewarder::4");
+        assertApproxEqAbs(moeRewardAlice[0], 25e18, 1, "test_ExtraRewarder::4");
         assertApproxEqAbs(moeRewardAlice[1], 0, 1, "test_ExtraRewarder::5");
         assertEq(address(extraTokenAlice[0]), address(rewardToken0), "test_ExtraRewarder::6");
         assertEq(address(extraTokenAlice[1]), address(rewardToken1), "test_ExtraRewarder::7");
         assertApproxEqAbs(extraRewardAlice[0], 5e18, 1, "test_ExtraRewarder::8");
         assertApproxEqAbs(extraRewardAlice[1], 40e6, 1, "test_ExtraRewarder::9");
+        assertEq(moe.balanceOf(address(this)), 0, "test_ExtraRewarder::10");
 
         vm.prank(alice);
         masterChef.claim(pids);
 
-        assertEq(moe.balanceOf(address(alice)), moeRewardAlice[0], "test_ExtraRewarder::10");
-        assertEq(rewardToken0.balanceOf(address(alice)), extraRewardAlice[0], "test_ExtraRewarder::11");
-        assertEq(rewardToken1.balanceOf(address(alice)), extraRewardAlice[1], "test_ExtraRewarder::12");
+        assertEq(moe.balanceOf(address(alice)), moeRewardAlice[0], "test_ExtraRewarder::11");
+        assertEq(rewardToken0.balanceOf(address(alice)), extraRewardAlice[0], "test_ExtraRewarder::12");
+        assertEq(rewardToken1.balanceOf(address(alice)), extraRewardAlice[1], "test_ExtraRewarder::13");
+        assertEq(moe.balanceOf(address(this)), 250e18, "test_ExtraRewarder::14");
 
         (uint256[] memory moeRewardBob, IERC20[] memory extraTokenBob, uint256[] memory extraRewardBob) =
             masterChef.getPendingRewards(bob, pids);
 
-        assertEq(moeRewardBob.length, 2, "test_ExtraRewarder::13");
-        assertEq(extraTokenBob.length, 2, "test_ExtraRewarder::14");
-        assertEq(extraRewardBob.length, 2, "test_ExtraRewarder::15");
-        assertApproxEqAbs(moeRewardBob[0], 450e18, 1, "test_ExtraRewarder::16");
-        assertApproxEqAbs(moeRewardBob[1], 0, 1, "test_ExtraRewarder::17");
-        assertEq(address(extraTokenBob[0]), address(rewardToken0), "test_ExtraRewarder::18");
-        assertEq(address(extraTokenBob[1]), address(rewardToken1), "test_ExtraRewarder::19");
-        assertApproxEqAbs(extraRewardBob[0], 45e18, 1, "test_ExtraRewarder::20");
-        assertApproxEqAbs(extraRewardBob[1], 160e6, 1, "test_ExtraRewarder::21");
+        assertEq(moeRewardBob.length, 2, "test_ExtraRewarder::15");
+        assertEq(extraTokenBob.length, 2, "test_ExtraRewarder::16");
+        assertEq(extraRewardBob.length, 2, "test_ExtraRewarder::17");
+        assertApproxEqAbs(moeRewardBob[0], 225e18, 1, "test_ExtraRewarder::18");
+        assertApproxEqAbs(moeRewardBob[1], 0, 1, "test_ExtraRewarder::19");
+        assertEq(address(extraTokenBob[0]), address(rewardToken0), "test_ExtraRewarder::20");
+        assertEq(address(extraTokenBob[1]), address(rewardToken1), "test_ExtraRewarder::21");
+        assertApproxEqAbs(extraRewardBob[0], 45e18, 1, "test_ExtraRewarder::22");
+        assertApproxEqAbs(extraRewardBob[1], 160e6, 1, "test_ExtraRewarder::23");
+        assertEq(moe.balanceOf(address(this)), 250e18, "test_ExtraRewarder::24");
 
         vm.prank(bob);
         masterChef.claim(pids);
 
-        assertEq(moe.balanceOf(address(bob)), moeRewardBob[0], "test_ExtraRewarder::22");
-        assertEq(rewardToken0.balanceOf(address(bob)), extraRewardBob[0], "test_ExtraRewarder::23");
-        assertEq(rewardToken1.balanceOf(address(bob)), extraRewardBob[1], "test_ExtraRewarder::24");
+        assertEq(moe.balanceOf(address(bob)), moeRewardBob[0], "test_ExtraRewarder::25");
+        assertEq(rewardToken0.balanceOf(address(bob)), extraRewardBob[0], "test_ExtraRewarder::26");
+        assertEq(rewardToken1.balanceOf(address(bob)), extraRewardBob[1], "test_ExtraRewarder::27");
+        assertEq(moe.balanceOf(address(this)), 250e18, "test_ExtraRewarder::28");
     }
 
     address sink = makeAddr("sink");
@@ -545,7 +558,7 @@ contract MasterChefTest is Test {
         pids[1] = 1;
 
         {
-            masterChef.setMoePerSecond(1e18);
+            masterChef.setMoePerSecond(2e18);
 
             veMoe.setVotes(0, 1e18);
             veMoe.setVotes(1, 1e18);
@@ -579,34 +592,38 @@ contract MasterChefTest is Test {
 
         assertEq(moe.balanceOf(address(alice)), 1.5e18, "test_SetSink::1");
         assertEq(moe.balanceOf(address(bob)), 8.5e18, "test_SetSink::2");
+        assertEq(moe.balanceOf(address(this)), 10e18, "test_SetSink::3");
 
         vm.warp(block.timestamp + 10);
 
-        assertEq(masterChef.getSink(), address(0), "test_SetSink::3");
-        assertEq(masterChef.getSinkShare(), 0, "test_SetSink::4");
+        assertEq(masterChef.getSink(), address(0), "test_SetSink::4");
+        assertEq(masterChef.getSinkShare(), 0, "test_SetSink::5");
 
         masterChef.setSink(sink, 0.5e18);
         vm.warp(block.timestamp + 10);
 
-        assertEq(masterChef.getSink(), sink, "test_SetSink::5");
-        assertEq(masterChef.getSinkShare(), 0.5e18, "test_SetSink::6");
+        assertEq(masterChef.getSink(), sink, "test_SetSink::6");
+        assertEq(masterChef.getSinkShare(), 0.5e18, "test_SetSink::7");
+        assertEq(moe.balanceOf(address(this)), 20e18, "test_SetSink::8");
 
         vm.prank(alice);
         masterChef.claim(pids);
 
-        assertEq(moe.balanceOf(address(alice)), 1.5e18 + 1.5e18 + 1.5e18 / 2, "test_SetSink::7");
+        assertEq(moe.balanceOf(address(alice)), 1.5e18 + 1.5e18 + 1.5e18 / 2, "test_SetSink::9");
+        assertEq(moe.balanceOf(address(this)), 30e18, "test_SetSink::10");
 
         (uint256[] memory moeRewardBob,,) = masterChef.getPendingRewards(bob, pids);
 
-        assertEq(moeRewardBob.length, 2, "test_SetSink::8");
-        assertEq(moeRewardBob[0], 4.5e18 + 4.5e18 / 2, "test_SetSink::9");
-        assertEq(moeRewardBob[1], 4e18 + 4e18 / 2, "test_SetSink::10");
+        assertEq(moeRewardBob.length, 2, "test_SetSink::11");
+        assertEq(moeRewardBob[0], 4.5e18 + 4.5e18 / 2, "test_SetSink::12");
+        assertEq(moeRewardBob[1], 4e18 + 4e18 / 2, "test_SetSink::13");
 
         masterChef.setSink(sink, 0);
         vm.warp(block.timestamp + 10);
 
-        assertEq(masterChef.getSink(), sink, "test_SetSink::11");
-        assertEq(masterChef.getSinkShare(), 0, "test_SetSink::12");
+        assertEq(masterChef.getSink(), sink, "test_SetSink::14");
+        assertEq(masterChef.getSinkShare(), 0, "test_SetSink::15");
+        assertEq(moe.balanceOf(address(this)), 30e18, "test_SetSink::16");
 
         vm.prank(alice);
         masterChef.claim(pids);
@@ -614,12 +631,14 @@ contract MasterChefTest is Test {
         vm.prank(bob);
         masterChef.claim(pids);
 
-        assertEq(moe.balanceOf(address(alice)), 1.5e18 + 1.5e18 + 1.5e18 / 2 + 1.5e18, "test_SetSink::13");
-        assertEq(moe.balanceOf(address(bob)), 8.5e18 + 8.5e18 + 8.5e18 / 2 + 8.5e18, "test_SetSink::14");
+        assertEq(moe.balanceOf(address(alice)), 1.5e18 + 1.5e18 + 1.5e18 / 2 + 1.5e18, "test_SetSink::17");
+        assertEq(moe.balanceOf(address(bob)), 8.5e18 + 8.5e18 + 8.5e18 / 2 + 8.5e18, "test_SetSink::18");
+        assertEq(moe.balanceOf(address(this)), 40e18, "test_SetSink::19");
 
         masterChef.setSink(address(0), 0);
 
-        assertEq(masterChef.getSink(), address(0), "test_SetSink::15");
-        assertEq(masterChef.getSinkShare(), 0, "test_SetSink::16");
+        assertEq(masterChef.getSink(), address(0), "test_SetSink::20");
+        assertEq(masterChef.getSinkShare(), 0, "test_SetSink::21");
+        assertEq(moe.balanceOf(address(this)), 40e18, "test_SetSink::22");
     }
 }
