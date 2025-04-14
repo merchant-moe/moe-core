@@ -44,6 +44,9 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
 
     Farm[] private _farms;
 
+    address private _sink;
+    uint96 private _sinkShare;
+
     /**
      * @dev Constructor for the MasterChef contract.
      * @param moe The address of the MOE token.
@@ -150,6 +153,22 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     }
 
     /**
+     * @dev Returns the address of the sink.
+     * @return The address of the sink.
+     */
+    function getSink() external view override returns (address) {
+        return _sink;
+    }
+
+    /**
+     * @dev Returns the share of the rewards that will be sent to the sink (after the treasury share).
+     * @return The share of the rewards that will be sent to the sink.
+     */
+    function getSinkShare() external view override returns (uint256) {
+        return _sinkShare;
+    }
+
+    /**
      * @dev Returns the number of farms.
      * @return The number of farms.
      */
@@ -206,7 +225,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
             uint256 totalSupply = amounts.getTotalAmount();
 
             {
-                (, uint256 moeRewardForPid) = _calculateAmounts(_getRewardForPid(rewarder, pid, totalSupply));
+                (,, uint256 moeRewardForPid) = _calculateAmounts(_getRewardForPid(rewarder, pid, totalSupply));
 
                 moeRewards[i] = rewarder.getPendingReward(account, balance, totalSupply, moeRewardForPid);
             }
@@ -377,6 +396,23 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     }
 
     /**
+     * @dev Sets the sink.
+     * @param sink The new sink.
+     */
+    function setSink(address sink, uint96 sinkShare) external override onlyOwner {
+        if (sink == address(0) && sinkShare > 0 || sinkShare > Constants.PRECISION) {
+            revert MasterChef__InvalidSinkParameters();
+        }
+
+        _updateAll(_veMoe.getTopPoolIds());
+
+        _sink = sink;
+        _sinkShare = sinkShare;
+
+        emit SinkSet(sink, sinkShare);
+    }
+
+    /**
      * @dev Blocks the renouncing of ownership.
      */
     function renounceOwnership() public pure override {
@@ -511,9 +547,11 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     function _mintMoe(uint256 amount) private returns (uint256) {
         if (amount == 0) return 0;
 
-        (uint256 treasuryAmount, uint256 liquidityMiningAmount) = _calculateAmounts(amount);
+        (uint256 treasuryAmount, uint256 sinkAmount, uint256 liquidityMiningAmount) = _calculateAmounts(amount);
 
         _moe.mint(_treasury, treasuryAmount);
+        if (sinkAmount > 0) _moe.mint(_sink, sinkAmount);
+
         return _moe.mint(address(this), liquidityMiningAmount);
     }
 
@@ -521,14 +559,18 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      * @dev Calculates the amounts of MOE tokens to mint for each recipient.
      * @param amount The amount of MOE tokens to mint.
      * @return treasuryAmount The amount of MOE tokens to mint for the treasury.
+     * @return sinkAmount The amount of MOE tokens to mint for the sink.
      * @return liquidityMiningAmount The amount of MOE tokens to mint for liquidity mining.
      */
     function _calculateAmounts(uint256 amount)
         private
         view
-        returns (uint256 treasuryAmount, uint256 liquidityMiningAmount)
+        returns (uint256 treasuryAmount, uint256 sinkAmount, uint256 liquidityMiningAmount)
     {
         treasuryAmount = amount * _treasuryShare / Constants.PRECISION;
-        liquidityMiningAmount = amount - treasuryAmount;
+        amount -= treasuryAmount;
+
+        sinkAmount = amount * _sinkShare / Constants.PRECISION;
+        liquidityMiningAmount = amount - sinkAmount;
     }
 }

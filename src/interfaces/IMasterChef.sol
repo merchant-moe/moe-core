@@ -17,6 +17,7 @@ interface IMasterChef {
     error MasterChef__NotMasterchefRewarder();
     error MasterChef__CannotRenounceOwnership();
     error MasterChef__MintFailed();
+    error MasterChef__InvalidSinkParameters();
 
     struct Farm {
         Amounts.Parameter amounts;
@@ -34,6 +35,8 @@ interface IMasterChef {
     event ExtraRewarderSet(uint256 indexed pid, IMasterChefRewarder extraRewarder);
 
     event TreasurySet(address indexed treasury);
+
+    event SinkSet(address indexed sink, uint256 share);
 
     function add(IERC20 token, IMasterChefRewarder extraRewarder) external;
 
@@ -70,6 +73,10 @@ interface IMasterChef {
 
     function getTreasuryShare() external view returns (uint256);
 
+    function getSink() external view returns (address);
+
+    function getSinkShare() external view returns (uint256);
+
     function getRewarderFactory() external view returns (IRewarderFactory);
 
     function getLBHooksManager() external view returns (address);
@@ -81,6 +88,8 @@ interface IMasterChef {
     function setMoePerSecond(uint96 moePerSecond) external;
 
     function setTreasury(address treasury) external;
+
+    function setSink(address sink, uint96 share) external;
 
     function updateAll(uint256[] calldata pids) external;
 

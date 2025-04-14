@@ -536,4 +536,90 @@ contract MasterChefTest is Test {
         assertEq(rewardToken0.balanceOf(address(bob)), extraRewardBob[0], "test_ExtraRewarder::23");
         assertEq(rewardToken1.balanceOf(address(bob)), extraRewardBob[1], "test_ExtraRewarder::24");
     }
+
+    address sink = makeAddr("sink");
+
+    function test_SetSink() public {
+        uint256[] memory pids = new uint256[](2);
+        pids[0] = 0;
+        pids[1] = 1;
+
+        {
+            masterChef.setMoePerSecond(1e18);
+
+            veMoe.setVotes(0, 1e18);
+            veMoe.setVotes(1, 1e18);
+
+            IVeMoe(address(veMoe)).setTopPoolIds(pids);
+
+            vm.startPrank(alice);
+            masterChef.deposit(0, 1e18);
+            masterChef.deposit(1, 2e18);
+            vm.stopPrank();
+
+            vm.startPrank(bob);
+            masterChef.deposit(0, 9e18);
+            masterChef.deposit(1, 8e18);
+            vm.stopPrank();
+        }
+
+        vm.expectRevert(IMasterChef.MasterChef__InvalidSinkParameters.selector);
+        masterChef.setSink(address(0), 1);
+
+        vm.expectRevert(IMasterChef.MasterChef__InvalidSinkParameters.selector);
+        masterChef.setSink(address(1), 1e18 + 1);
+
+        vm.warp(block.timestamp + 10);
+
+        vm.prank(alice);
+        masterChef.claim(pids);
+
+        vm.prank(bob);
+        masterChef.claim(pids);
+
+        assertEq(moe.balanceOf(address(alice)), 1.5e18, "test_SetSink::1");
+        assertEq(moe.balanceOf(address(bob)), 8.5e18, "test_SetSink::2");
+
+        vm.warp(block.timestamp + 10);
+
+        assertEq(masterChef.getSink(), address(0), "test_SetSink::3");
+        assertEq(masterChef.getSinkShare(), 0, "test_SetSink::4");
+
+        masterChef.setSink(sink, 0.5e18);
+        vm.warp(block.timestamp + 10);
+
+        assertEq(masterChef.getSink(), sink, "test_SetSink::5");
+        assertEq(masterChef.getSinkShare(), 0.5e18, "test_SetSink::6");
+
+        vm.prank(alice);
+        masterChef.claim(pids);
+
+        assertEq(moe.balanceOf(address(alice)), 1.5e18 + 1.5e18 + 1.5e18 / 2, "test_SetSink::7");
+
+        (uint256[] memory moeRewardBob,,) = masterChef.getPendingRewards(bob, pids);
+
+        assertEq(moeRewardBob.length, 2, "test_SetSink::8");
+        assertEq(moeRewardBob[0], 4.5e18 + 4.5e18 / 2, "test_SetSink::9");
+        assertEq(moeRewardBob[1], 4e18 + 4e18 / 2, "test_SetSink::10");
+
+        masterChef.setSink(sink, 0);
+        vm.warp(block.timestamp + 10);
+
+        assertEq(masterChef.getSink(), sink, "test_SetSink::11");
+        assertEq(masterChef.getSinkShare(), 0, "test_SetSink::12");
+
+        vm.prank(alice);
+        masterChef.claim(pids);
+
+        vm.prank(bob);
+        masterChef.claim(pids);
+
+        assertEq(moe.balanceOf(address(alice)), 1.5e18 + 1.5e18 + 1.5e18 / 2 + 1.5e18, "test_SetSink::13");
+        assertEq(moe.balanceOf(address(bob)), 8.5e18 + 8.5e18 + 8.5e18 / 2 + 8.5e18, "test_SetSink::14");
+
+        masterChef.setSink(address(0), 0);
+
+        assertEq(masterChef.getSink(), address(0), "test_SetSink::15");
+        assertEq(masterChef.getSinkShare(), 0, "test_SetSink::16");
+    }
 }
