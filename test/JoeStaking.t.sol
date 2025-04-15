@@ -26,7 +26,7 @@ contract JoeStakingTest is Test {
     address bob = makeAddr("bob");
 
     function setUp() public {
-        joe = new Moe(address(this), 0, type(uint256).max);
+        joe = new Moe(address(this), 0, Constants.MAX_SUPPLY);
         moe = new Moe(address(this), 37_500_000e18, 500_000_000e18);
 
         uint256 nonce = vm.getNonce(address(this));

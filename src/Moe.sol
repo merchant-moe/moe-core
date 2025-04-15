@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {ERC20Permit, ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
+import {Constants} from "./libraries/Constants.sol";
 import {IMoe} from "./interfaces/IMoe.sol";
 
 /**
@@ -23,6 +24,7 @@ contract Moe is ERC20Permit, IMoe {
         ERC20Permit("Moe Token")
         ERC20("Moe Token", "MOE")
     {
+        if (maxSupply > Constants.MAX_SUPPLY) revert Moe__InvalidMaxSupply();
         if (initialSupply > maxSupply) revert Moe__InvalidInitialSupply();
 
         _minter = minter;

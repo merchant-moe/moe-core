@@ -22,7 +22,9 @@ interface IVeMoe {
     error VeMoe__NoBribeForPid(uint256 pid);
     error VeMoe__TooManyPoolIds();
     error VeMoe__DuplicatePoolId(uint256 pid);
+    error VeMoe__StaticPool(uint256 pid);
     error VeMoe__CannotRenounceOwnership();
+    error VeMoe__InvalidMaxVeMoePerMoe();
 
     struct User {
         uint256 veMoe;

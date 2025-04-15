@@ -21,7 +21,7 @@ contract MoeStakingTest is Test {
     address bob = makeAddr("bob");
 
     function setUp() public {
-        moe = new Moe(address(this), 0, type(uint256).max);
+        moe = new Moe(address(this), 0, Constants.MAX_SUPPLY);
 
         veMoe = address(new MockNoRevert());
         sMoe = address(new MockNoRevert());

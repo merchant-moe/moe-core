@@ -61,6 +61,8 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
         IRewarderFactory rewarderFactory,
         uint256 maxVeMoePerMoe
     ) {
+        if (maxVeMoePerMoe > Constants.MAX_VE_MOE_PER_MOE) revert VeMoe__InvalidMaxVeMoePerMoe();
+
         _disableInitializers();
 
         _moeStaking = moeStaking;
@@ -478,6 +480,7 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
         for (uint256 i; i < length; ++i) {
             uint256 pid = pids[i];
             if (!_topPids.add(pid)) revert VeMoe__DuplicatePoolId(pid);
+            if (_masterChef.getStaticPoolShare(pid) > 0) revert VeMoe__StaticPool(pid);
         }
 
         _updateWeights(pids, _alpha);

@@ -29,8 +29,6 @@ contract MasterChefTest is Test {
     address bob = makeAddr("bob");
 
     function setUp() public {
-        veMoe = new MockVeMoe();
-
         tokenA = IERC20(new MockERC20("Token A", "TA", 18));
         tokenB = IERC20(new MockERC20("Token B", "TB", 18));
 
@@ -39,12 +37,14 @@ contract MasterChefTest is Test {
 
         uint256 nonce = vm.getNonce(address(this));
 
-        address masterChefAddress = computeCreateAddress(address(this), nonce + 2);
-        address factoryAddress = computeCreateAddress(address(this), nonce + 4);
+        address masterChefAddress = computeCreateAddress(address(this), nonce + 3);
+        address factoryAddress = computeCreateAddress(address(this), nonce + 5);
 
-        moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
+        veMoe = new MockVeMoe(masterChefAddress);
 
-        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), IRewarderFactory(factoryAddress), address(0), 0);
+        moe = IMoe(address(new Moe(masterChefAddress, 0, Constants.MAX_SUPPLY)));
+
+        masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), IRewarderFactory(factoryAddress), address(0), 0.5e18);
 
         TransparentUpgradeableProxy2Step proxy = new TransparentUpgradeableProxy2Step(
             address(masterChef),
@@ -107,7 +107,7 @@ contract MasterChefTest is Test {
         assertEq(address(masterChef.getVeMoe()), address(veMoe), "test_SetUp::2");
         assertEq(address(masterChef.getRewarderFactory()), address(factory), "test_SetUp::3");
         assertEq(address(moe.getMinter()), address(masterChef), "test_SetUp::4");
-        assertEq(moe.getMaxSupply(), type(uint256).max, "test_SetUp::5");
+        assertEq(moe.getMaxSupply(), Constants.MAX_SUPPLY, "test_SetUp::5");
         assertEq(address(masterChef.getToken(0)), address(tokenA), "test_SetUp::6");
         assertEq(address(masterChef.getToken(1)), address(tokenB), "test_SetUp::7");
     }
@@ -202,7 +202,7 @@ contract MasterChefTest is Test {
     }
 
     function test_Claim() public {
-        masterChef.setMoePerSecond(1e18);
+        masterChef.setMoePerSecond(2e18);
 
         {
             veMoe.setVotes(0, 1e18);
@@ -234,11 +234,13 @@ contract MasterChefTest is Test {
         masterChef.deposit(0, 0);
 
         assertEq(moe.balanceOf(address(alice)), 0.5e18, "test_Claim::1");
+        assertEq(moe.balanceOf(address(this)), 5e18, "test_Claim::2");
 
         vm.prank(bob);
         masterChef.deposit(0, 0);
 
-        assertEq(moe.balanceOf(address(bob)), 4.5e18, "test_Claim::2");
+        assertEq(moe.balanceOf(address(bob)), 4.5e18, "test_Claim::3");
+        assertEq(moe.balanceOf(address(this)), 5e18, "test_Claim::4");
 
         vm.warp(block.timestamp + 10);
 
@@ -248,22 +250,26 @@ contract MasterChefTest is Test {
         vm.prank(alice);
         masterChef.claim(pids);
 
-        assertEq(moe.balanceOf(address(alice)), 3e18, "test_Claim::3");
+        assertEq(moe.balanceOf(address(alice)), 3e18, "test_Claim::5");
+        assertEq(moe.balanceOf(address(this)), 20e18, "test_Claim::6");
 
         vm.prank(bob);
         masterChef.claim(pids);
 
-        assertEq(moe.balanceOf(address(bob)), 17e18, "test_Claim::4");
+        assertEq(moe.balanceOf(address(bob)), 17e18, "test_Claim::7");
+        assertEq(moe.balanceOf(address(this)), 20e18, "test_Claim::8");
 
         vm.prank(alice);
         masterChef.claim(pids);
 
-        assertEq(moe.balanceOf(address(alice)), 3e18, "test_Claim::5");
+        assertEq(moe.balanceOf(address(alice)), 3e18, "test_Claim::9");
+        assertEq(moe.balanceOf(address(this)), 20e18, "test_Claim::10");
 
         vm.prank(bob);
         masterChef.claim(pids);
 
-        assertEq(moe.balanceOf(address(bob)), 17e18, "test_Claim::6");
+        assertEq(moe.balanceOf(address(bob)), 17e18, "test_Claim::11");
+        assertEq(moe.balanceOf(address(this)), 20e18, "test_Claim::12");
     }
 
     function test_Add() public {
@@ -322,12 +328,12 @@ contract MasterChefTest is Test {
     }
 
     function test_EmergencyWithdrawal() public {
-        masterChef.setMoePerSecond(1e18);
+        masterChef.setMoePerSecond(2e18);
 
         veMoe.setVotes(0, 1e18);
         IVeMoe(address(veMoe)).setTopPoolIds(new uint256[](1));
 
-        assertEq(masterChef.getMoePerSecondForPid(0), 1e18, "test_EmergencyWithdrawal::1");
+        assertEq(masterChef.getMoePerSecondForPid(0), 2e18, "test_EmergencyWithdrawal::1");
         assertEq(masterChef.getMoePerSecondForPid(1), 0, "test_EmergencyWithdrawal::2");
 
         vm.prank(alice);
@@ -348,18 +354,20 @@ contract MasterChefTest is Test {
         masterChef.claim(new uint256[](1));
 
         assertApproxEqAbs(moe.balanceOf(address(bob)), 10e18, 1, "test_EmergencyWithdrawal::5");
+        assertEq(moe.balanceOf(address(this)), 10e18, "test_EmergencyWithdrawal::6");
 
         vm.prank(alice);
         masterChef.deposit(0, 1e18);
 
-        assertEq(moe.balanceOf(address(alice)), 0, "test_EmergencyWithdrawal::6");
+        assertEq(moe.balanceOf(address(alice)), 0, "test_EmergencyWithdrawal::7");
 
         vm.warp(block.timestamp + 10);
 
         vm.prank(alice);
         masterChef.claim(new uint256[](1));
 
-        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::7");
+        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::8");
+        assertEq(moe.balanceOf(address(this)), 20e18, "test_EmergencyWithdrawal::9");
 
         vm.prank(bob);
         masterChef.emergencyWithdraw(0);
@@ -367,7 +375,8 @@ contract MasterChefTest is Test {
         vm.prank(alice);
         masterChef.claim(new uint256[](1));
 
-        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::8");
+        assertApproxEqAbs(moe.balanceOf(address(alice)), 1e18, 1, "test_EmergencyWithdrawal::10");
+        assertEq(moe.balanceOf(address(this)), 20e18, "test_EmergencyWithdrawal::11");
     }
 
     function test_TreasuryShare() public {
@@ -381,7 +390,7 @@ contract MasterChefTest is Test {
         uint256 nonce = vm.getNonce(address(this));
         address masterChefAddress = computeCreateAddress(address(this), nonce + 2);
 
-        moe = IMoe(address(new Moe(masterChefAddress, 0, type(uint256).max)));
+        moe = IMoe(address(new Moe(masterChefAddress, 0, Constants.MAX_SUPPLY)));
         masterChef = new MasterChef(moe, IVeMoe(address(veMoe)), factory, address(0), 0.3e18);
 
         TransparentUpgradeableProxy2Step proxy = new TransparentUpgradeableProxy2Step(
@@ -502,38 +511,347 @@ contract MasterChefTest is Test {
         assertEq(moeRewardAlice.length, 2, "test_ExtraRewarder::1");
         assertEq(extraTokenAlice.length, 2, "test_ExtraRewarder::2");
         assertEq(extraRewardAlice.length, 2, "test_ExtraRewarder::3");
-        assertApproxEqAbs(moeRewardAlice[0], 50e18, 1, "test_ExtraRewarder::4");
+        assertApproxEqAbs(moeRewardAlice[0], 25e18, 1, "test_ExtraRewarder::4");
         assertApproxEqAbs(moeRewardAlice[1], 0, 1, "test_ExtraRewarder::5");
         assertEq(address(extraTokenAlice[0]), address(rewardToken0), "test_ExtraRewarder::6");
         assertEq(address(extraTokenAlice[1]), address(rewardToken1), "test_ExtraRewarder::7");
         assertApproxEqAbs(extraRewardAlice[0], 5e18, 1, "test_ExtraRewarder::8");
         assertApproxEqAbs(extraRewardAlice[1], 40e6, 1, "test_ExtraRewarder::9");
+        assertEq(moe.balanceOf(address(this)), 0, "test_ExtraRewarder::10");
 
         vm.prank(alice);
         masterChef.claim(pids);
 
-        assertEq(moe.balanceOf(address(alice)), moeRewardAlice[0], "test_ExtraRewarder::10");
-        assertEq(rewardToken0.balanceOf(address(alice)), extraRewardAlice[0], "test_ExtraRewarder::11");
-        assertEq(rewardToken1.balanceOf(address(alice)), extraRewardAlice[1], "test_ExtraRewarder::12");
+        assertEq(moe.balanceOf(address(alice)), moeRewardAlice[0], "test_ExtraRewarder::11");
+        assertEq(rewardToken0.balanceOf(address(alice)), extraRewardAlice[0], "test_ExtraRewarder::12");
+        assertEq(rewardToken1.balanceOf(address(alice)), extraRewardAlice[1], "test_ExtraRewarder::13");
+        assertEq(moe.balanceOf(address(this)), 250e18, "test_ExtraRewarder::14");
 
         (uint256[] memory moeRewardBob, IERC20[] memory extraTokenBob, uint256[] memory extraRewardBob) =
             masterChef.getPendingRewards(bob, pids);
 
-        assertEq(moeRewardBob.length, 2, "test_ExtraRewarder::13");
-        assertEq(extraTokenBob.length, 2, "test_ExtraRewarder::14");
-        assertEq(extraRewardBob.length, 2, "test_ExtraRewarder::15");
-        assertApproxEqAbs(moeRewardBob[0], 450e18, 1, "test_ExtraRewarder::16");
-        assertApproxEqAbs(moeRewardBob[1], 0, 1, "test_ExtraRewarder::17");
-        assertEq(address(extraTokenBob[0]), address(rewardToken0), "test_ExtraRewarder::18");
-        assertEq(address(extraTokenBob[1]), address(rewardToken1), "test_ExtraRewarder::19");
-        assertApproxEqAbs(extraRewardBob[0], 45e18, 1, "test_ExtraRewarder::20");
-        assertApproxEqAbs(extraRewardBob[1], 160e6, 1, "test_ExtraRewarder::21");
+        assertEq(moeRewardBob.length, 2, "test_ExtraRewarder::15");
+        assertEq(extraTokenBob.length, 2, "test_ExtraRewarder::16");
+        assertEq(extraRewardBob.length, 2, "test_ExtraRewarder::17");
+        assertApproxEqAbs(moeRewardBob[0], 225e18, 1, "test_ExtraRewarder::18");
+        assertApproxEqAbs(moeRewardBob[1], 0, 1, "test_ExtraRewarder::19");
+        assertEq(address(extraTokenBob[0]), address(rewardToken0), "test_ExtraRewarder::20");
+        assertEq(address(extraTokenBob[1]), address(rewardToken1), "test_ExtraRewarder::21");
+        assertApproxEqAbs(extraRewardBob[0], 45e18, 1, "test_ExtraRewarder::22");
+        assertApproxEqAbs(extraRewardBob[1], 160e6, 1, "test_ExtraRewarder::23");
+        assertEq(moe.balanceOf(address(this)), 250e18, "test_ExtraRewarder::24");
 
         vm.prank(bob);
         masterChef.claim(pids);
 
-        assertEq(moe.balanceOf(address(bob)), moeRewardBob[0], "test_ExtraRewarder::22");
-        assertEq(rewardToken0.balanceOf(address(bob)), extraRewardBob[0], "test_ExtraRewarder::23");
-        assertEq(rewardToken1.balanceOf(address(bob)), extraRewardBob[1], "test_ExtraRewarder::24");
+        assertEq(moe.balanceOf(address(bob)), moeRewardBob[0], "test_ExtraRewarder::25");
+        assertEq(rewardToken0.balanceOf(address(bob)), extraRewardBob[0], "test_ExtraRewarder::26");
+        assertEq(rewardToken1.balanceOf(address(bob)), extraRewardBob[1], "test_ExtraRewarder::27");
+        assertEq(moe.balanceOf(address(this)), 250e18, "test_ExtraRewarder::28");
+    }
+
+    function test_Fuzz_SetStaticPoolShares(uint256 staticShare, uint256[] memory shares) public {
+        staticShare = bound(staticShare, 1, 1e18);
+        uint256 length = bound(shares.length, 0, Constants.MAX_NUMBER_OF_FARMS);
+        assembly {
+            mstore(shares, length)
+        }
+        masterChef.setMoePerSecond(uint96(Constants.MAX_MOE_PER_SECOND));
+
+        for (uint256 i; i < length; i++) {
+            if (i > 1) masterChef.add(tokenA, IMasterChefRewarder(address(0)));
+            shares[i] = bound(shares[i], 1, Constants.MAX_STATIC_SHARES / length);
+        }
+
+        assertEq(masterChef.getStaticShare(), 0, "test_Fuzz_SetStaticPoolShares::1");
+        assertEq(masterChef.getTotalStaticPoolShares(), 0, "test_Fuzz_SetStaticPoolShares::2");
+        assertEq(masterChef.getStaticPoolIds().length, 0, "test_Fuzz_SetStaticPoolShares::3");
+
+        masterChef.setStaticShare(uint128(staticShare));
+
+        assertEq(masterChef.getStaticShare(), staticShare, "test_Fuzz_SetStaticPoolShares::4");
+        assertEq(masterChef.getTotalStaticPoolShares(), 0, "test_Fuzz_SetStaticPoolShares::5");
+        assertEq(masterChef.getStaticPoolIds().length, 0, "test_Fuzz_SetStaticPoolShares::6");
+
+        uint256 sum = 0;
+        for (uint256 i; i < length; i++) {
+            masterChef.setStaticPoolShare(i, uint128(shares[i]));
+            sum += shares[i];
+
+            assertEq(masterChef.getStaticPoolShare(i), shares[i], "test_Fuzz_SetStaticPoolShares::7");
+            assertEq(masterChef.getTotalStaticPoolShares(), sum, "test_Fuzz_SetStaticPoolShares::8");
+
+            uint256[] memory staticPoolIds = masterChef.getStaticPoolIds();
+            assertEq(staticPoolIds.length, i + 1, "test_Fuzz_SetStaticPoolShares::9");
+            assertEq(staticPoolIds[i], i, "test_Fuzz_SetStaticPoolShares::10");
+            assertEq(
+                masterChef.getMoePerSecondForPid(i),
+                Constants.MAX_MOE_PER_SECOND * shares[i] * staticShare / (sum * 1e18),
+                "test_Fuzz_SetStaticPoolShares::11"
+            );
+        }
+
+        masterChef.setStaticShare(0);
+
+        assertEq(masterChef.getStaticShare(), 0, "test_Fuzz_SetStaticPoolShares::12");
+        assertEq(masterChef.getTotalStaticPoolShares(), sum, "test_Fuzz_SetStaticPoolShares::13");
+        assertEq(masterChef.getStaticPoolIds().length, length, "test_Fuzz_SetStaticPoolShares::14");
+
+        {
+            uint256[] memory staticPoolIds = masterChef.getStaticPoolIds();
+            for (uint256 i; i < length; i++) {
+                assertEq(masterChef.getStaticPoolShare(i), shares[i], "test_Fuzz_SetStaticPoolShares::15");
+                assertEq(staticPoolIds[i], i, "test_Fuzz_SetStaticPoolShares::16");
+                assertEq(masterChef.getMoePerSecondForPid(i), 0, "test_Fuzz_SetStaticPoolShares::17");
+            }
+        }
+
+        masterChef.setStaticShare(uint128(staticShare));
+
+        assertEq(masterChef.getStaticShare(), staticShare, "test_Fuzz_SetStaticPoolShares::18");
+        assertEq(masterChef.getTotalStaticPoolShares(), sum, "test_Fuzz_SetStaticPoolShares::19");
+        assertEq(masterChef.getStaticPoolIds().length, length, "test_Fuzz_SetStaticPoolShares::20");
+
+        for (uint256 i; i < length; i++) {
+            masterChef.setStaticPoolShare(i, 0);
+            sum -= shares[i];
+
+            assertEq(masterChef.getStaticPoolShare(i), 0, "test_Fuzz_SetStaticPoolShares::21");
+            assertEq(masterChef.getTotalStaticPoolShares(), sum, "test_Fuzz_SetStaticPoolShares::22");
+
+            assertEq(masterChef.getStaticPoolIds().length, length - (i + 1), "test_Fuzz_SetStaticPoolShares::23");
+            assertEq(masterChef.getMoePerSecondForPid(i), 0, "test_Fuzz_SetStaticPoolShares::24");
+            if (i != length - 1) {
+                assertEq(
+                    masterChef.getMoePerSecondForPid(i + 1),
+                    Constants.MAX_MOE_PER_SECOND * shares[i + 1] * staticShare / (sum * 1e18),
+                    "test_Fuzz_SetStaticPoolShares::25"
+                );
+            }
+        }
+    }
+
+    function test_Revert_SetStaticPoolShares() public {
+        vm.expectRevert(IMasterChef.MasterChef__InvalidShares.selector);
+        masterChef.setStaticShare(1e18 + 1);
+
+        vm.expectRevert(abi.encodeWithSelector(IMasterChef.MasterChef__InvalidPoolId.selector, 2));
+        masterChef.setStaticPoolShare(2, 0);
+
+        veMoe.setTopPoolIds(new uint256[](1));
+
+        vm.expectRevert(abi.encodeWithSelector(IMasterChef.MasterChef__TopPool.selector, 0));
+        masterChef.setStaticPoolShare(0, 0);
+
+        veMoe.setTopPoolIds(new uint256[](0));
+
+        for (uint256 i; i < Constants.MAX_NUMBER_OF_FARMS; i++) {
+            masterChef.add(tokenA, IMasterChefRewarder(address(0)));
+            masterChef.setStaticPoolShare(i, 1e18);
+        }
+
+        vm.expectRevert(IMasterChef.MasterChef__TooManyStaticPools.selector);
+        masterChef.setStaticPoolShare(Constants.MAX_NUMBER_OF_FARMS, 1e18);
+
+        masterChef.setStaticPoolShare(0, 0);
+        masterChef.setStaticPoolShare(1, 0);
+
+        masterChef.setStaticPoolShare(
+            Constants.MAX_NUMBER_OF_FARMS, uint128(Constants.MAX_STATIC_SHARES - masterChef.getTotalStaticPoolShares())
+        );
+
+        vm.expectRevert(IMasterChef.MasterChef__StaticPoolSharesOverflow.selector);
+        masterChef.setStaticPoolShare(1, 1);
+    }
+
+    function test_SetStaticPoolShares() public {
+        masterChef.add(tokenA, IMasterChefRewarder(address(0)));
+        masterChef.add(tokenB, IMasterChefRewarder(address(0)));
+
+        uint256[] memory pids = new uint256[](4);
+        pids[0] = 0;
+        pids[1] = 1;
+        pids[2] = 2;
+        pids[3] = 3;
+
+        uint256[] memory topPids = new uint256[](2);
+        topPids[0] = 0;
+        topPids[1] = 1;
+
+        {
+            MockERC20(address(tokenA)).mint(alice, 4e18);
+            MockERC20(address(tokenB)).mint(alice, 5e18);
+
+            MockERC20(address(tokenA)).mint(bob, 6e18);
+            MockERC20(address(tokenB)).mint(bob, 5e18);
+
+            masterChef.setMoePerSecond(2e18);
+
+            veMoe.setVotes(0, 4e18);
+            veMoe.setVotes(1, 1e18);
+
+            IVeMoe(address(veMoe)).setTopPoolIds(topPids);
+
+            vm.startPrank(alice);
+            masterChef.deposit(0, 1e18);
+            masterChef.deposit(1, 2e18);
+            masterChef.deposit(2, 4e18);
+            masterChef.deposit(3, 5e18);
+            vm.stopPrank();
+
+            vm.startPrank(bob);
+            masterChef.deposit(0, 9e18);
+            masterChef.deposit(1, 8e18);
+            masterChef.deposit(2, 6e18);
+            masterChef.deposit(3, 5e18);
+            vm.stopPrank();
+        }
+
+        vm.warp(block.timestamp + 10);
+
+        assertEq(masterChef.getMoePerSecondForPid(0), 1.6e18, "test_SetStaticPoolShares::1");
+        assertEq(masterChef.getMoePerSecondForPid(1), 0.4e18, "test_SetStaticPoolShares::2");
+        assertEq(masterChef.getMoePerSecondForPid(2), 0, "test_SetStaticPoolShares::3");
+        assertEq(masterChef.getMoePerSecondForPid(3), 0, "test_SetStaticPoolShares::4");
+
+        vm.prank(alice);
+        masterChef.claim(pids);
+
+        vm.prank(bob);
+        masterChef.claim(pids);
+
+        assertApproxEqAbs(moe.balanceOf(address(alice)), 1.2e18, 2, "test_SetStaticPoolShares::5");
+        assertApproxEqAbs(moe.balanceOf(address(bob)), 8.8e18, 2, "test_SetStaticPoolShares::6");
+        assertEq(moe.balanceOf(address(this)), 10e18, "test_SetStaticPoolShares::7");
+
+        vm.warp(block.timestamp + 10);
+
+        // Set static share to 0.5, but no static pool shares, the rewards are effectively lost
+        masterChef.setStaticShare(0.5e18);
+
+        assertEq(masterChef.getMoePerSecondForPid(0), 0.8e18, "test_SetStaticPoolShares::8");
+        assertEq(masterChef.getMoePerSecondForPid(1), 0.2e18, "test_SetStaticPoolShares::9");
+        assertEq(masterChef.getMoePerSecondForPid(2), 0, "test_SetStaticPoolShares::10");
+        assertEq(masterChef.getMoePerSecondForPid(3), 0, "test_SetStaticPoolShares::11");
+
+        vm.warp(block.timestamp + 10);
+
+        masterChef.setStaticPoolShare(2, 1e18);
+        masterChef.setStaticPoolShare(3, 4e18);
+
+        assertEq(masterChef.getMoePerSecondForPid(0), 0.8e18, "test_SetStaticPoolShares::12");
+        assertEq(masterChef.getMoePerSecondForPid(1), 0.2e18, "test_SetStaticPoolShares::13");
+        assertEq(masterChef.getMoePerSecondForPid(2), 0.2e18, "test_SetStaticPoolShares::14");
+        assertEq(masterChef.getMoePerSecondForPid(3), 0.8e18, "test_SetStaticPoolShares::15");
+
+        vm.warp(block.timestamp + 10);
+
+        masterChef.getPendingRewards(alice, pids);
+
+        vm.prank(alice);
+        masterChef.claim(topPids);
+
+        assertApproxEqAbs(
+            moe.balanceOf(address(alice)), 1.2e18 + 1.2e18 + 1.2e18 / 2 + 1.2e18 / 2, 2, "test_SetStaticPoolShares::16"
+        );
+        assertEq(moe.balanceOf(address(this)), 30e18, "test_SetStaticPoolShares::17");
+
+        (uint256[] memory moeRewardAlice,,) = masterChef.getPendingRewards(alice, pids);
+        (uint256[] memory moeRewardBob,,) = masterChef.getPendingRewards(bob, pids);
+
+        assertEq(moeRewardAlice.length, 4, "test_SetStaticPoolShares::18");
+        assertEq(moeRewardAlice[0], 0, "test_SetStaticPoolShares::19");
+        assertEq(moeRewardAlice[1], 0, "test_SetStaticPoolShares::20");
+        assertApproxEqAbs(moeRewardAlice[2], 0.4e18, 1, "test_SetStaticPoolShares::21");
+        assertApproxEqAbs(moeRewardAlice[3], 2e18, 1, "test_SetStaticPoolShares::22");
+
+        assertEq(moeRewardBob.length, 4, "test_SetStaticPoolShares::23");
+        assertApproxEqAbs(moeRewardBob[0], 7.2e18 + 7.2e18 / 2 + 7.2e18 / 2, 1, "test_SetStaticPoolShares::24");
+        assertApproxEqAbs(moeRewardBob[1], 1.6e18 + 1.6e18 / 2 + 1.6e18 / 2, 1, "test_SetStaticPoolShares::25");
+        assertApproxEqAbs(moeRewardBob[2], 0.6e18, 1, "test_SetStaticPoolShares::26");
+        assertApproxEqAbs(moeRewardBob[3], 2e18, 1, "test_SetStaticPoolShares::27");
+
+        vm.warp(block.timestamp + 10);
+
+        vm.prank(alice);
+        masterChef.claim(pids);
+
+        vm.prank(bob);
+        masterChef.claim(pids);
+
+        vm.warp(block.timestamp + 10);
+
+        (moeRewardAlice,,) = masterChef.getPendingRewards(alice, pids);
+        (moeRewardBob,,) = masterChef.getPendingRewards(bob, pids);
+
+        assertEq(moeRewardAlice.length, 4, "test_SetStaticPoolShares::28");
+        assertEq(moeRewardAlice[0], 0.8e18 / 2, "test_SetStaticPoolShares::29");
+        assertEq(moeRewardAlice[1], 0.4e18 / 2, "test_SetStaticPoolShares::30");
+        assertEq(moeRewardAlice[2], 0.4e18, "test_SetStaticPoolShares::31");
+        assertEq(moeRewardAlice[3], 2e18, "test_SetStaticPoolShares::32");
+
+        assertEq(moeRewardBob.length, 4, "test_SetStaticPoolShares::33");
+        assertEq(moeRewardBob[0], 7.2e18 / 2, "test_SetStaticPoolShares::34");
+        assertEq(moeRewardBob[1], 1.6e18 / 2, "test_SetStaticPoolShares::35");
+        assertEq(moeRewardBob[2], 0.6e18, "test_SetStaticPoolShares::36");
+        assertEq(moeRewardBob[3], 2e18, "test_SetStaticPoolShares::37");
+
+        masterChef.setStaticPoolShare(3, 0);
+        topPids[0] = 0;
+        topPids[1] = 3;
+
+        veMoe.setTopPoolIds(topPids);
+        veMoe.setVotes(0, 4e18);
+        veMoe.setVotes(3, 4e18);
+
+        masterChef.setStaticPoolShare(1, 1e18);
+        masterChef.setStaticPoolShare(2, 1e18);
+
+        assertEq(masterChef.getTotalStaticPoolShares(), 2e18, "test_SetStaticPoolShares::38");
+        assertEq(veMoe.getTotalWeight(), 8e18, "test_SetStaticPoolShares::39");
+
+        (moeRewardAlice,,) = masterChef.getPendingRewards(alice, pids);
+        (moeRewardBob,,) = masterChef.getPendingRewards(bob, pids);
+
+        assertEq(moeRewardAlice.length, 4, "test_SetStaticPoolShares::28");
+        assertEq(moeRewardAlice[0], 0.8e18 / 2, "test_SetStaticPoolShares::29");
+        assertEq(moeRewardAlice[1], 0.4e18 / 2, "test_SetStaticPoolShares::30");
+        assertEq(moeRewardAlice[2], 0.4e18, "test_SetStaticPoolShares::31");
+        assertEq(moeRewardAlice[3], 2e18, "test_SetStaticPoolShares::32");
+
+        assertEq(moeRewardBob.length, 4, "test_SetStaticPoolShares::33");
+        assertEq(moeRewardBob[0], 7.2e18 / 2, "test_SetStaticPoolShares::34");
+        assertEq(moeRewardBob[1], 1.6e18 / 2, "test_SetStaticPoolShares::35");
+        assertEq(moeRewardBob[2], 0.6e18, "test_SetStaticPoolShares::36");
+        assertEq(moeRewardBob[3], 2e18, "test_SetStaticPoolShares::37");
+
+        assertEq(masterChef.getMoePerSecondForPid(0), 0.5e18, "test_SetStaticPoolShares::12");
+        assertEq(masterChef.getMoePerSecondForPid(1), 0.5e18, "test_SetStaticPoolShares::13");
+        assertEq(masterChef.getMoePerSecondForPid(2), 0.5e18, "test_SetStaticPoolShares::14");
+        assertEq(masterChef.getMoePerSecondForPid(3), 0.5e18, "test_SetStaticPoolShares::15");
+
+        vm.warp(block.timestamp + 10);
+
+        (moeRewardAlice,,) = masterChef.getPendingRewards(alice, pids);
+        (moeRewardBob,,) = masterChef.getPendingRewards(bob, pids);
+
+        assertEq(moeRewardAlice.length, 4, "test_SetStaticPoolShares::40");
+        assertEq(moeRewardAlice[0], 0.8e18 / 2 + 0.5e18 / 2, "test_SetStaticPoolShares::41");
+        assertEq(moeRewardAlice[1], 0.4e18 / 2 + 1e18 / 2, "test_SetStaticPoolShares::42");
+        assertEq(moeRewardAlice[2], 0.4e18 + 2e18 / 2, "test_SetStaticPoolShares::43");
+        assertEq(moeRewardAlice[3], 2e18 + 2.5e18 / 2, "test_SetStaticPoolShares::44");
+
+        assertEq(moeRewardBob.length, 4, "test_SetStaticPoolShares::45");
+        assertEq(moeRewardBob[0], 7.2e18 / 2 + 4.5e18 / 2, "test_SetStaticPoolShares::46");
+        assertEq(moeRewardBob[1], 1.6e18 / 2 + 4e18 / 2, "test_SetStaticPoolShares::47");
+        assertEq(moeRewardBob[2], 0.6e18 + 3e18 / 2, "test_SetStaticPoolShares::48");
+        assertEq(moeRewardBob[3], 2e18 + 2.5e18 / 2, "test_SetStaticPoolShares::49");
+
+        masterChef.setStaticShare(0);
+
+        assertEq(masterChef.getMoePerSecondForPid(0), 1e18, "test_SetStaticPoolShares::50");
+        assertEq(masterChef.getMoePerSecondForPid(1), 0, "test_SetStaticPoolShares::51");
+        assertEq(masterChef.getMoePerSecondForPid(2), 0, "test_SetStaticPoolShares::52");
+        assertEq(masterChef.getMoePerSecondForPid(3), 1e18, "test_SetStaticPoolShares::53");
     }
 }
