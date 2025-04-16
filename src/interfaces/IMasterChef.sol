@@ -86,6 +86,8 @@ interface IMasterChef {
 
     function getStaticPoolIds() external view returns (uint256[] memory);
 
+    function isStaticPool(uint256 pid) external view returns (bool);
+
     function getRewarderFactory() external view returns (IRewarderFactory);
 
     function getLBHooksManager() external view returns (address);

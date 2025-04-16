@@ -579,53 +579,55 @@ contract MasterChefTest is Test {
             sum += shares[i];
 
             assertEq(masterChef.getStaticPoolShare(i), shares[i], "test_Fuzz_SetStaticPoolShares::7");
-            assertEq(masterChef.getTotalStaticPoolShares(), sum, "test_Fuzz_SetStaticPoolShares::8");
+            assertEq(masterChef.isStaticPool(i), true, "test_Fuzz_SetStaticPoolShares::8");
+            assertEq(masterChef.getTotalStaticPoolShares(), sum, "test_Fuzz_SetStaticPoolShares::9");
 
             uint256[] memory staticPoolIds = masterChef.getStaticPoolIds();
-            assertEq(staticPoolIds.length, i + 1, "test_Fuzz_SetStaticPoolShares::9");
-            assertEq(staticPoolIds[i], i, "test_Fuzz_SetStaticPoolShares::10");
+            assertEq(staticPoolIds.length, i + 1, "test_Fuzz_SetStaticPoolShares::10");
+            assertEq(staticPoolIds[i], i, "test_Fuzz_SetStaticPoolShares::11");
             assertEq(
                 masterChef.getMoePerSecondForPid(i),
                 Constants.MAX_MOE_PER_SECOND * shares[i] * staticShare / (sum * 1e18),
-                "test_Fuzz_SetStaticPoolShares::11"
+                "test_Fuzz_SetStaticPoolShares::12"
             );
         }
 
         masterChef.setStaticShare(0);
 
-        assertEq(masterChef.getStaticShare(), 0, "test_Fuzz_SetStaticPoolShares::12");
-        assertEq(masterChef.getTotalStaticPoolShares(), sum, "test_Fuzz_SetStaticPoolShares::13");
-        assertEq(masterChef.getStaticPoolIds().length, length, "test_Fuzz_SetStaticPoolShares::14");
+        assertEq(masterChef.getStaticShare(), 0, "test_Fuzz_SetStaticPoolShares::13");
+        assertEq(masterChef.getTotalStaticPoolShares(), sum, "test_Fuzz_SetStaticPoolShares::14");
+        assertEq(masterChef.getStaticPoolIds().length, length, "test_Fuzz_SetStaticPoolShares::15");
 
         {
             uint256[] memory staticPoolIds = masterChef.getStaticPoolIds();
             for (uint256 i; i < length; i++) {
-                assertEq(masterChef.getStaticPoolShare(i), shares[i], "test_Fuzz_SetStaticPoolShares::15");
-                assertEq(staticPoolIds[i], i, "test_Fuzz_SetStaticPoolShares::16");
-                assertEq(masterChef.getMoePerSecondForPid(i), 0, "test_Fuzz_SetStaticPoolShares::17");
+                assertEq(masterChef.getStaticPoolShare(i), shares[i], "test_Fuzz_SetStaticPoolShares::16");
+                assertEq(staticPoolIds[i], i, "test_Fuzz_SetStaticPoolShares::17");
+                assertEq(masterChef.getMoePerSecondForPid(i), 0, "test_Fuzz_SetStaticPoolShares::18");
             }
         }
 
         masterChef.setStaticShare(uint128(staticShare));
 
-        assertEq(masterChef.getStaticShare(), staticShare, "test_Fuzz_SetStaticPoolShares::18");
-        assertEq(masterChef.getTotalStaticPoolShares(), sum, "test_Fuzz_SetStaticPoolShares::19");
-        assertEq(masterChef.getStaticPoolIds().length, length, "test_Fuzz_SetStaticPoolShares::20");
+        assertEq(masterChef.getStaticShare(), staticShare, "test_Fuzz_SetStaticPoolShares::19");
+        assertEq(masterChef.getTotalStaticPoolShares(), sum, "test_Fuzz_SetStaticPoolShares::20");
+        assertEq(masterChef.getStaticPoolIds().length, length, "test_Fuzz_SetStaticPoolShares::21");
 
         for (uint256 i; i < length; i++) {
             masterChef.setStaticPoolShare(i, 0);
             sum -= shares[i];
 
-            assertEq(masterChef.getStaticPoolShare(i), 0, "test_Fuzz_SetStaticPoolShares::21");
-            assertEq(masterChef.getTotalStaticPoolShares(), sum, "test_Fuzz_SetStaticPoolShares::22");
+            assertEq(masterChef.getStaticPoolShare(i), 0, "test_Fuzz_SetStaticPoolShares::22");
+            assertEq(masterChef.isStaticPool(i), false, "test_Fuzz_SetStaticPoolShares::23");
+            assertEq(masterChef.getTotalStaticPoolShares(), sum, "test_Fuzz_SetStaticPoolShares::24");
 
-            assertEq(masterChef.getStaticPoolIds().length, length - (i + 1), "test_Fuzz_SetStaticPoolShares::23");
-            assertEq(masterChef.getMoePerSecondForPid(i), 0, "test_Fuzz_SetStaticPoolShares::24");
+            assertEq(masterChef.getStaticPoolIds().length, length - (i + 1), "test_Fuzz_SetStaticPoolShares::25");
+            assertEq(masterChef.getMoePerSecondForPid(i), 0, "test_Fuzz_SetStaticPoolShares::26");
             if (i != length - 1) {
                 assertEq(
                     masterChef.getMoePerSecondForPid(i + 1),
                     Constants.MAX_MOE_PER_SECOND * shares[i + 1] * staticShare / (sum * 1e18),
-                    "test_Fuzz_SetStaticPoolShares::25"
+                    "test_Fuzz_SetStaticPoolShares::27"
                 );
             }
         }
@@ -813,45 +815,45 @@ contract MasterChefTest is Test {
         (moeRewardAlice,,) = masterChef.getPendingRewards(alice, pids);
         (moeRewardBob,,) = masterChef.getPendingRewards(bob, pids);
 
-        assertEq(moeRewardAlice.length, 4, "test_SetStaticPoolShares::28");
-        assertEq(moeRewardAlice[0], 0.8e18 / 2, "test_SetStaticPoolShares::29");
-        assertEq(moeRewardAlice[1], 0.4e18 / 2, "test_SetStaticPoolShares::30");
-        assertEq(moeRewardAlice[2], 0.4e18, "test_SetStaticPoolShares::31");
-        assertEq(moeRewardAlice[3], 2e18, "test_SetStaticPoolShares::32");
+        assertEq(moeRewardAlice.length, 4, "test_SetStaticPoolShares::40");
+        assertEq(moeRewardAlice[0], 0.8e18 / 2, "test_SetStaticPoolShares::41");
+        assertEq(moeRewardAlice[1], 0.4e18 / 2, "test_SetStaticPoolShares::42");
+        assertEq(moeRewardAlice[2], 0.4e18, "test_SetStaticPoolShares::43");
+        assertEq(moeRewardAlice[3], 2e18, "test_SetStaticPoolShares::44");
 
-        assertEq(moeRewardBob.length, 4, "test_SetStaticPoolShares::33");
-        assertEq(moeRewardBob[0], 7.2e18 / 2, "test_SetStaticPoolShares::34");
-        assertEq(moeRewardBob[1], 1.6e18 / 2, "test_SetStaticPoolShares::35");
-        assertEq(moeRewardBob[2], 0.6e18, "test_SetStaticPoolShares::36");
-        assertEq(moeRewardBob[3], 2e18, "test_SetStaticPoolShares::37");
+        assertEq(moeRewardBob.length, 4, "test_SetStaticPoolShares::45");
+        assertEq(moeRewardBob[0], 7.2e18 / 2, "test_SetStaticPoolShares::46");
+        assertEq(moeRewardBob[1], 1.6e18 / 2, "test_SetStaticPoolShares::47");
+        assertEq(moeRewardBob[2], 0.6e18, "test_SetStaticPoolShares::48");
+        assertEq(moeRewardBob[3], 2e18, "test_SetStaticPoolShares::49");
 
-        assertEq(masterChef.getMoePerSecondForPid(0), 0.5e18, "test_SetStaticPoolShares::12");
-        assertEq(masterChef.getMoePerSecondForPid(1), 0.5e18, "test_SetStaticPoolShares::13");
-        assertEq(masterChef.getMoePerSecondForPid(2), 0.5e18, "test_SetStaticPoolShares::14");
-        assertEq(masterChef.getMoePerSecondForPid(3), 0.5e18, "test_SetStaticPoolShares::15");
+        assertEq(masterChef.getMoePerSecondForPid(0), 0.5e18, "test_SetStaticPoolShares::50");
+        assertEq(masterChef.getMoePerSecondForPid(1), 0.5e18, "test_SetStaticPoolShares::51");
+        assertEq(masterChef.getMoePerSecondForPid(2), 0.5e18, "test_SetStaticPoolShares::52");
+        assertEq(masterChef.getMoePerSecondForPid(3), 0.5e18, "test_SetStaticPoolShares::53");
 
         vm.warp(block.timestamp + 10);
 
         (moeRewardAlice,,) = masterChef.getPendingRewards(alice, pids);
         (moeRewardBob,,) = masterChef.getPendingRewards(bob, pids);
 
-        assertEq(moeRewardAlice.length, 4, "test_SetStaticPoolShares::40");
-        assertEq(moeRewardAlice[0], 0.8e18 / 2 + 0.5e18 / 2, "test_SetStaticPoolShares::41");
-        assertEq(moeRewardAlice[1], 0.4e18 / 2 + 1e18 / 2, "test_SetStaticPoolShares::42");
-        assertEq(moeRewardAlice[2], 0.4e18 + 2e18 / 2, "test_SetStaticPoolShares::43");
-        assertEq(moeRewardAlice[3], 2e18 + 2.5e18 / 2, "test_SetStaticPoolShares::44");
+        assertEq(moeRewardAlice.length, 4, "test_SetStaticPoolShares::54");
+        assertEq(moeRewardAlice[0], 0.8e18 / 2 + 0.5e18 / 2, "test_SetStaticPoolShares::55");
+        assertEq(moeRewardAlice[1], 0.4e18 / 2 + 1e18 / 2, "test_SetStaticPoolShares::56");
+        assertEq(moeRewardAlice[2], 0.4e18 + 2e18 / 2, "test_SetStaticPoolShares::57");
+        assertEq(moeRewardAlice[3], 2e18 + 2.5e18 / 2, "test_SetStaticPoolShares::58");
 
-        assertEq(moeRewardBob.length, 4, "test_SetStaticPoolShares::45");
-        assertEq(moeRewardBob[0], 7.2e18 / 2 + 4.5e18 / 2, "test_SetStaticPoolShares::46");
-        assertEq(moeRewardBob[1], 1.6e18 / 2 + 4e18 / 2, "test_SetStaticPoolShares::47");
-        assertEq(moeRewardBob[2], 0.6e18 + 3e18 / 2, "test_SetStaticPoolShares::48");
-        assertEq(moeRewardBob[3], 2e18 + 2.5e18 / 2, "test_SetStaticPoolShares::49");
+        assertEq(moeRewardBob.length, 4, "test_SetStaticPoolShares::59");
+        assertEq(moeRewardBob[0], 7.2e18 / 2 + 4.5e18 / 2, "test_SetStaticPoolShares::60");
+        assertEq(moeRewardBob[1], 1.6e18 / 2 + 4e18 / 2, "test_SetStaticPoolShares::61");
+        assertEq(moeRewardBob[2], 0.6e18 + 3e18 / 2, "test_SetStaticPoolShares::62");
+        assertEq(moeRewardBob[3], 2e18 + 2.5e18 / 2, "test_SetStaticPoolShares::63");
 
         masterChef.setStaticShare(0);
 
-        assertEq(masterChef.getMoePerSecondForPid(0), 1e18, "test_SetStaticPoolShares::50");
-        assertEq(masterChef.getMoePerSecondForPid(1), 0, "test_SetStaticPoolShares::51");
-        assertEq(masterChef.getMoePerSecondForPid(2), 0, "test_SetStaticPoolShares::52");
-        assertEq(masterChef.getMoePerSecondForPid(3), 1e18, "test_SetStaticPoolShares::53");
+        assertEq(masterChef.getMoePerSecondForPid(0), 1e18, "test_SetStaticPoolShares::64");
+        assertEq(masterChef.getMoePerSecondForPid(1), 0, "test_SetStaticPoolShares::65");
+        assertEq(masterChef.getMoePerSecondForPid(2), 0, "test_SetStaticPoolShares::66");
+        assertEq(masterChef.getMoePerSecondForPid(3), 1e18, "test_SetStaticPoolShares::67");
     }
 }

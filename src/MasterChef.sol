@@ -182,6 +182,15 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     }
 
     /**
+     * @dev Returns whether a pool ID is a static pool.
+     * @param pid The pool ID to check.
+     * @return True if the pool ID is a static pool, false otherwise.
+     */
+    function isStaticPool(uint256 pid) external view override returns (bool) {
+        return _staticPoolIds.contains(pid);
+    }
+
+    /**
      * @dev Returns the static pool IDs.
      * @return The static pool IDs.
      */
