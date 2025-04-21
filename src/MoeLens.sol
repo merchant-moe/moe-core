@@ -78,8 +78,10 @@ contract MoeLens {
 
     struct Farm {
         uint256 pid;
-        bool isTopPool;
+        bool isRewardable;
+        bool isVotable;
         bool isStatic;
+        uint256 votesOnFarm;
         uint256 moePerSec;
         uint256 totalVotesOnFarm;
         uint256 totalWeightOnFarm;
@@ -192,10 +194,12 @@ contract MoeLens {
 
     function getFarmDataAt(uint256 pid, address user) external view returns (Farm memory farm) {
         farm.pid = pid;
-        farm.isTopPool = _veMoe.isInTopPoolIds(pid);
+        farm.isVotable = _veMoe.isInTopPoolIds(pid);
         farm.isStatic = _masterchef.isStaticPool(pid);
+        farm.isRewardable = farm.isVotable || farm.isStatic;
         farm.moePerSec = _masterchef.getMoePerSecondForPid(pid);
         farm.totalVotesOnFarm = _veMoe.getVotes(pid);
+        farm.votesOnFarm = farm.totalVotesOnFarm;
         farm.totalWeightOnFarm = _veMoe.getWeight(pid);
         farm.staticPoolShare = _masterchef.getStaticPoolShare(pid);
 

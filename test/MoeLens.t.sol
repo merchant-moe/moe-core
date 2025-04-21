@@ -78,8 +78,9 @@ contract MoeLensTest is Test {
         assertEq(farms.totalStaticPoolShares, 0, "test_GetReserves::2");
         assertEq(farms.treasuryShare, 368421052631578947, "test_GetReserves::3");
 
-        assertEq(farms.farms[0].isTopPool, true, "test_GetReserves::4");
+        assertEq(farms.farms[0].isVotable, true, "test_GetReserves::4");
         assertEq(farms.farms[0].isStatic, false, "test_GetReserves::5");
+        assertEq(farms.farms[0].isRewardable, true, "test_GetReserves::6");
         assertEq(farms.farms[0].staticPoolShare, 0, "test_GetReserves::6");
         assertEq(farms.farms[0].reserves.token0.symbol, "Mock COIN", "test_GetReserves::7");
         assertEq(farms.farms[0].reserves.token1.symbol, "Mock USDC", "test_GetReserves::8");
@@ -89,8 +90,9 @@ contract MoeLensTest is Test {
         assertEq(farms.farms[0].reserves.protocolShare, uint256(1e18) / 6, "test_GetReserves::12");
         assertEq(farms.farms[0].lpToken.symbol, "MoeLP", "test_GetReserves::13");
 
-        assertEq(farms.farms[1].isTopPool, true, "test_GetReserves::14");
+        assertEq(farms.farms[1].isVotable, true, "test_GetReserves::14");
         assertEq(farms.farms[1].isStatic, false, "test_GetReserves::15");
+        assertEq(farms.farms[0].isRewardable, true, "test_GetReserves::6");
         assertEq(farms.farms[1].staticPoolShare, 0, "test_GetReserves::16");
         assertEq(farms.farms[1].reserves.token0.symbol, "USDT", "test_GetReserves::17");
         assertEq(farms.farms[1].reserves.token1.symbol, "USDC", "test_GetReserves::18");
@@ -100,8 +102,9 @@ contract MoeLensTest is Test {
         assertEq(farms.farms[1].reserves.protocolShare, 0.05e18, "test_GetReserves::22");
         assertEq(farms.farms[1].lpToken.symbol, "Vote LB USDT-USDC:1", "test_GetReserves::23");
 
-        assertEq(farms.farms[2].isTopPool, true, "test_GetReserves::24");
+        assertEq(farms.farms[2].isVotable, true, "test_GetReserves::24");
         assertEq(farms.farms[2].isStatic, false, "test_GetReserves::25");
+        assertEq(farms.farms[0].isRewardable, true, "test_GetReserves::6");
         assertEq(farms.farms[2].staticPoolShare, 0, "test_GetReserves::26");
         assertEq(farms.farms[2].reserves.token0.symbol, "WAVAX", "test_GetReserves::27");
         assertEq(farms.farms[2].reserves.token1.symbol, "USDC", "test_GetReserves::28");
@@ -129,8 +132,9 @@ contract MoeLensTest is Test {
         assertEq(farms.totalStaticPoolShares, 3e18, "test_GetReserves::35");
         assertEq(farms.treasuryShare, 368421052631578947, "test_GetReserves::36");
 
-        assertEq(farms.farms[0].isTopPool, false, "test_GetReserves::37");
+        assertEq(farms.farms[0].isVotable, false, "test_GetReserves::37");
         assertEq(farms.farms[0].isStatic, true, "test_GetReserves::38");
+        assertEq(farms.farms[0].isRewardable, true, "test_GetReserves::6");
         assertEq(farms.farms[0].staticPoolShare, 1e18, "test_GetReserves::39");
         assertEq(farms.farms[0].reserves.token0.symbol, "Mock COIN", "test_GetReserves::40");
         assertEq(farms.farms[0].reserves.token1.symbol, "Mock USDC", "test_GetReserves::41");
@@ -140,8 +144,9 @@ contract MoeLensTest is Test {
         assertEq(farms.farms[0].reserves.protocolShare, uint256(1e18) / 6, "test_GetReserves::45");
         assertEq(farms.farms[0].lpToken.symbol, "MoeLP", "test_GetReserves::46");
 
-        assertEq(farms.farms[1].isTopPool, false, "test_GetReserves::47");
+        assertEq(farms.farms[1].isVotable, false, "test_GetReserves::47");
         assertEq(farms.farms[1].isStatic, true, "test_GetReserves::48");
+        assertEq(farms.farms[0].isRewardable, true, "test_GetReserves::6");
         assertEq(farms.farms[1].staticPoolShare, 2e18, "test_GetReserves::49");
         assertEq(farms.farms[1].reserves.token0.symbol, "USDT", "test_GetReserves::50");
         assertEq(farms.farms[1].reserves.token1.symbol, "USDC", "test_GetReserves::51");
@@ -151,8 +156,9 @@ contract MoeLensTest is Test {
         assertEq(farms.farms[1].reserves.protocolShare, 0.05e18, "test_GetReserves::55");
         assertEq(farms.farms[1].lpToken.symbol, "Vote LB USDT-USDC:1", "test_GetReserves::56");
 
-        assertEq(farms.farms[2].isTopPool, true, "test_GetReserves::57");
+        assertEq(farms.farms[2].isVotable, true, "test_GetReserves::57");
         assertEq(farms.farms[2].isStatic, false, "test_GetReserves::58");
+        assertEq(farms.farms[0].isRewardable, true, "test_GetReserves::6");
         assertEq(farms.farms[2].staticPoolShare, 0, "test_GetReserves::59");
         assertEq(farms.farms[2].reserves.token0.symbol, "WAVAX", "test_GetReserves::60");
         assertEq(farms.farms[2].reserves.token1.symbol, "USDC", "test_GetReserves::61");
@@ -161,5 +167,14 @@ contract MoeLensTest is Test {
         assertEq(farms.farms[2].reserves.variableFee, 0, "test_GetReserves::64");
         assertEq(farms.farms[2].reserves.protocolShare, 0.1e18, "test_GetReserves::65");
         assertEq(farms.farms[2].lpToken.symbol, "Vote LB WAVAX-USDC:15", "test_GetReserves::66");
+
+        vm.prank(fujiAddresses.devMultisig);
+        IMasterChef(fujiAddresses.masterChefProxy).setStaticPoolShare(4, 0);
+
+        farms = moeLens.getFarmData(4, 4, address(0));
+
+        assertEq(farms.farms[0].isVotable, false, "test_GetReserves::70");
+        assertEq(farms.farms[0].isStatic, false, "test_GetReserves::71");
+        assertEq(farms.farms[0].isRewardable, false, "test_GetReserves::72");
     }
 }
