@@ -36,7 +36,7 @@ contract VeMoeTest is Test {
     address bob = makeAddr("bob");
 
     function setUp() public {
-        moe = new Moe(address(this), 0, type(uint256).max);
+        moe = new Moe(address(this), 0, Constants.MAX_SUPPLY);
         token18d = new MockERC20("18d", "18d", 18);
         token6d = new MockERC20("6d", "6d", 6);
 
@@ -210,6 +210,13 @@ contract VeMoeTest is Test {
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, alice));
         vm.prank(alice);
         veMoe.setTopPoolIds(pids);
+
+        masterChef.setStaticPoolShare(1, 1);
+
+        vm.expectRevert(abi.encodeWithSelector(IVeMoe.VeMoe__StaticPool.selector, 1));
+        veMoe.setTopPoolIds(pids);
+
+        masterChef.setStaticPoolShare(1, 0);
 
         veMoe.setTopPoolIds(pids);
 

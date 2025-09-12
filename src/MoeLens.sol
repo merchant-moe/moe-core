@@ -22,11 +22,14 @@ contract MoeLens {
         address moe;
         uint256 totalVotes;
         uint256 totalWeight;
+        uint256 staticShare;
+        uint256 totalStaticPoolShares;
         uint256 alpha;
         uint256 totalMoePerSec;
         uint256 totalNumberOfFarms;
         uint256 userTotalVeMoe;
         uint256 userTotalVotes;
+        uint256 treasuryShare;
         Farm[] farms;
     }
 
@@ -76,10 +79,13 @@ contract MoeLens {
     struct Farm {
         uint256 pid;
         bool isRewardable;
+        bool isVotable;
+        bool isStatic;
         uint256 votesOnFarm;
         uint256 moePerSec;
         uint256 totalVotesOnFarm;
         uint256 totalWeightOnFarm;
+        uint256 staticPoolShare;
         Token lpToken;
         uint256 totalStaked;
         uint256 totalSupply;
@@ -168,11 +174,14 @@ contract MoeLens {
             moe: address(_moe),
             totalVotes: _veMoe.getTotalVotes(),
             totalWeight: _veMoe.getTotalWeight(),
+            staticShare: _masterchef.getStaticShare(),
+            totalStaticPoolShares: _masterchef.getTotalStaticPoolShares(),
             alpha: _veMoe.getAlpha(),
             totalMoePerSec: _masterchef.getMoePerSecond(),
             totalNumberOfFarms: nbFarms,
             userTotalVeMoe: _veMoe.balanceOf(user),
             userTotalVotes: _veMoe.getTotalVotesOf(user),
+            treasuryShare: _masterchef.getTreasuryShare(),
             farms: new Farm[](nb)
         });
 
@@ -185,11 +194,14 @@ contract MoeLens {
 
     function getFarmDataAt(uint256 pid, address user) external view returns (Farm memory farm) {
         farm.pid = pid;
-        farm.isRewardable = _veMoe.isInTopPoolIds(pid);
-        farm.votesOnFarm = _veMoe.getVotes(pid);
+        farm.isVotable = _veMoe.isInTopPoolIds(pid);
+        farm.isStatic = _masterchef.isStaticPool(pid);
+        farm.isRewardable = farm.isVotable || farm.isStatic;
         farm.moePerSec = _masterchef.getMoePerSecondForPid(pid);
         farm.totalVotesOnFarm = _veMoe.getVotes(pid);
+        farm.votesOnFarm = farm.totalVotesOnFarm;
         farm.totalWeightOnFarm = _veMoe.getWeight(pid);
+        farm.staticPoolShare = _masterchef.getStaticPoolShare(pid);
 
         {
             address lpToken = address(_masterchef.getToken(pid));

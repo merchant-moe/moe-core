@@ -17,6 +17,10 @@ interface IMasterChef {
     error MasterChef__NotMasterchefRewarder();
     error MasterChef__CannotRenounceOwnership();
     error MasterChef__MintFailed();
+    error MasterChef__TopPool(uint256 pid);
+    error MasterChef__TooManyStaticPools();
+    error MasterChef__StaticPoolSharesOverflow();
+    error MasterChef__InvalidPoolId(uint256 pid);
 
     struct Farm {
         Amounts.Parameter amounts;
@@ -34,6 +38,10 @@ interface IMasterChef {
     event ExtraRewarderSet(uint256 indexed pid, IMasterChefRewarder extraRewarder);
 
     event TreasurySet(address indexed treasury);
+
+    event StaticPoolShareSet(uint256 indexed pid, uint256 share);
+
+    event StaticShareSet(uint256 share);
 
     function add(IERC20 token, IMasterChefRewarder extraRewarder) external;
 
@@ -70,6 +78,16 @@ interface IMasterChef {
 
     function getTreasuryShare() external view returns (uint256);
 
+    function getStaticShare() external view returns (uint256);
+
+    function getTotalStaticPoolShares() external view returns (uint256);
+
+    function getStaticPoolShare(uint256 pid) external view returns (uint256);
+
+    function getStaticPoolIds() external view returns (uint256[] memory);
+
+    function isStaticPool(uint256 pid) external view returns (bool);
+
     function getRewarderFactory() external view returns (IRewarderFactory);
 
     function getLBHooksManager() external view returns (address);
@@ -81,6 +99,10 @@ interface IMasterChef {
     function setMoePerSecond(uint96 moePerSecond) external;
 
     function setTreasury(address treasury) external;
+
+    function setStaticPoolShare(uint256 pid, uint128 share) external;
+
+    function setStaticShare(uint128 share) external;
 
     function updateAll(uint256[] calldata pids) external;
 

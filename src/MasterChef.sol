@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import {Math} from "./libraries/Math.sol";
 import {Rewarder} from "./libraries/Rewarder.sol";
@@ -28,6 +29,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     using Math for uint256;
     using Rewarder for Rewarder.Parameter;
     using Amounts for Amounts.Parameter;
+    using EnumerableSet for EnumerableSet.UintSet;
 
     IMoe private immutable _moe;
     IVeMoe private immutable _veMoe;
@@ -43,6 +45,11 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     uint96 private _moePerSecond;
 
     Farm[] private _farms;
+
+    uint128 private _staticShare; // share of the rewards going to the static pools
+    uint128 private _totalStaticPoolShares; // total shares of the static pools
+    mapping(uint256 => uint128) private _staticPoolShares; // shares of the static pools
+    EnumerableSet.UintSet private _staticPoolIds;
 
     /**
      * @dev Constructor for the MasterChef contract.
@@ -147,6 +154,48 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      */
     function getTreasuryShare() external view override returns (uint256) {
         return _treasuryShare;
+    }
+
+    /**
+     * @dev Returns the share of the rewards that will be sent to the static pools.
+     * @return The share of the rewards that will be sent to the static pools.
+     */
+    function getStaticShare() external view override returns (uint256) {
+        return _staticShare;
+    }
+
+    /**
+     * @dev Returns the total share of the static pools.
+     * @return The total share of the static pools.
+     */
+    function getTotalStaticPoolShares() external view override returns (uint256) {
+        return _totalStaticPoolShares;
+    }
+
+    /**
+     * @dev Returns the share of a static pool.
+     * @param pid The pool ID of the static pool.
+     * @return The share of the static pool.
+     */
+    function getStaticPoolShare(uint256 pid) external view override returns (uint256) {
+        return _staticPoolShares[pid];
+    }
+
+    /**
+     * @dev Returns whether a pool ID is a static pool.
+     * @param pid The pool ID to check.
+     * @return True if the pool ID is a static pool, false otherwise.
+     */
+    function isStaticPool(uint256 pid) external view override returns (bool) {
+        return _staticPoolIds.contains(pid);
+    }
+
+    /**
+     * @dev Returns the static pool IDs.
+     * @return The static pool IDs.
+     */
+    function getStaticPoolIds() external view override returns (uint256[] memory) {
+        return _staticPoolIds.values();
     }
 
     /**
@@ -256,13 +305,14 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
 
     /**
      * @dev Returns the MOE per second for a given pool ID.
-     * If the pool ID is not in the top pool IDs, it will return 0.
-     * Else, it will return the MOE per second multiplied by the weight of the pool ID over the total weight.
+     * Does not take into account the treasury share. The actual amount of MOE per second sent to
+     * liquidity mining incentives is `(moePerSecondForPid * (1e18 - treasuryShare)) / 1e18`.
      * @param pid The pool ID.
      * @return The MOE per second for the pool ID.
      */
     function getMoePerSecondForPid(uint256 pid) external view override returns (uint256) {
-        return _getRewardForPid(pid, _moePerSecond, _veMoe.getTotalWeight());
+        (uint256 weight, uint256 totalWeight) = _getWeights(pid);
+        return _getRewards(_moePerSecond, weight, totalWeight);
     }
 
     /**
@@ -377,6 +427,51 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     }
 
     /**
+     * @dev Sets the static share of a pool id.
+     * @param pid The pool ID of the static pool.
+     * @param share The share of the static pool.
+     */
+    function setStaticPoolShare(uint256 pid, uint128 share) external override onlyOwner {
+        if (pid >= _farms.length) revert MasterChef__InvalidPoolId(pid);
+        if (_veMoe.isInTopPoolIds(pid)) revert MasterChef__TopPool(pid);
+
+        if (share == 0) {
+            _updateAll(_staticPoolIds.values());
+
+            _staticPoolIds.remove(pid);
+        } else {
+            _staticPoolIds.add(pid);
+
+            _updateAll(_staticPoolIds.values());
+            if (_staticPoolIds.length() > Constants.MAX_NUMBER_OF_FARMS) revert MasterChef__TooManyStaticPools();
+        }
+
+        uint256 newTotalStaticPoolShares = _totalStaticPoolShares - _staticPoolShares[pid] + share;
+        if (newTotalStaticPoolShares > Constants.MAX_STATIC_SHARES) revert MasterChef__StaticPoolSharesOverflow();
+
+        _staticPoolShares[pid] = share;
+        _totalStaticPoolShares = uint128(newTotalStaticPoolShares); // safe because MAX_STATIC_SHARES < max(uint128)
+
+        emit StaticPoolShareSet(pid, share);
+    }
+
+    /**
+     * @dev Sets the static share of the pools.
+     * @param staticShare The static share of the pools.
+     */
+    function setStaticShare(uint128 staticShare) external override onlyOwner {
+        if (staticShare > Constants.PRECISION) revert MasterChef__InvalidShares();
+
+        uint256[] memory staticPoolIds = _staticPoolIds.values();
+        if (staticPoolIds.length > 0) _updateAll(staticPoolIds);
+        _updateAll(_veMoe.getTopPoolIds());
+
+        _staticShare = staticShare;
+
+        emit StaticShareSet(staticShare);
+    }
+
+    /**
      * @dev Blocks the renouncing of ownership.
      */
     function renounceOwnership() public pure override {
@@ -384,9 +479,31 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     }
 
     /**
+     * @dev Returns the weight and the total weight of a given pool ID.
+     * If the pool ID is in the static pool IDs, it will return the weight of the pool ID multiplied by the static share
+     * and the total static pool shares multiplied by 1e18.
+     * If the pool ID is in the top pool IDs, it will return the weight of the pool ID multiplied by (1e18 - static share)
+     * and the total weight multiplied by 1e18.
+     * Else, it will return 0 and 0.
+     * @param pid The pool ID.
+     * @return The weight and the total weight of the pool ID.
+     */
+    function _getWeights(uint256 pid) internal view returns (uint256, uint256) {
+        uint256 staticPoolShare = _staticPoolShares[pid];
+
+        // max(veMoe.getWeight(pid)) = max(veMoe.getTotalWeight())
+        //                           = max(veMoe.getMaxVeMoePerMoe()) * max(moe.maxSupply())
+        //                           = 1e(5+18) * 1e(9+18) / 1e18 = 1e(5+9+18) = 1e32
+        // => max((_veMoe.getWeight(pid) * (Constants.PRECISION - _staticShare)) = 1e32 * 1e18 = 1e50
+        // max(staticPoolShare * _staticShare) = 1e32 * 1e18 = 1e50
+        // => max(_getWeight(pid)) = 1e50
+        return staticPoolShare == 0
+            ? (_veMoe.getWeight(pid) * (Constants.PRECISION - _staticShare), _veMoe.getTotalWeight() * Constants.PRECISION)
+            : (staticPoolShare * _staticShare, _totalStaticPoolShares * Constants.PRECISION);
+    }
+
+    /**
      * @dev Returns the reward for a given pool ID.
-     * If the pool ID is not in the top pool IDs, it will return 0.
-     * Else, it will return the reward multiplied by the weight of the pool ID over the total weight.
      * @param rewarder The storage pointer to the rewarder.
      * @param pid The pool ID.
      * @param totalSupply The total supply.
@@ -397,20 +514,21 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
         view
         returns (uint256)
     {
-        return _getRewardForPid(pid, rewarder.getTotalRewards(_moePerSecond, totalSupply), _veMoe.getTotalWeight());
+        (uint256 weight, uint256 totalWeight) = _getWeights(pid);
+        return weight == 0 ? 0 : _getRewards(rewarder.getTotalRewards(_moePerSecond, totalSupply), weight, totalWeight);
     }
 
     /**
      * @dev Returns the reward for a given pool ID.
-     * If the pool ID is not in the top pool IDs, it will return 0.
-     * Else, it will return the reward multiplied by the weight of the pool ID over the total weight.
-     * @param pid The pool ID.
+     * If totalWeight is 0, it will return 0.
      * @param totalRewards The total rewards.
+     * @param weight The weight of the pool ID.
      * @param totalWeight The total weight.
      * @return The reward for the pool ID.
      */
-    function _getRewardForPid(uint256 pid, uint256 totalRewards, uint256 totalWeight) private view returns (uint256) {
-        return totalWeight == 0 ? 0 : totalRewards * _veMoe.getWeight(pid) / totalWeight;
+    function _getRewards(uint256 totalRewards, uint256 weight, uint256 totalWeight) private pure returns (uint256) {
+        // max(totalRewards * weight) = max(moe.maxSupply()) * max(weight) = 1e(9+18) * 1e50 = 1e77 < max(uint256)
+        return totalWeight == 0 ? 0 : (totalRewards * weight) / totalWeight;
     }
 
     /**
@@ -445,7 +563,10 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     function _updateAll(uint256[] memory pids) private {
         uint256 length = pids.length;
 
-        uint256 totalWeight = _veMoe.getTotalWeight();
+        uint256 totalVeMoeWeight = _veMoe.getTotalWeight() * Constants.PRECISION;
+        uint256 totalStaticWeight = _totalStaticPoolShares * Constants.PRECISION;
+
+        uint256 staticShare = _staticShare;
         uint256 moePerSecond = _moePerSecond;
 
         for (uint256 i; i < length; ++i) {
@@ -457,7 +578,12 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
             uint256 totalSupply = farm.amounts.getTotalAmount();
             uint256 totalRewards = rewarder.getTotalRewards(moePerSecond, totalSupply);
 
-            uint256 totalMoeRewardForPid = _getRewardForPid(pid, totalRewards, totalWeight);
+            uint256 staticPoolShare = _staticPoolShares[pid];
+            (uint256 weight, uint256 totalWeight) = staticPoolShare == 0
+                ? (_veMoe.getWeight(pid) * (Constants.PRECISION - staticShare), totalVeMoeWeight)
+                : (staticPoolShare * staticShare, totalStaticWeight);
+
+            uint256 totalMoeRewardForPid = _getRewards(totalRewards, weight, totalWeight);
             uint256 moeRewardForPid = _mintMoe(totalMoeRewardForPid);
 
             rewarder.updateAccDebtPerShare(totalSupply, moeRewardForPid);
@@ -514,6 +640,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
         (uint256 treasuryAmount, uint256 liquidityMiningAmount) = _calculateAmounts(amount);
 
         _moe.mint(_treasury, treasuryAmount);
+
         return _moe.mint(address(this), liquidityMiningAmount);
     }
 
