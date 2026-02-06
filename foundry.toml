@@ -14,4 +14,8 @@ mantle = "https://rpc.mantle.xyz"
 [etherscan]
 mantle = { key = "$MANTLESCAN_API_KEY", chain=5000 }
 
+[lint]
+exclude_lints = ["screaming-snake-case-const", "screaming-snake-case-immutable", "unsafe-cheatcode", "unchecked-call", "unwrapped-modifier-logic", "asm-keccak256", "mixed-case-variable", "unused-import", "mixed-case-function", "unaliased-plain-import", "unsafe-typecast", "named-struct-fields", "erc20-unchecked-transfer"]
+ignore = ["**/test/**/*.t.sol", "**/script/**/*.s.sol"]
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

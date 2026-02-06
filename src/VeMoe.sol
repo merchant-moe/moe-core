@@ -584,6 +584,9 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
     function _setAlpha(uint256 alpha) private {
         if (alpha == 0 || alpha > Constants.PRECISION) revert VeMoe__InvalidAlpha();
 
+        // We only need to update the top pool IDs as the static pools are not affected by the alpha change
+        _masterChef.updateAll(_topPids.values());
+
         _alpha = alpha;
         _updateWeights(_topPids.values(), alpha);
 
@@ -616,8 +619,7 @@ contract VeMoe is Ownable2StepUpgradeable, IVeMoe {
             _bribesTotalVotes[bribe][pid] = totalVotes.addDelta(deltaAmount);
 
             bribeReward = BribeReward({
-                bribe: bribe,
-                rewardAmount: bribe.onModify(msg.sender, pid, userOldVotes, userNewVotes, totalVotes)
+                bribe: bribe, rewardAmount: bribe.onModify(msg.sender, pid, userOldVotes, userNewVotes, totalVotes)
             });
         }
     }

@@ -856,4 +856,44 @@ contract MasterChefTest is Test {
         assertEq(masterChef.getMoePerSecondForPid(2), 0, "test_SetStaticPoolShares::66");
         assertEq(masterChef.getMoePerSecondForPid(3), 1e18, "test_SetStaticPoolShares::67");
     }
+
+    function test_SetMoePerSecondAndClaim() public {
+        masterChef.setMoePerSecond(2e18);
+        masterChef.setStaticShare(0.25e18);
+        masterChef.setStaticPoolShare(1, 0.25e18);
+
+        veMoe.setVotes(0, 1e18);
+        uint256[] memory topPids = new uint256[](1);
+        topPids[0] = 0;
+
+        IVeMoe(address(veMoe)).setTopPoolIds(topPids);
+
+        vm.prank(alice);
+        masterChef.deposit(0, 1e18);
+
+        vm.prank(bob);
+        masterChef.deposit(1, 1e18);
+
+        vm.warp(block.timestamp + 100);
+
+        masterChef.setMoePerSecond(1e18);
+
+        vm.warp(block.timestamp + 100);
+
+        uint256[] memory pids = new uint256[](1);
+        pids[0] = 0;
+        vm.prank(alice);
+        masterChef.claim(pids);
+
+        pids[0] = 1;
+        vm.prank(bob);
+        masterChef.claim(pids);
+
+        // Half goes to the treasury
+        uint256 expected0 = 2e18 / 2 * 100 * 0.75e18 / 1e18 + 1e18 / 2 * 100 * 0.75e18 / 1e18;
+        uint256 expected1 = 2e18 / 2 * 100 * 0.25e18 / 1e18 + 1e18 / 2 * 100 * 0.25e18 / 1e18;
+
+        assertEq(moe.balanceOf(alice), expected0, "test_SetMoePerSecondAndClaim::1");
+        assertEq(moe.balanceOf(bob), expected1, "test_SetMoePerSecondAndClaim::2");
+    }
 }

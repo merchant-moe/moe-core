@@ -380,7 +380,9 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
     function setMoePerSecond(uint96 moePerSecond) external override onlyOwner {
         if (moePerSecond > Constants.MAX_MOE_PER_SECOND) revert MasterChef__InvalidMoePerSecond();
 
+        // Update both top and static pools as they are affected by the MOE per second change
         _updateAll(_veMoe.getTopPoolIds());
+        _updateAll(_staticPoolIds.values());
 
         _moePerSecond = moePerSecond;
 
@@ -498,7 +500,10 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
         // max(staticPoolShare * _staticShare) = 1e32 * 1e18 = 1e50
         // => max(_getWeight(pid)) = 1e50
         return staticPoolShare == 0
-            ? (_veMoe.getWeight(pid) * (Constants.PRECISION - _staticShare), _veMoe.getTotalWeight() * Constants.PRECISION)
+            ? (
+                _veMoe.getWeight(pid) * (Constants.PRECISION - _staticShare),
+                _veMoe.getTotalWeight() * Constants.PRECISION
+            )
             : (staticPoolShare * _staticShare, _totalStaticPoolShares * Constants.PRECISION);
     }
 
@@ -562,6 +567,7 @@ contract MasterChef is Ownable2StepUpgradeable, IMasterChef {
      */
     function _updateAll(uint256[] memory pids) private {
         uint256 length = pids.length;
+        if (length == 0) return;
 
         uint256 totalVeMoeWeight = _veMoe.getTotalWeight() * Constants.PRECISION;
         uint256 totalStaticWeight = _totalStaticPoolShares * Constants.PRECISION;
