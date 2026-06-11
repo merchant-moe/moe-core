@@ -6,6 +6,7 @@ library Addresses {
     address public constant moeFactory = 0x5bEf015CA9424A7C07B68490616a4C1F094BEdEc;
     address public constant moePairImplementation = 0x08477e01A19d44C31E4C11Dc2aC86E3BBE69c28B;
     address public constant moeRouter = 0xeaEE7EE68874218c3558b40063c42B82D3E7232a;
+    address public constant moeRegulator = 0x9E1a469Ba8aD682F4adcFe4cC5db7D36f9B3a7b9;
 
     // Tokens
     address public constant wmantle = 0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8;
