@@ -71,20 +71,25 @@ contract MoeRegulator is IMoeRegulator {
     }
 
     /**
+     * @dev Returns whether updateMoePerSecond would lower the rate at the current block timestamp.
+     */
+    function canUpdateMoePerSecond() external view override returns (bool updateNeeded) {
+        (updateNeeded,) = _canUpdateMoePerSecond();
+    }
+
+    /**
      * @dev Applies the rate scheduled for the current block timestamp to the MasterChef through the Safe module.
      * Reverts when the scheduled rate already matches the current one, and only ever lowers the rate.
      */
     function updateMoePerSecond() external override {
-        (uint32 date, uint64 moePerSecond) = getScheduledRate(block.timestamp);
-        uint256 currentMoePerSecond = IMasterChef(MASTERCHEF).getMoePerSecond();
+        (bool needed, uint64 moePerSecond) = _canUpdateMoePerSecond();
+        if (!needed) revert MoeRegulator__NoUpdateNeeded();
 
-        if (moePerSecond == currentMoePerSecond) revert MoeRegulator__NoUpdateNeeded();
-        assert(block.timestamp >= date && moePerSecond < currentMoePerSecond);
-
-        ISafe(SAFE)
+        bool success = ISafe(SAFE)
             .execTransactionFromModule(
                 MASTERCHEF, 0, abi.encodeCall(IMasterChef.setMoePerSecond, (moePerSecond)), ISafe.Operation.Call
             );
+        if (!success) revert MoeRegulator__UpdateFailed();
     }
 
     /**
@@ -99,5 +104,18 @@ contract MoeRegulator is IMoeRegulator {
             date := shr(224, mload(add(add(rates, 0x20), mul(index, ENTRY_SIZE))))
             rate := shr(192, mload(add(add(rates, add(0x20, DATE_SIZE)), mul(index, ENTRY_SIZE))))
         }
+    }
+
+    /**
+     * @dev Shared precondition for canUpdateMoePerSecond and updateMoePerSecond.
+     * @return updateNeeded True when the scheduled rate is a strict decrease from the MasterChef's current rate.
+     * @return moePerSecond The rate scheduled for the current block timestamp.
+     */
+    function _canUpdateMoePerSecond() internal view returns (bool updateNeeded, uint64 moePerSecond) {
+        uint32 date;
+        (date, moePerSecond) = getScheduledRate(block.timestamp);
+        uint256 currentMoePerSecond = IMasterChef(MASTERCHEF).getMoePerSecond();
+
+        updateNeeded = moePerSecond < currentMoePerSecond;
     }
 }

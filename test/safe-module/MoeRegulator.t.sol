@@ -145,12 +145,48 @@ contract MoeRegulatorTest is Test {
         Rate[] memory s = _schedule();
         vm.warp(s[5].date); // scheduled rate 1.41e18
 
-        // Drive the current rate below the scheduled one so the update would have to raise it.
         vm.prank(MULTISIG);
         IMasterChef(MASTERCHEF).setMoePerSecond(uint96(1e18));
 
-        vm.expectRevert(stdError.assertionError);
+        assertFalse(regulator.canUpdateMoePerSecond(), "test_UpdateRevertsWhenRateWouldNotDecrease::1");
+
+        vm.expectRevert(IMoeRegulator.MoeRegulator__NoUpdateNeeded.selector);
         regulator.updateMoePerSecond();
+    }
+
+    function test_CanUpdateMoePerSecond() public {
+        Rate[] memory s = _schedule();
+
+        vm.warp(s[0].date);
+        assertFalse(regulator.canUpdateMoePerSecond(), "test_CanUpdateMoePerSecond::1");
+
+        vm.warp(s[1].date);
+        assertTrue(regulator.canUpdateMoePerSecond(), "test_CanUpdateMoePerSecond::2");
+
+        regulator.updateMoePerSecond();
+        assertFalse(regulator.canUpdateMoePerSecond(), "test_CanUpdateMoePerSecond::3");
+    }
+
+    function test_CanUpdateMoePerSecond_RevertsBeforeFirstDate() public {
+        Rate[] memory s = _schedule();
+
+        vm.warp(s[0].date - 1);
+        vm.expectRevert(IMoeRegulator.MoeRegulator__NoRateFound.selector);
+        regulator.canUpdateMoePerSecond();
+    }
+
+    function testFuzz_CanUpdateMoePerSecond(uint256 ts) public {
+        Rate[] memory s = _schedule();
+        ts = bound(ts, s[0].date, s[18].date);
+
+        (,, uint256 expectedRate) = _active(ts);
+        uint256 currentRate = IMasterChef(MASTERCHEF).getMoePerSecond();
+
+        vm.warp(ts);
+
+        assertEq(
+            regulator.canUpdateMoePerSecond(), expectedRate < currentRate, "testFuzz_CanUpdateMoePerSecond::1"
+        );
     }
 
     function test_UpdateAcrossAllDates() public {
